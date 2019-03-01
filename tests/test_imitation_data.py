@@ -1,11 +1,12 @@
 import sys
 sys.path.append("..")
+import numpy as np
 from utils import exe_time
 from imitation_data import num_uid, num_guid, feature_size
 from imitation_data import gen_unique_id_array
 from imitation_data import gen_features
 from imitation_data import combine_id_feature
-
+from imitation_data import combine_feature_id
 
 def test_gen_unique_id_array():
   uids = gen_unique_id_array(low=1, high=num_uid*2, size=num_uid)
@@ -20,10 +21,16 @@ def test_gen_features(num_feature=num_guid, feature_size=feature_size):
 
 
 def test_combine_id_feature():
-  guids = gen_unique_id_array(low=1, high=num_guid*2, size=num_guid, to_bytes=True)
+  guids = gen_unique_id_array(low=1, high=num_guid*2, size=num_guid, dtype=np.bytes_)
   features = gen_features(num_feature=num_guid, feature_size=feature_size)
   features = exe_time(combine_id_feature)(guids, features)
-  # print(features)
+  print(features)
+
+def test_combine_feature_id():
+  guids = gen_unique_id_array(low=1, high=num_guid*2, size=num_guid, dtype=np.bytes_)
+  features = gen_features(num_feature=num_guid, feature_size=feature_size)
+  features = exe_time(combine_feature_id)(features, guids)
+  print(features)
 
 if __name__ == "__main__":
-  test_combine_id_feature()
+  test_combine_feature_id()
