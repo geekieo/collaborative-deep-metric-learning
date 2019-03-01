@@ -56,7 +56,7 @@ def gen_features(num_feature, feature_size, decimals=8):
 def combine_id_feature(ids, features):
   """ 组合 id_array 和 feature_array
   ids 的长度需等于 feature 的行数
-  Arg:
+  Args:
     ids: ndarray, [num_id]
     features: ndarray, [num_id, size_feature]
   Return:
@@ -71,7 +71,7 @@ def combine_id_feature(ids, features):
 def combine_feature_id(features, ids):
   """ 组合 id_array 和 feature_array
   ids 的长度需等于 feature 的行数
-  Arg:
+  Args:
     features: ndarray, [num_id, size_feature]
     ids: ndarray, [num_id]
   Return:
@@ -83,18 +83,36 @@ def combine_feature_id(features, ids):
   return features
 
 
-def gen_cowatch_data(guids, num_cowatch, low=2, high=30):
+def gen_single_watched_guids(guids, low, high):
+  """生成一条数量随机的 cowatch 数据
+  Args:
+    guids: 1-D array-like, list of bytes.
+    low: int.
+    high: int.
+  Return:
+    single_watched_guids: list of bytes. [size_single_watched]
+  """
+  size_single_watched = random.randint(low, high)
+  single_watched_guids = np.random.choice(guids, size_single_watched)
+  single_watched_guids = single_watched_guids.tolist()
+  return single_watched_guids
+
+def gen_watched_guids(guids, num_cowatch, low=2, high=30):
   """ 在 guids 中随机挑选随机数目的 guid
-  Arg:
-    guids: 1d array of bytes
+  Args:
+    guids: ndarray of bytes
     num_cowatch: int. 
     low: int.Lowest (signed) integer to be drawn from the distribution 
     high: int, optional. If provided, one above the largest (signed) integer to be drawn from the distribution
   Return:
-    watched_guids: ndarray of bytes, [num_id], watched guids of each uid, 
+    watched_guids: list of single_watched_guids, [num_cowatch].
   """
-  random.randint(num_ran_low, num_ran_high)
+  watched_guids = []
+  for _ in range(num_cowatch):
+    single_watched_guids = gen_single_watched_guids(guids, low, high)
+    watched_guids.append(single_watched_guids)
   return watched_guids
+
 
 
 def run():
@@ -103,6 +121,4 @@ def run():
   features = gen_features(num_feature=num_guid, feature_size=feature_size)
 
 if __name__ == "__main__":
-    run()
-
-
+  run()
