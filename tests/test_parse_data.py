@@ -9,10 +9,12 @@ from imitation_data import num_uid, num_guid, feature_size
 from imitation_data import gen_unique_id_array
 from imitation_data import gen_watched_guids
 from imitation_data import gen_all_watched_guids
+from imitation_data import gen_features
 from parse_data import get_guids_index
 from parse_data import get_one_list_of_cowatch
 from parse_data import get_all_cowatch
 from parse_data import yield_all_cowatch
+from parse_data import arrays_to_dict
 
 def test_get_guids_index():
   guids = gen_unique_id_array(low=1, high=3*2, size=3, dtype=np.bytes_)
@@ -54,5 +56,16 @@ def test_yield_all_cowatch():
   print(cowatch.__next__())
   print(cowatch.__next__())
 
+
+def test_arrays_to_dict():
+  guids = gen_unique_id_array(low=1, high=num_guid, size=num_guid, dtype=np.bytes_)
+  features = gen_features(num_feature=num_guid, feature_size=feature_size)
+  feature_dict = exe_time(arrays_to_dict)(guids, features)
+  for k,v in feature_dict.items():
+    print(k, ":\t", v)
+    print(type(k), ":\t", type(v))
+    break
+
 if __name__ == "__main__":
-  test_yield_all_cowatch()
+  # test_yield_all_cowatch()
+  test_arrays_to_dict()
