@@ -53,18 +53,6 @@ def gen_features(num_feature, feature_size, decimals=8):
   return features
 
 
-def arrays_to_dict(array_1d,array_2d):
-  """ 将 1darray 和 array_2d 组合成一个字典
-  要求两个array行数相同，array_1d.shape[0] == array_2d.shape[0]
-  Args:
-    array_1d: 1-D array-like 
-    array_2d: 2-D ndarray
-  Return:
-    dict. key 为 array_1d 的元素，value 为 array_2d 的元素
-  """
-  return dict(zip(array_1d, array_2d))
-
-
 def gen_watched_guids(guids, low, high):
   """生成一条数量随机的 watched guids
   Args:
