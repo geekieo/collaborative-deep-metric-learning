@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 """ Parse watched guids to triplets """
-
+import numpy as np
+from itertools import cycle
+import copy
 
 def get_one_list_of_cowatch(watched_guids):
   """ 解析一组 watched_guids 的 co-watch
@@ -55,7 +57,7 @@ def get_cowatch_graph(guids, all_cowatch):
   pass
 
 
-def threshold_filter(cowatch_graph, threshold):
+def cowatch_graph_filter(cowatch_graph, threshold):
   """ 使用 cowatch_graph 过滤低于 threshold 的 cowatch 
   Args:
     cowatch_graph
@@ -64,7 +66,6 @@ def threshold_filter(cowatch_graph, threshold):
     all_cowatch
   """
   pass
-
 
 
 def arrays_to_dict(array_1d,array_2d):
@@ -80,23 +81,40 @@ def arrays_to_dict(array_1d,array_2d):
   return dict(zip(array_1d, array_2d))
 
 
-def get_triplet(guids, features, all_cowatch):
+def yield_negative_guid(guids):
+  """循环输出随机采样样本，作为负样本"""
+  neg_guids = copy.deepcopy(guids)
+  np.random.shuffle(neg_guids)
+  for neg_guid in cycle(neg_guids):
+    yield neg_guid
+
+
+def get_triplet(guids, all_cowatch, features):
   """Get triplets for training model.
   A triplet contains an anchor, a positive, and a negative. Select 
   co-watch pair as anchor and positive, randomly sample a negative.
+
   Args:
     guids: ndarray of int. the ids of features
-    features: ndarray of features vector, which is a ndarray of 1500 float)
-    all_cowatch: list of co-watch pair(pair of guids)
+    all_cowatch: list of co-watch pair(list of guids)
+    features: ndarray of features vector(ndarray of 1500 float)
   Retrun:
     triplets: ndarray of [anchor feature, positive feature, negative feature]
   """
   feature_dict = arrays_to_dict(guids, features)
+  neg_iter = yield_negative_guid(guids)
+  triplets = []
   for cowatch in all_cowatch:
-    
-
-
-  # return triplets
-
+    anchor_guid = cowatch[0]
+    anchor = feature_dict[anchor_guid]
+    pos_guid = cowatch[1]
+    pos = feature_dict[pos_guid]
+    neg_guid = neg_iter.__next__()
+    while neg_guid in cowatch:
+      neg_guid = neg_iter.__next__()
+    neg = feature_dict[neg_guid]
+    triplet = [anchor, pos, neg]
+    triplets.append(triplet)
+  return np.array(triplets)
   
 
