@@ -18,10 +18,14 @@ class TripletPipe(BasePipe):
                   num_readers=1,
                   **unused_params)
   """Construct a memory data pipe.
-    data: ndarray of training sample
   Args:
-    num_classes: a positive integer for the number of classes.
-    feature_sizes: positive integer(s) for the feature dimensions as a list.
-    feature_names: the feature name(s) in the tensorflow record as a list.
+    data: ndarray of triplet([anchor feature, positive feature, negative feature])
+    batch_size: How many examples to process at a time.
+    num_epochs: How many passes to make over the training data. Set to 'None'
+                to run indefinitely.
+    num_readers: How many I/O threads to use.
+  return:
+    A triplet tuple containing the features tensor of anchor, positive, negative
   """
-  dataset = tf.data.Dataset.from_tensor_slices(data)
+  triplets = tf.data.Dataset.from_tensor_slices(data)
+  
