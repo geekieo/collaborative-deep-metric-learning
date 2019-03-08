@@ -13,10 +13,10 @@ class TripletPipe(BasePipe):
   
   def create_pipe(self,
                   data,
-                  num_epochs=None,
                   batch_size=10,
-                  buffer_size=1000,
+                  num_epochs=None,
                   num_readers=1,
+                  buffer_size=1000,
                   **unused_params):
     """Construct a memory data pipe.
     Args:
@@ -33,7 +33,7 @@ class TripletPipe(BasePipe):
     # Transformation: batch,shuffle,repeat
     dataset = dataset.repeat(num_epochs)
     dataset = dataset.batch(batch_size)
-    dataset = dataset.shuffle(buffer_size=1000)
+    dataset = dataset.shuffle(buffer_size)
     # iterator
     iterator = dataset.make_one_shot_iterator()
     return iterator.get_next()
