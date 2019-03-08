@@ -40,4 +40,4 @@ def test_VENet():
   test_model("VENet")
 
 if __name__ == "__main__":
-    test_VENet()
+  test_VENet()
