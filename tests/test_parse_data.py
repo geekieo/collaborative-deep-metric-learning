@@ -74,9 +74,9 @@ def test_yield_negative_guid():
   neg1 = negative_iter.__next__()
   neg2 = negative_iter.__next__()
   neg3 = negative_iter.__next__()
-  # print(neg1, neg2, nega3)
+  print(neg1, neg2, nega3)
   assert neg3 == 2 or neg3 == 1
-  
+
 
 def test_get_triplet():
   guids = gen_unique_id_array(low=1, high=num_guid, size=num_guid, dtype=np.bytes_)

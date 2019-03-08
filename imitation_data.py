@@ -45,7 +45,7 @@ def gen_features(num_feature, feature_size, decimals=8):
     num_feature: int
     feature_size: int
   Return:
-    features: 2d array
+    features: 2d array. The shape is [num_feature, feature_size]
   """
   shape = (num_feature, feature_size)
   features = np.random.random(shape)
