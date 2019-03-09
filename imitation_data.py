@@ -18,7 +18,7 @@ def gen_unique_id_array(low, high, size, dtype=None):
     low: int
     high: int
     size: int
-    dtype:dtype, optional. The default value is ‘np.int’.
+    dtype: dtype, optional. The default value is ‘np.int’.
       option: np.bytes_
   Return:
     ids: ndarray of ints
