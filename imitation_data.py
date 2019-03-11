@@ -84,12 +84,3 @@ def gen_all_watched_guids(guids, num_cowatch, low=2, high=30):
   return all_watched_guids
 
 
-def run():
-  uids = gen_unique_id_array(low=1, high=num_uid*2, size=num_uid)
-  guids = gen_unique_id_array(low=1, high=num_guid*2, size=num_guid)
-  features = gen_features(num_feature=num_guid, feature_size=feature_size)
-  print(features)
-
-
-if __name__ == "__main__":
-  run()
