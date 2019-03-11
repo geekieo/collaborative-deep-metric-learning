@@ -34,6 +34,7 @@ class TripletPipe(BasePipe):
     dataset = dataset.repeat(num_epochs)
     dataset = dataset.batch(batch_size)
     dataset = dataset.shuffle(buffer_size)
+    
     # iterator
     iterator = dataset.make_one_shot_iterator()
-    return iterator.get_next()
+    return iterator

@@ -19,13 +19,14 @@ class VENet(BaseModel):
     Return the inference of the model_input.
 
     Args:
-      model_input: matrix of input features.dimension: [batch, feature]
+      model_input: matrix of input features.dimension: [batch, channel, feature]
       output_size: size of output embedding. 
 
     Returns:
       A dictionary with a tensor containing the output of the
       model in the 'output' key. The dimensions of the tensor are
       [batch_size, output_size]."""
+    model_input = tf.cast(model_input, tf.float32)
     layer_1 = slim.fully_connected(
         model_input, 2560, activation_fn=tf.nn.sigmoid,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
