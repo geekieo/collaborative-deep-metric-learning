@@ -20,7 +20,7 @@ class test_model():
     features_tensor = tf.constant(features)
     triplets = tf.reshape(features_tensor,self.input_shape)
     # pipe input
-    pipe = inputs.TripletPipe()
+    pipe = find_class_by_name("TripletPipe", [inputs])()  # pipe = inputs.TripletPipe()
     self.batch_size = 100
     input_iter = pipe.create_pipe(triplets, batch_size=self.batch_size, num_epochs=None)
     self.input_triplets = input_iter.get_next()

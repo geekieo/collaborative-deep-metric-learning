@@ -4,7 +4,6 @@ import random
 import sys
 from utils import exe_time
 
-
 # user
 num_uid = 30000
 # video
@@ -44,6 +43,7 @@ def gen_features(num_feature, feature_size, decimals=8):
   Args:
     num_feature: int
     feature_size: int
+    decimals: int. 小数；精度
   Return:
     features: 2d array. The shape is [num_feature, feature_size]
   """
@@ -83,4 +83,10 @@ def gen_all_watched_guids(guids, num_cowatch, low=2, high=30):
     all_watched_guids.append(watched_guids)
   return all_watched_guids
 
+def gen_triplets(batch_size, feature_size):
+  shape = [batch_size, 3, feature_size]
+  triplets = gen_features(num_feature=shape[0]*shape[1],
+                          feature_size=shape[2])
+  triplets = np.reshape(triplets, shape)
+  return triplets
 
