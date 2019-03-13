@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
+import time
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 from tensorflow import logging
-from tensorflow import flags
-from tensorflow.python.client import device_lib
+# from tensorflow import flags
+# from tensorflow.python.client import device_lib
 
 import losses
 import inputs
@@ -12,18 +13,6 @@ import utils
 from utils import find_class_by_name
 
 logging.set_verbosity(logging.DEBUG)
-FLAGS = flags.FLAGS
-
-
-flags.DEFINE_string(
-  "train_dir", "/model/imitation/",
-  "The directory to save the model files in.")
-flags.DEFINE_string(
-  "loss", "HingeLoss",
-  "The loss function to use for training the model.")
-flags.DEFINE_string(
-  "optimizer", "AdamOptimizer",
-  "What optimizer class to use. More optimizer, see tf.train module")
 
 
 def clip_gradient_norms(gradients_to_variables, max_norm):
@@ -94,15 +83,22 @@ def build_graph(pipe,
   tf.summary.scalar('learning_rate', learning_rate)
 
   optimizer = optimizer_class(learning_rate)
-  input_iter = pipe.create_pipe(data, batch_size=batch_size, num_epochs=None)
+  input_iter = pipe.create_pipe(data, batch_size=batch_size, num_epochs=num_epochs)
   input_triplets = input_iter.get_next()
   tf.summary.histogram("model/input_triplets", input_triplets)
 
   #create_model loss train_op add_to_collection
   result = model.create_model(input_triplets, output_size)
+  for variable in slim.get_model_variables():
+    tf.summary.histogram(variable.op.name, variable)
   output_triplets = result["output"]
   loss = loss_fn.calculate_loss(output_triplets)
-  reg_loss = tf.losses.get_regularization_losses()
+
+  reg_loss = tf.constant(0.0)
+  reg_losses = tf.losses.get_regularization_losses()
+  if reg_losses:
+    reg_loss += tf.add_n(reg_losses)
+
   # Incorporate the L2 weight penalties etc.
   final_loss = regularization_penalty * reg_loss + loss
   gradients = optimizer.compute_gradients(final_loss,
@@ -116,6 +112,7 @@ def build_graph(pipe,
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
+  # optimizer 会为 global_step 做自增操作
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
   tf.add_to_collection("global_step", global_step)
@@ -125,71 +122,99 @@ def build_graph(pipe,
   tf.add_to_collection("train_op", train_op)
 
 
-
-
 class Trainer():
 
-  def __init__(self, train_dir, model, pipe):
-    self.train_dir = train_dir
+  def __init__(self, checkpoint_dir, data, pipe, model, loss_fn, optimizer_class,
+               num_epochs=None, log_device_placement=True, last_step=None):
+    # self.is_master = (task.type == "master" and task.index == 0)
+    self.is_master = True 
+    self.checkpoint_dir = checkpoint_dir
     self.config = tf.ConfigProto(
         allow_soft_placement=True,log_device_placement=log_device_placement)
     self.model = model
     self.pipe = pipe
+    self.data = data
+    self.loss_fn = loss_fn
+    self.optimizer_class = optimizer_class
+    self.num_epochs = num_epochs
 
-
-  def build_model(self, model, pipe):
+    self.last_step = last_step
+    
+  def build_model(self):
     """Find the model and build the graph."""
-    label_loss_fn = find_class_by_name(FLAGS.loss, [losses])()
-    optimizer_class = find_class_by_name(FLAGS.optimizer, [tf.train])
-    build_graph(pipe=inputs.TripletPipe(),
-                data=data,
-                model=models.VENet(),
+    build_graph(data=self.data,
+                pipe=self.pipe,
+                model=self.model,
                 output_size=256,
-                loss_fn=label_loss_fn,
+                loss_fn=self.loss_fn,
                 batch_size=10,
                 base_learning_rate=0.01,
                 learning_rate_decay_examples=1000000,
                 learning_rate_decay=0.95,
-                optimizer_class=optimizer_class,
+                optimizer_class=self.optimizer_class,
                 clip_gradient_norm=1.0,
                 regularization_penalty=1,
-                num_epochs=None,
+                num_epochs=self.num_epochs,
                 num_readers=1)
-    return tf.train.Saver(max_to_keep=0, keep_checkpoint_every_n_hours=0.25)
 
   def run(self):
-    if not os.path.exists(self.train_dir):
-      os.makedirs(self.train_dir)
-    target, device_fn = self.start_server_if_distributed()
     with tf.Graph().as_default() as graph:
-      with tf.device(device_fn):
-        if not meta_filename:
-          saver = self.build_model(self.model, self.pipe)
+      self.build_model()
 
-        global_step = tf.get_collection("global_step")[0]
-        loss = tf.get_collection("loss")[0]
-        predictions = tf.get_collection("output")[0]
-        train_op = tf.get_collection("train_op")[0]
-        init_op = tf.global_variables_initializer()
+      global_step = tf.get_collection("global_step")[0]
+      loss = tf.get_collection("loss")[0]
+      output_batch = tf.get_collection("output_batch")[0]
+      train_op = tf.get_collection("train_op")[0]
+      init_op = tf.global_variables_initializer()
 
-    supervisor = tf.train.Supervisor(
-      graph,
-      logdir=self.train_dir,
-      init_op=init_op,
-      is_chief=self.is_master,
-      global_step=global_step,
-      save_model_secs=15 * 60,
-      save_summaries_secs=120,
-      saver=saver)
+      hooks = [tf.train.NanTensorHook(loss)]
+      if self.last_step:
+        hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
+
+      logging.info("%s: Starting monitored session.")
+      with tf.train.MonitoredTrainingSession(checkpoint_dir = self.checkpoint_dir,
+                                             hooks = hooks,
+                                             save_checkpoint_steps = 100) as sess:
+        while not sess.should_stop():
+          batch_start_time = time.time()
+          _, global_step_val, loss_val,output_val = sess.run(
+              [train_op, global_step, loss, output_batch])
+          seconds_per_batch = time.time() - batch_start_time
+          examples_per_second = output_val.shape[0] / seconds_per_batch
+
+          if global_step_val % 10 == 0 and self.checkpoint_dir:
+            logging.info("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
+            #eval
+          else:
+            logging.info("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
+
+      logging.info("Exited training loop.")
 
 
-def main():
+
+
+def main(unused_argv):
+  # TODO Prepare distributed arguments here. 
+  from imitation_data import gen_triplets
+  data = gen_triplets(batch_size=3000,feature_size=1500)
+
   logging.info("Tensorflow version: %s.",tf.__version__)
-  model = find_class_by_name(FLAGS.model, [models])()
-  pipe = inputs.TripletPipe()
-  trainer = Trainer(FLAGS.train_dir, model, pipe,
-          FLAGS.log_device_placement, FLAGS.max_steps,
-          FLAGS.export_model_steps)
+  checkpoint_dir = "/Checkpoints/"
+  model = find_class_by_name("VENet", [models])()
+  pipe = find_class_by_name("TripletPipe", [inputs])()
+  loss_fn = find_class_by_name("HingeLoss", [losses])()
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  # cluster = None
+  # task_data = {"type": "master", "index": 0}
+  # task = type("TaskSpec", (object,), task_data)
+  trainer = Trainer(checkpoint_dir=checkpoint_dir,
+                    data=data,
+                    model=model,
+                    pipe=pipe,
+                    loss_fn=loss_fn,
+                    optimizer_class=optimizer_class)
   trainer.run()  
 
 if __name__ == "__main__":

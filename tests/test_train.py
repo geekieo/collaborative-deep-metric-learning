@@ -9,6 +9,7 @@ import inputs
 import losses
 from utils import find_class_by_name
 from train import build_graph
+from train import Trainer
 
 
 train_dir="."
@@ -53,5 +54,9 @@ def test_build_graph():
     assert loss_val==1.0
     assert train_op_val==None
 
+def test_Trainer():
+  pass
+
+
 if __name__ == "__main__":
-    test_build_graph()
+  test_build_graph()
