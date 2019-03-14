@@ -19,7 +19,7 @@ class test_TripletPipe():
     triplets = np.reshape(triplets,input_shape)
     pipe = TripletPipe()
     batch_size = 3
-    input_iter = pipe.create_pipe(triplets, batch_size=batch_size, num_epochs=None)
+    input_iter = pipe.create_pipe(data=triplets, batch_size=batch_size, num_epochs=None)
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
       sess.run(init_op)
@@ -29,6 +29,7 @@ class test_TripletPipe():
       input_val = sess.run(input_iter.get_next())
       print(input_val, input_val.shape)
       assert input_val.shape == (batch_size, input_shape[1], input_shape[2])
+    
 
 if __name__ == "__main__":
   test_TripletPipe()

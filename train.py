@@ -185,7 +185,7 @@ class Trainer():
           if global_step_val % 10 == 0 and self.checkpoint_dir:
             logging.info("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
-            #eval
+            # model.evaluate()
           else:
             logging.info("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
@@ -214,6 +214,7 @@ def main(unused_argv):
                     model=model,
                     pipe=pipe,
                     loss_fn=loss_fn,
+                    num_epochs=2,
                     optimizer_class=optimizer_class)
   trainer.run()  
 

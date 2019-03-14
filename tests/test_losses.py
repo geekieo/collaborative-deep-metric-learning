@@ -12,6 +12,7 @@ from parse_data import get_triplet
 from losses import HingeLoss
 
 class test_losses():
+
   def __init__(self):
     self.output_triplets = np.array([
       [[1,1],[2,2],[5,5]],
@@ -25,7 +26,6 @@ class test_losses():
     #run test
     self.test_loss()
     self.test_HingeLoss()
-
 
   def test_loss(self):
     output_triplets = tf.cast(self.output_triplets, tf.float32)

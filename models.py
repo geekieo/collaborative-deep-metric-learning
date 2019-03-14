@@ -37,6 +37,11 @@ class VENet(BaseModel):
       output = tf.nn.l2_normalize(layer_2)
       return {"output": output}
 
+  def evaluate():
+    pass
+    
+  def predict():
+    pass
 
   def verify_triplet(self, triplets):
     """Verify that the triples have no empty samples"""
