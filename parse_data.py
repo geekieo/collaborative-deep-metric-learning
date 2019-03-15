@@ -8,12 +8,15 @@ def get_one_list_of_cowatch(watched_guids):
   """ 解析一组 watched_guids 的 co-watch
   Args: 
     watched_guids: list of watched_guid in time order
+    guids_set: set of guids
   """
   cowatch = []
+  guids = []
   if len(watched_guids)>1:
     for i,guid in enumerate(watched_guids[:-1]):
       cowatch.append([watched_guids[i],watched_guids[i+1]])
-  return cowatch
+      guids.append(guid)
+  return cowatch, set(guids)
 
 def get_all_cowatch(all_watched_guids):
   """ 解析所有 watched_guids 的 co-watch
@@ -21,10 +24,12 @@ def get_all_cowatch(all_watched_guids):
     all_watched_guids: list of watched_guids
   """
   all_cowatch = []
+  all_guids = {}
   for watched_guids in all_watched_guids:
-    cowatch = get_one_list_of_cowatch(watched_guids)
+    cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
-  return all_cowatch
+    all_guids = all_guids|guids
+  return all_cowatch, list(all_guids)
 
 
 def yield_all_cowatch(all_watched_guids):
