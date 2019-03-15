@@ -26,15 +26,16 @@ def test_get_guids_index():
 
 def test_get_one_list_of_cowatch():
   watch_guids = gen_unique_id_array(low=1, high=1000*2, size=1000, dtype=np.bytes_)
-  cowatch = get_one_list_of_cowatch(watch_guids)
+  cowatch,guids = get_one_list_of_cowatch(watch_guids)
   assert len(cowatch)==len(watch_guids)-1
   print(cowatch[:5])
+  assert len(guids)==999
 
-  cowatch = get_one_list_of_cowatch([1,2])
+  cowatch,guids = get_one_list_of_cowatch([1,2])
   assert len(cowatch)==1
   print(cowatch)
 
-  cowatch = get_one_list_of_cowatch([1])
+  cowatch,guids = get_one_list_of_cowatch([1])
   assert len(cowatch)==0
   print(cowatch)
 
@@ -46,7 +47,7 @@ def test_get_all_cowatch():
   print(len(all_cowatch), all_cowatch[:5])
 
   watched_guids = [[0], [1,2], [3,4,5,6], [], [7,8,9]]
-  cowatch = get_all_cowatch(watched_guids)
+  all_cowatch, all_guids = get_all_cowatch(watched_guids)
   assert len(cowatch)==6
   print(cowatch)
 
@@ -88,7 +89,8 @@ def test_get_triplet():
 
 
 if __name__ == "__main__":
-  # test_yield_all_cowatch()
+  # test_get_one_list_of_cowatch()
+  test_yield_all_cowatch()
   # test_arrays_to_dict()
   # test_yield_negative_guid()
-  test_get_triplet()
+  # test_get_triplet()
