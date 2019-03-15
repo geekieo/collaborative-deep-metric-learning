@@ -29,10 +29,7 @@ class test_online_data():
 
   def test_read_features_txt(self):
     features = read_features_txt('features.txt')
-    assert list(features.keys())==[
-      'c0115fd1-1f1b-4ee4-a596-70ae95f0e219',
-      '4f2a3543-8c42-4314-bfe0-de59fb0ee694',
-      '8b226bb2-c097-480f-8f22-2208c1a6fcbe']
+    assert len(features)==251
     feature = list(features.values())[-1]
     elements = feature.split(',')
     assert len(elements)==1500
@@ -72,9 +69,9 @@ class test_online_data():
   def test_get_watched_features(self):
     watched_feature = get_watched_features(self.unique_watched_guids, self.features)
     assert len(watched_feature)==251 #TODO 待验证
-    print(watched_feature)
     self.watched_feature = watched_feature
 
+  
 
 if __name__ == "__main__":
   test_online_data()
