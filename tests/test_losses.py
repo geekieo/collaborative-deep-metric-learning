@@ -7,8 +7,6 @@ import numpy as np
 from imitation_data import gen_unique_id_array
 from imitation_data import gen_all_watched_guids
 from imitation_data import gen_features
-from parse_data import get_all_cowatch
-from parse_data import get_triplet
 from losses import HingeLoss
 
 class test_losses():

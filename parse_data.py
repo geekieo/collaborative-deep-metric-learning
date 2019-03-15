@@ -3,6 +3,9 @@
 import numpy as np
 from itertools import cycle
 import copy
+from tensorflow import logging
+
+logging.set_verbosity(logging.DEBUG)
 
 def get_one_list_of_cowatch(watched_guids):
   """ 解析一组 watched_guids 的 co-watch
@@ -22,14 +25,17 @@ def get_all_cowatch(all_watched_guids):
   """ 解析所有 watched_guids 的 co-watch
   Args:
     all_watched_guids: list of watched_guids
+  return：
+    all_cowatch：list of cowatch guids
+    all_guids: set of guid. all unique guids in all_cowatch
   """
   all_cowatch = []
-  all_guids = {}
+  all_guids = set()
   for watched_guids in all_watched_guids:
     cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
     all_guids = all_guids|guids
-  return all_cowatch, list(all_guids)
+  return all_cowatch, all_guids
 
 
 def yield_all_cowatch(all_watched_guids):
@@ -38,7 +44,7 @@ def yield_all_cowatch(all_watched_guids):
     all_watched_guids: list of watched_guids
   """
   for watched_guids in all_watched_guids:
-    cowatch = get_one_list_of_cowatch(watched_guids)
+    cowatch,guids = get_one_list_of_cowatch(watched_guids)
     yield cowatch
 
 
@@ -57,19 +63,24 @@ def get_cowatch_graph(guids, all_cowatch):
     guids: list of int.
     all_cowatch: list of cowatch(pair of guids)
   Retrun:
-    cowatch_graph
+    cowatch_graph: dict
   """
   pass
 
 
 def cowatch_graph_filter(cowatch_graph, threshold):
-  """ 使用 cowatch_graph 过滤低于 threshold 的 cowatch 
+  """ 使用 cowatch_graph 保留高于 threshold 的 cowatch 
   Args:
     cowatch_graph
     threshold
   Return:
     all_cowatch
   """
+  pass
+
+
+def guid_feature_filter(guids, features):
+  """ 使用 guids 检索 features, 保留有 feature 的 guid"""
   pass
 
 
@@ -98,26 +109,31 @@ def get_triplet(guids, all_cowatch, features):
   """Get triplets for training model.
   A triplet contains an anchor, a positive, and a negative. Select 
   co-watch pair as anchor and positive, randomly sample a negative.
+  NOTE: It is assumed that all guid can be retrieved in features.
 
   Args:
-    guids: ndarray of int. the ids of features
     all_cowatch: list of co-watch pair(list of guids)
-    features: ndarray of features vector(ndarray of 1500 float)
+    features: dict of features vector, the key is guid, 
+      the value is ndarray of 1500 float
   Retrun:
     triplets: ndarray of [anchor feature, positive feature, negative feature]
   """
-  feature_dict = arrays_to_dict(guids, features)
+  if not isinstance(guids,list) and not isinstance(all_cowatch,list)\
+    and not isinstance(features,dict):
+    logging.error("Invalid arguments. Type should be list, list, dict instead of"+
+      str(type(guids))+str(type(all_cowatch))+str(type(features)))
+    return None
   neg_iter = yield_negative_guid(guids)
   triplets = []
   for cowatch in all_cowatch:
     anchor_guid = cowatch[0]
-    anchor = feature_dict[anchor_guid]
+    anchor = features[anchor_guid]
     pos_guid = cowatch[1]
-    pos = feature_dict[pos_guid]
+    pos = features[pos_guid]
     neg_guid = neg_iter.__next__()
     while neg_guid in cowatch:
       neg_guid = neg_iter.__next__()
-    neg = feature_dict[neg_guid]
+    neg = features[neg_guid]
     triplet = [anchor, pos, neg]
     triplets.append(triplet)
   return np.array(triplets)
