@@ -22,7 +22,7 @@ cache = Cache()
 
 def test_read_features_txt():
   features = read_features_txt('features.txt')
-  assert len(features)==251
+  assert len(features)==254
   feature = list(features.values())[-1]
   elements = feature.split(',')
   assert len(elements)==1500

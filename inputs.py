@@ -38,7 +38,7 @@ class TripletPipe(BasePipe):
       get the next batches of features tensor(anchor, positive, negative)
     rasie:
     """
-    if data:
+    if data is not None:
       dataset = tf.data.Dataset.from_tensor_slices(data)
       # Transformation: batch,shuffle,repeat
       dataset = dataset.repeat(num_epochs)
@@ -47,7 +47,7 @@ class TripletPipe(BasePipe):
       # iterator
       iterator = dataset.make_one_shot_iterator()
       return iterator
-    elif filename:
+    elif filename is not None:
       pass
     else:
       raise ValueError('Input ERROR. Check argument "data" or "filename".')
