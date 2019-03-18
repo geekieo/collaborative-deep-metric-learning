@@ -197,8 +197,12 @@ class Trainer():
 
 def main(unused_argv):
   # TODO Prepare distributed arguments here. 
-  from imitation_data import gen_triplets
-  data = gen_triplets(batch_size=3000,feature_size=1500)
+
+  # from imitation_data import gen_triplets
+  # data = gen_triplets(batch_size=3000,feature_size=1500)
+
+  from online_data import gen_triplets
+  triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/Checkpoints/"
@@ -216,7 +220,7 @@ def main(unused_argv):
                     loss_fn=loss_fn,
                     num_epochs=2,
                     optimizer_class=optimizer_class)
-  trainer.run()  
+  trainer.run() 
 
 if __name__ == "__main__":
   tf.app.run()

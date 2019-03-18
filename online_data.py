@@ -1,9 +1,10 @@
-"""Parses the online data stored locally into trainable data
+"""Parses the online data (stroed locally) into trainable data.
 Features are dict. Guids are list.
 """
 from tensorflow import logging
 import json
-# import parse_data import get_all_cowatch
+from parse_data import get_all_cowatch
+from parse_data import mine_triplets
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -76,24 +77,80 @@ def read_watched_guids(filename):
 
 
 def get_unique_watched_guids(all_watched_guids):
-  """get unique guids from all wathced guids"""
+  """get unique guids from all wathced guids.
+  用于取得 watched_guids 和 features 的交集
+  return:
+    flatten list of unique_watched_guids
+  """
   guids = [guid for watched_guids in all_watched_guids 
                   for guid in watched_guids]
-  unique_guids = list(set(guids))
-  return unique_guids
+  unique_watched_guids = list(set(guids))
+  return unique_watched_guids
 
 
-def get_watched_features(unique_guids, features):
-  """get feature from features by the key of unique_guids"""
+def filter_features(features, all_watched_guids):
+  """Filter features by the key of unique_guids
+  删除 features 中用 all_watched_guids 访问不到的 feature
+  Args:
+    features: dict
+    all_watched_guids: 2-D list. list of watched guids.
+  Return:
+    watched_features: dict
+    no_feature_guids: list
+  """
+  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
+  no_feature_guids=[]
   watched_features={}
-  for guid in unique_guids:
+  for guid in unique_watched_guids:
     try:
       watched_features[guid]=features[guid]
     except KeyError as e:
-      # logging.warning(str(e)+"  guid: "+str(guid))python
-      pass
-  return watched_features
+      # logging.warning(str(e)+"  guid: "+str(guid))
+      no_feature_guids.append(guid)
+  return watched_features, no_feature_guids
 
-def get_cowatch(all_watched_guids, features):
-  pass
+
+def filter_watched_guids(all_watched_guids, no_feature_guids):
+  """ Filter all_watched_guids by no_feature_guids.
+  删除 all_watched_guids 中访问不到 feature 的 guid，
+  并以此 guid 为分割点，将这一条 watched_guids 分成两条。
+  用于生成可成功获取 feature 的 cowatch。
+  """
+  no_feature_guids = set(no_feature_guids)
+  filtered_watched_guids=[]
+  for watched_guids in all_watched_guids:
+    # 切分出的列表的头元素在原列表的索引
+    head = 0
+    for i,guid in enumerate(watched_guids):
+      if guid in no_feature_guids:
+        # 忽略长度小于2的列表，无法生成 cowatch
+        if len(watched_guids[head:i]) > 1:
+          filtered_watched_guids.append(watched_guids[head:i])
+        head = i+1
+    # 忽略长度小于2的列表，无法生成 cowatch
+    if len(watched_guids[head:]) > 1:
+      filtered_watched_guids.append(watched_guids[head:])
+  return filtered_watched_guids
+
+
+def get_triplets(watch_file, feature_file):
+  """
+  Args:
+    watch_file: str. file path of watched guid file.
+    feature_file: str. file path of video feature.
+  Return:
+    return: triplets. ndarray of [anchor feature, positive feature, negative feature]
+  """
+  all_watched_guids = read_watched_guids(watch_file)
+  features = read_features_txt(feature_file)
+
+  # filter all_watched_guids and features
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  all_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+
+  # mine triplets
+  all_cowatch = get_all_cowatch(all_watched_guids)
+  triplets = mine_triplets(all_cowatch, features)
+  return triplets
+  
   
