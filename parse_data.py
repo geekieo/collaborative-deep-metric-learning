@@ -1,5 +1,8 @@
 # -*- coding:utf-8 -*-
-""" Parse watched guids to triplets """
+""" Parse watched_guids to triplets with features
+本模块的主要任务是挖掘 cowatch，随机匹配 negative，获取对应 feature，最终
+生成可训练的 triplets。假设 watched_guids 可以访问到 features 中的所有feature。
+"""
 import numpy as np
 from itertools import cycle
 import copy
@@ -30,12 +33,10 @@ def get_all_cowatch(all_watched_guids):
     all_guids: set of guid. all unique guids in all_cowatch
   """
   all_cowatch = []
-  all_guids = set()
   for watched_guids in all_watched_guids:
     cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
-    all_guids = all_guids|guids
-  return all_cowatch, all_guids
+  return all_cowatch
 
 
 def yield_all_cowatch(all_watched_guids):
@@ -54,7 +55,7 @@ def get_guids_index(guids):
   """
   return {k: v for v, k in enumerate(guids)}
   
-
+  
 def get_cowatch_graph(guids, all_cowatch):
   """统计所有观看历史，返回 co-watch 无向图，用于筛选 co-watch pair
   TODO: 过滤 co-watch 少于固定数量的 pair，过滤自己与自己组成的 pair
@@ -68,7 +69,7 @@ def get_cowatch_graph(guids, all_cowatch):
   pass
 
 
-def cowatch_graph_filter(cowatch_graph, threshold):
+def filter_cowatch_graph(cowatch_graph, threshold):
   """ 使用 cowatch_graph 保留高于 threshold 的 cowatch 
   Args:
     cowatch_graph
@@ -105,7 +106,7 @@ def yield_negative_guid(guids):
     yield neg_guid
 
 
-def get_triplet(guids, all_cowatch, features):
+def mine_triplets(all_cowatch, features):
   """Get triplets for training model.
   A triplet contains an anchor, a positive, and a negative. Select 
   co-watch pair as anchor and positive, randomly sample a negative.
@@ -118,13 +119,14 @@ def get_triplet(guids, all_cowatch, features):
   Retrun:
     triplets: ndarray of [anchor feature, positive feature, negative feature]
   """
-  if not isinstance(guids,list) and not isinstance(all_cowatch,list)\
-    and not isinstance(features,dict):
-    logging.error("Invalid arguments. Type should be list, list, dict instead of"+
-      str(type(guids))+str(type(all_cowatch))+str(type(features)))
+  if not isinstance(all_cowatch,list) and not isinstance(features,dict):
+    logging.error("Invalid arguments. Type should be list, dict instead of"+
+      str(type(all_cowatch))+str(type(features)))
     return None
+  guids=list(features.keys())
   neg_iter = yield_negative_guid(guids)
   triplets = []
+  # TODO 这里可以用多线程
   for cowatch in all_cowatch:
     anchor_guid = cowatch[0]
     anchor = features[anchor_guid]

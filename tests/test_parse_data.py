@@ -16,7 +16,7 @@ from parse_data import get_all_cowatch
 from parse_data import yield_all_cowatch
 from parse_data import arrays_to_dict
 from parse_data import yield_negative_guid
-from parse_data import get_triplet
+from parse_data import mine_triplets
 
 def test_get_guids_index():
   guids = gen_unique_id_array(low=1, high=3*2, size=3, dtype=np.bytes_)
@@ -43,11 +43,11 @@ def test_get_one_list_of_cowatch():
 def test_get_all_cowatch():
   guids = gen_unique_id_array(low=1, high=10*2, size=10)
   watched_guids = gen_all_watched_guids(guids,num_cowatch=300,low=2,high=100)
-  all_cowatch, _ = exe_time(get_all_cowatch)(watched_guids)
+  all_cowatch = exe_time(get_all_cowatch)(watched_guids)
   print(len(all_cowatch), all_cowatch[:5])
 
   watched_guids = [[0], [1,2], [3,4,5,6], [], [7,8,9]]
-  all_cowatch, _ = get_all_cowatch(watched_guids)
+  all_cowatch = get_all_cowatch(watched_guids)
   assert len(cowatch)==6
   print(cowatch)
 
@@ -79,14 +79,14 @@ def test_yield_negative_guid():
   assert neg3 == 2 or neg3 == 1
 
 
-def test_get_triplet():
+def test_mine_triplets():
   guids = gen_unique_id_array(low=1, high=num_guid, size=num_guid, dtype=np.bytes_)
   watched_guids = gen_all_watched_guids(guids,num_cowatch=300,low=2,high=100)
-  all_cowatch, _ = get_all_cowatch(watched_guids)
+  all_cowatch = get_all_cowatch(watched_guids)
   features_vectors = gen_features(num_feature=num_guid, feature_size=feature_size)
   features=arrays_to_dict(guids,features_vectors)
 
-  triplet = get_triplet(guids, all_cowatch, features)
+  triplet = mine_triplets(all_cowatch, features)
   print(type(triplet), triplet.shape, triplet[0])
 
 
@@ -95,4 +95,4 @@ if __name__ == "__main__":
   # test_yield_all_cowatch()
   # test_arrays_to_dict()
   # test_yield_negative_guid()
-  test_get_triplet()
+  test_mine_triplets()
