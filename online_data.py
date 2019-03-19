@@ -1,8 +1,9 @@
 """Parses the online data (stroed locally) into trainable data.
 Features are dict. Guids are list.
 """
-from tensorflow import logging
+import sys
 import json
+from tensorflow import logging
 from parse_data import get_all_cowatch
 from parse_data import mine_triplets
 
@@ -150,7 +151,10 @@ def get_triplets(watch_file, feature_file):
 
   # mine triplets
   all_cowatch = get_all_cowatch(all_watched_guids)
+  logging.info("Memory:"+str(sys.getsizeof(all_cowatch))
+    +"\tNum:"+str(len(all_cowatch)))
   triplets = mine_triplets(all_cowatch, features)
+  logging.info("Memory:"+str(sys.getsizeof(triplets)))
   return triplets
   
   
