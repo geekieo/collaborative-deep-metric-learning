@@ -3,6 +3,9 @@
 import sys
 sys.path.append("..")
 import copy
+import sys
+
+from utils import exe_time
 from online_data import read_features_txt
 from online_data import trans_features_to_json
 from online_data import read_features_json
@@ -126,7 +129,9 @@ def test_get_triplets():
 
 def test_get_triplets_real():
   try:
-    triplets = get_triplets(watch_file="watched_video_ids", feature_file="video_guid_inception_feature.txt")
+    triplets = exe_time(get_triplets)(
+      watch_file="/data/wengjy1/watched_video_ids",
+      feature_file="/data/wengjy1/video_guid_inception_feature.txt")
   except Exception as e:
     print(e)
 
@@ -138,5 +143,5 @@ if __name__ == "__main__":
   # test_get_unique_watched_guids()
   # test_filter_features()
   # test_filter_watched_guids()
-  # test_get_triplets()
-  test_get_triplets_real()
+  test_get_triplets()
+  # test_get_triplets_real()

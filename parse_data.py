@@ -7,6 +7,7 @@ import numpy as np
 from itertools import cycle
 import copy
 from tensorflow import logging
+from tqdm import tqdm
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -127,7 +128,7 @@ def mine_triplets(all_cowatch, features):
   neg_iter = yield_negative_guid(guids)
   triplets = []
   # TODO 这里可以用多线程
-  for cowatch in all_cowatch:
+  for cowatch in tqdm(all_cowatch):
     anchor_guid = cowatch[0]
     anchor = features[anchor_guid]
     pos_guid = cowatch[1]
