@@ -34,7 +34,8 @@ def get_all_cowatch(all_watched_guids):
     all_guids: set of guid. all unique guids in all_cowatch
   """
   all_cowatch = []
-  for watched_guids in all_watched_guids:
+  for watched_guids in tqdm(all_watched_guids):
+    # TODO 这里可以用多线程
     cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
   return all_cowatch
