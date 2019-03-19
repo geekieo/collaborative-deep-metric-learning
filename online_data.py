@@ -144,12 +144,12 @@ def get_triplets(watch_file, feature_file):
   Return:
     return: triplets. ndarray of [anchor feature, positive feature, negative feature]
   """
-  all_watched_guids = read_watched_guids(watch_file)
-  features = read_features_txt(feature_file)
+  all_watched_guids = exe_time(read_watched_guids)(watch_file)
+  features = exe_time(read_features_txt)(feature_file)
 
   # filter all_watched_guids and features
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  all_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids)
+  all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids)
 
   # mine triplets
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
