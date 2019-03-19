@@ -4,6 +4,8 @@ Features are dict. Guids are list.
 import sys
 import json
 from tensorflow import logging
+
+from utils import exe_time
 from parse_data import get_all_cowatch
 from parse_data import mine_triplets
 
@@ -150,10 +152,10 @@ def get_triplets(watch_file, feature_file):
   all_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
 
   # mine triplets
-  all_cowatch = get_all_cowatch(all_watched_guids)
+  all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
   logging.info("Memory:"+str(sys.getsizeof(all_cowatch))
     +"\tNum:"+str(len(all_cowatch)))
-  triplets = mine_triplets(all_cowatch, features)
+  triplets = exe_time(mine_triplets)(all_cowatch, features)
   logging.info("Memory:"+str(sys.getsizeof(triplets)))
   return triplets
   
