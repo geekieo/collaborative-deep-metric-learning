@@ -108,34 +108,24 @@ def yield_negative_guid(guids):
     yield neg_guid
 
 
-def combine_cowatch_neg(cowatch, neg_iter, features=None):
+def combine_cowatch_neg(cowatch, neg_iter):
   """为 cowatch 挑选 negative, 返回 triplet
   Args:
     cowatch: list of two guid
     neg_iter: iterator of random guids which is from the keys of features
-    features: list of features vector, the key is guid,
-              the value is list of 1500 float.
   Retrun:
-    triplet: if features is None,the triplet is list of guids, the shape
-            is (3, guid_size); else the triplet is list of features, the
-            shape is (3, feature_size).
+    triplet: the triplet is list of guids, the shape is (3, guid_size)
   """
   anchor_guid = cowatch[0]
   pos_guid = cowatch[1]
   neg_guid = neg_iter.__next__()
   while neg_guid in cowatch:
     neg_guid = neg_iter.__next__()
-  if features:
-    anchor = features[anchor_guid]
-    pos = features[pos_guid]
-    neg = features[neg_guid]
-    triplet = [anchor, pos, neg]
-  else:
-    triplet = [anchor_guid, pos_guid, neg_guid]
+  triplet = [anchor_guid, pos_guid, neg_guid]
   return triplet
 
 
-def mine_triplets(all_cowatch, features, return_features=True):
+def mine_triplets(all_cowatch, features):
   """Get triplets for training model.
   A triplet contains an anchor, a positive, and a negative. Select 
   co-watch pair as anchor and positive, randomly sample a negative.
@@ -144,12 +134,10 @@ def mine_triplets(all_cowatch, features, return_features=True):
   Args:
     all_cowatch: list of co-watch pair(list of guids)
     features: dict of features vector, the key is guid, 
-              the value is list of 1500 float
+              the value is feature string
     return_features: boolean. control the element in triplets
   Retrun:
-    triplets: list of triplets. if return_features is True, the element 
-            triplet is list of 3 feature, [anchor feature, positive
-            feature, negative feature]; else triplet is list of 3 guid,
+    triplets: list of triplets.  triplet is list of 3 guid,
             [anchor_guid, pos_guid, neg_guid]
   """
   if not isinstance(all_cowatch,list) and not isinstance(features,dict):
@@ -162,10 +150,7 @@ def mine_triplets(all_cowatch, features, return_features=True):
   triplets = []
   # TODO 这里可以用多线程
   for cowatch in tqdm(all_cowatch):
-    if return_features:
-      triplet = combine_cowatch_neg(cowatch, neg_iter, features)
-    else:
-      triplet = combine_cowatch_neg(cowatch, neg_iter)
+    triplet = combine_cowatch_neg(cowatch, neg_iter)
     triplets.append(triplet)
   return triplets
   

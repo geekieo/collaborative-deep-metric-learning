@@ -30,7 +30,7 @@ def test_trans_features_to_json():
 
 def test_read_features_json():
   from_txt = read_features_txt('features.txt')
-  from__json = read_features_json('features.json')
+  from_json = read_features_json('features.json')
   assert from_txt.__eq__(from_txt)
 
 
@@ -124,17 +124,21 @@ def test_filter_watched_guids():
 
 def test_get_triplets():
   triplets = get_triplets(watch_file="watched_guids.txt",
-                          feature_file="features.txt",
-                          return_features=True)
+                          feature_file="features.txt")
   shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
   print(shape)
-  assert shape == (240,3,1500)
-  triplets = get_triplets(watch_file="watched_guids.txt",
-                          feature_file="features.txt",
-                          return_features=False)
-  shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
-  print(shape)
-  # assert shape == (240,3,1500)
+  # shape == (240,3, guid_size)
+
+
+def test_read_features_txt_real():
+  try:
+    features = read_features_txt('/data/wengjy1/video_guid_inception_feature.txt')
+    print(sys.getsizeof(features))
+    feature = list(features.values())[-1]
+    elements = feature.split(',')
+    assert len(elements)==1500
+  except Exception as e:
+    print(e)
 
 def test_get_triplets_real():
   try:
@@ -152,5 +156,6 @@ if __name__ == "__main__":
   # test_get_unique_watched_guids()
   # test_filter_features()
   # test_filter_watched_guids()
-  test_get_triplets()
-  # test_get_triplets_real()
+  # test_get_triplets()
+  test_read_features_txt_real()
+  test_get_triplets_real()

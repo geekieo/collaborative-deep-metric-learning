@@ -48,8 +48,8 @@ def test_get_all_cowatch():
 
   watched_guids = [[0], [1,2], [3,4,5,6], [], [7,8,9]]
   all_cowatch = get_all_cowatch(watched_guids)
-  assert len(cowatch)==6
-  print(cowatch)
+  assert len(all_cowatch)==6
+  print(all_cowatch)
 
 def test_yield_all_cowatch():
   guids = gen_unique_id_array(low=1, high=10*2, size=10)
@@ -75,7 +75,7 @@ def test_yield_negative_guid():
   neg1 = negative_iter.__next__()
   neg2 = negative_iter.__next__()
   neg3 = negative_iter.__next__()
-  print(neg1, neg2, nega3)
+  print(neg1, neg2, neg3)
   assert neg3 == 2 or neg3 == 1
 
 
@@ -87,12 +87,12 @@ def test_mine_triplets():
   features=arrays_to_dict(guids,features_vectors)
 
   triplet = mine_triplets(all_cowatch, features)
-  print(type(triplet), triplet.shape, triplet[0])
+  print(type(triplet), len(triplet), triplet[0])
 
 
 if __name__ == "__main__":
-  # test_get_one_list_of_cowatch()
-  # test_yield_all_cowatch()
-  # test_arrays_to_dict()
-  # test_yield_negative_guid()
+  test_get_one_list_of_cowatch()
+  test_yield_all_cowatch()
+  test_arrays_to_dict()
+  test_yield_negative_guid()
   test_mine_triplets()
