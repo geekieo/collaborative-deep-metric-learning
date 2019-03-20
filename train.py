@@ -154,8 +154,8 @@ class Trainer():
                 learning_rate_decay_examples=1000000,
                 learning_rate_decay=0.95,
                 optimizer_class=self.optimizer_class,
-                clip_gradient_norm=1.0,
-                regularization_penalty=1,
+                clip_gradient_norm=0,
+                regularization_penalty=0,
                 num_epochs=self.num_epochs,
                 num_readers=1)
 

@@ -108,7 +108,7 @@ def yield_negative_guid(guids):
     yield neg_guid
 
 
-def combine_cowatch_nega(cowatch, neg_iter, features=None):
+def combine_cowatch_neg(cowatch, neg_iter, features=None):
   """为 cowatch 挑选 negative, 返回 triplet
   Args:
     cowatch: list of two guid
@@ -163,10 +163,10 @@ def mine_triplets(all_cowatch, features, return_features=True):
   # TODO 这里可以用多线程
   for cowatch in tqdm(all_cowatch):
     if return_features:
-      triplet = combine_cowatch_nega(cowatch, neg_iter, features)
+      triplet = combine_cowatch_neg(cowatch, neg_iter, features)
     else:
-      triplet = combine_cowatch_nega(cowatch, neg_iter)
+      triplet = combine_cowatch_neg(cowatch, neg_iter)
     triplets.append(triplet)
-  return np.array(triplets)
+  return triplets
   
 
