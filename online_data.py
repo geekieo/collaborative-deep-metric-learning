@@ -15,7 +15,7 @@ def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature，
-  visual feature 是 1500 维的浮点向量。
+  visual feature 是 str 格式的 1500 维的浮点向量。
   """
   features = {}
   with open(filename,'r') as file:
@@ -24,7 +24,6 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
-        feature = feature.split(',')
         features[guid]=feature
       except Exception as e:
         logging.warning(e+". Context: "+line)
@@ -137,7 +136,7 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
   return filtered_watched_guids
 
 
-def get_triplets(watch_file, feature_file, return_features=False):
+def get_triplets(watch_file, feature_file):
   """
   Args:
     watch_file: str. file path of watched guid file.
@@ -171,7 +170,7 @@ def get_triplets(watch_file, feature_file, return_features=False):
   logging.info("all_cowatch Memory:"+str(sys.getsizeof(all_cowatch))
     +"\tNum:"+str(len(all_cowatch)))
       
-  triplets = exe_time(mine_triplets)(all_cowatch, features, return_features=return_features)
+  triplets = exe_time(mine_triplets)(all_cowatch, features)
   logging.info("triplets Memory:"+str(sys.getsizeof(triplets)))
   return triplets
   
