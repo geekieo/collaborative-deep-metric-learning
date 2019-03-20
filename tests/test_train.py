@@ -3,6 +3,7 @@ import sys
 sys.path.append("..")
 import numpy as np
 import tensorflow as tf
+from tensorflow import logging
 
 import models
 import inputs
@@ -12,18 +13,21 @@ from train import build_graph
 from train import Trainer
 
 
-train_dir="."
-model = find_class_by_name("VENet", [models])()
-loss_fn = find_class_by_name("HingeLoss", [losses])()
-optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-data = np.array([
-      [[1,1],[2,2],[5,5]],
-      [[1,1],[5,5],[2,2]],
-      [[1,1],[2,2],[5,5]],
-      [[1,1],[5,5],[2,2]],
-      [[1,1],[5,5],[5,5]]])
+logging.set_verbosity(logging.DEBUG)
+
 
 def test_build_graph():
+  train_dir="."
+  model = find_class_by_name("VENet", [models])()
+  loss_fn = find_class_by_name("HingeLoss", [losses])()
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  data = np.array([
+        [[1,1],[2,2],[5,5]],
+        [[1,1],[5,5],[2,2]],
+        [[1,1],[2,2],[5,5]],
+        [[1,1],[5,5],[2,2]],
+        [[1,1],[5,5],[5,5]]])
+
   build_graph(pipe=inputs.TripletPipe(),
               data=data,
               model=models.VENet(),
@@ -55,8 +59,32 @@ def test_build_graph():
     assert train_op_val==None
 
 def test_Trainer():
-  pass
+  # from imitation_data import gen_triplets
+  # triplets = gen_triplets(batch_size=3000,feature_size=1500)
+
+  from online_data import get_triplets
+  triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
+
+  logging.info("Tensorflow version: %s.",tf.__version__)
+  checkpoint_dir = "/Checkpoints/"
+  model = find_class_by_name("VENet", [models])()
+  pipe = find_class_by_name("TripletPipe", [inputs])()
+  loss_fn = find_class_by_name("HingeLoss", [losses])()
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  # cluster = None
+  # task_data = {"type": "master", "index": 0}
+  # task = type("TaskSpec", (object,), task_data)
+  trainer = Trainer(checkpoint_dir=checkpoint_dir,
+                    data=triplets,
+                    model=model,
+                    pipe=pipe,
+                    loss_fn=loss_fn,
+                    optimizer_class=optimizer_class,
+                    batch_size=100,
+                    num_epochs=2)
+  trainer.run() 
 
 
 if __name__ == "__main__":
-  test_build_graph()
+  # test_build_graph()
+  test_Trainer()

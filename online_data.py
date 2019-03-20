@@ -24,6 +24,7 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
+        feature = feature.split(',')
         features[guid]=feature
       except Exception as e:
         logging.warning(e+". Context: "+line)
@@ -136,7 +137,7 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
   return filtered_watched_guids
 
 
-def get_triplets(watch_file, feature_file):
+def get_triplets(watch_file, feature_file, return_features=True):
   """
   Args:
     watch_file: str. file path of watched guid file.
@@ -144,19 +145,34 @@ def get_triplets(watch_file, feature_file):
   Return:
     return: triplets. ndarray of [anchor feature, positive feature, negative feature]
   """
+  # read file
   all_watched_guids = exe_time(read_watched_guids)(watch_file)
+  logging.info("all_watched_guids Memory:"+str(sys.getsizeof(all_watched_guids))
+    +"\tNum:"+str(len(all_watched_guids)))
+
   features = exe_time(read_features_txt)(feature_file)
+  logging.info("features Memory:"+str(sys.getsizeof(features))
+    +"\tNum:"+str(len(features)))
 
   # filter all_watched_guids and features
   features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids)
+  logging.info("features Memory:"+str(sys.getsizeof(features))
+    +"\tNum:"+str(len(features)))
+  logging.info("no_feature_guids Memory:"+str(sys.getsizeof(no_feature_guids))
+    +"\tNum:"+str(len(no_feature_guids)))
+
   all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids)
+  logging.info("all_watched_guids Memory:"+str(sys.getsizeof(all_watched_guids))
+    +"\tNum:"+str(len(all_watched_guids)))
+
 
   # mine triplets
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
-  logging.info("Memory:"+str(sys.getsizeof(all_cowatch))
+  logging.info("all_cowatch Memory:"+str(sys.getsizeof(all_cowatch))
     +"\tNum:"+str(len(all_cowatch)))
-  triplets = exe_time(mine_triplets)(all_cowatch, features)
-  logging.info("Memory:"+str(sys.getsizeof(triplets)))
+      
+  triplets = exe_time(mine_triplets)(all_cowatch, features, return_features=return_features)
+  logging.info("triplets Memory:"+str(sys.getsizeof(triplets)))
   return triplets
   
   
