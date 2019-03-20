@@ -63,8 +63,11 @@ def test_Trainer():
   # triplets = gen_triplets(batch_size=3000,feature_size=1500)
 
   from online_data import get_triplets
-  triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
-
+  triplets = get_triplets(watch_file="watched_guids.txt",
+                          feature_file="features.txt",
+                          return_features=True)
+  triplets = np.array(triplets, dtype=float)
+  print(triplets.shape)
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/Checkpoints/"
   model = find_class_by_name("VENet", [models])()
@@ -81,7 +84,7 @@ def test_Trainer():
                     loss_fn=loss_fn,
                     optimizer_class=optimizer_class,
                     batch_size=100,
-                    num_epochs=2)
+                    num_epochs=None)
   trainer.run() 
 
 

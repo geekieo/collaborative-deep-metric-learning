@@ -123,10 +123,18 @@ def test_filter_watched_guids():
   assert len(filtered_watched_guids[0])==7
 
 def test_get_triplets():
-  triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
-  # shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
-  # print(shape)
-  assert triplets.shape == (240,3,1500)
+  triplets = get_triplets(watch_file="watched_guids.txt",
+                          feature_file="features.txt",
+                          return_features=True)
+  shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
+  print(shape)
+  assert shape == (240,3,1500)
+  triplets = get_triplets(watch_file="watched_guids.txt",
+                          feature_file="features.txt",
+                          return_features=False)
+  shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
+  print(shape)
+  # assert shape == (240,3,1500)
 
 def test_get_triplets_real():
   try:

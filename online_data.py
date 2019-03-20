@@ -137,7 +137,7 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
   return filtered_watched_guids
 
 
-def get_triplets(watch_file, feature_file, return_features=True):
+def get_triplets(watch_file, feature_file, return_features=False):
   """
   Args:
     watch_file: str. file path of watched guid file.
