@@ -66,7 +66,7 @@ def test_Trainer():
   triplets = get_triplets(watch_file="watched_guids.txt",
                           feature_file="features.txt",
                           return_features=True)
-  triplets = np.array(triplets, dtype=float)
+  triplets = np.array(triplets, dtype=np.float32)
   print(triplets.shape)
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/Checkpoints/"
