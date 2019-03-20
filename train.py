@@ -207,8 +207,9 @@ def main(unused_argv):
 
   from online_data import get_triplets
   triplets = get_triplets(watch_file="/data/wengjy1/watched_video_ids",
-                          feature_file="/data/wengjy1/video_guid_inception_feature.txt")
-
+                          feature_file="/data/wengjy1/video_guid_inception_feature.txt",
+                          return_features=True)
+  triplets=np.array(triplets, dtype=np.float32)
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/Checkpoints/"
   model = find_class_by_name("VENet", [models])()
