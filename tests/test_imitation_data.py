@@ -8,6 +8,7 @@ from imitation_data import gen_unique_id_array
 from imitation_data import gen_features
 from imitation_data import gen_watched_guids
 from imitation_data import gen_all_watched_guids
+from imitation_data import gen_triplets
 
 
 def test_gen_unique_id_array():
@@ -34,8 +35,14 @@ def test_gen_all_watched_guids():
   print(type(watched_guids),type(watched_guids[0]),watched_guids[:3])
 
 
+def test_gen_triplets():
+  triplets = gen_triplets(100,256)
+  assert triplets.shape==(100, 3, 256)
+
 if __name__ == "__main__":
   # test_gen_unique_id_array()
-  test_gen_features()
+  # test_gen_features()
   # test_gen_watched_guids()
   # test_gen_all_watched_guids()
+  test_gen_triplets()
+

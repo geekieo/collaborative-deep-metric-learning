@@ -124,7 +124,9 @@ def test_filter_watched_guids():
 
 def test_get_triplets():
   triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
-  assert len(triplets)==240
+  # shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
+  # print(shape)
+  assert triplets.shape == (240,3,1500)
 
 def test_get_triplets_real():
   try:

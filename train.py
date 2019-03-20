@@ -85,7 +85,8 @@ def build_graph(pipe,
   optimizer = optimizer_class(learning_rate)
   input_iter = pipe.create_pipe(data, batch_size=batch_size, num_epochs=num_epochs)
   input_triplets = input_iter.get_next()
-  tf.summary.histogram("model/input_triplets", input_triplets)
+  input_triplets = tf.cast(input_triplets, tf.float32)
+  # tf.summary.histogram("input_triplets", input_triplets)
 
   #create_model loss train_op add_to_collection
   result = model.create_model(input_triplets, output_size)
@@ -125,7 +126,7 @@ def build_graph(pipe,
 class Trainer():
 
   def __init__(self, checkpoint_dir, data, pipe, model, loss_fn, optimizer_class,
-               num_epochs=None, log_device_placement=True, last_step=None):
+               batch_size, num_epochs=None, log_device_placement=True, last_step=None):
     # self.is_master = (task.type == "master" and task.index == 0)
     self.is_master = True 
     self.checkpoint_dir = checkpoint_dir
@@ -136,6 +137,7 @@ class Trainer():
     self.data = data
     self.loss_fn = loss_fn
     self.optimizer_class = optimizer_class
+    self.batch_size = batch_size
     self.num_epochs = num_epochs
 
     self.last_step = last_step
@@ -147,7 +149,7 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                batch_size=10,
+                batch_size=self.batch_size,
                 base_learning_rate=0.01,
                 learning_rate_decay_examples=1000000,
                 learning_rate_decay=0.95,
@@ -174,7 +176,9 @@ class Trainer():
       logging.info("%s: Starting monitored session.")
       with tf.train.MonitoredTrainingSession(checkpoint_dir = self.checkpoint_dir,
                                              hooks = hooks,
-                                             save_checkpoint_steps = 100) as sess:
+                                             save_summaries_steps=100,
+                                             save_checkpoint_secs=600) as sess:
+
         while not sess.should_stop():
           batch_start_time = time.time()
           _, global_step_val, loss_val,output_val = sess.run(
@@ -201,8 +205,9 @@ def main(unused_argv):
   # from imitation_data import gen_triplets
   # data = gen_triplets(batch_size=3000,feature_size=1500)
 
-  from online_data import gen_triplets
-  triplets = get_triplets(watch_file="watched_guids.txt", feature_file="features.txt")
+  from online_data import get_triplets
+  triplets = get_triplets(watch_file="/data/wengjy1/watched_video_ids",
+                          feature_file="/data/wengjy1/video_guid_inception_feature.txt")
 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/Checkpoints/"
@@ -214,12 +219,14 @@ def main(unused_argv):
   # task_data = {"type": "master", "index": 0}
   # task = type("TaskSpec", (object,), task_data)
   trainer = Trainer(checkpoint_dir=checkpoint_dir,
-                    data=data,
+                    data=triplets,
                     model=model,
                     pipe=pipe,
                     loss_fn=loss_fn,
-                    num_epochs=2,
-                    optimizer_class=optimizer_class)
+                    optimizer_class=optimizer_class,
+                    batch_size=100,
+                    num_epochs=1
+                    )
   trainer.run() 
 
 if __name__ == "__main__":
