@@ -3,33 +3,35 @@ import sys
 sys.path.append("..")
 import tensorflow as tf
 import numpy as np
-from imitation_data import gen_features
+from online_data import get_triplets
+from parse_data import lookup
 from inputs import TripletPipe
 
 
-class test_TripletPipe():
-
-  def __init__(self):
-    self.test_create_pipe()
-    
-  def test_create_pipe(self):
-    input_shape = (5, 3, 2)
-    triplets = gen_features(num_feature=input_shape[0]*input_shape[1],
-                            feature_size=input_shape[2])
-    triplets = np.reshape(triplets,input_shape)
-    pipe = TripletPipe()
-    batch_size = 3
-    input_iter = pipe.create_pipe(data=triplets, batch_size=batch_size, num_epochs=None)
-    init_op = tf.global_variables_initializer()
-    with tf.Session() as sess:
-      sess.run(init_op)
-      input_val = sess.run(input_iter.get_next())
-      print(input_val, input_val.shape)
-      assert input_val.shape == (batch_size, input_shape[1], input_shape[2])
-      input_val = sess.run(input_iter.get_next())
-      print(input_val, input_val.shape)
-      assert input_val.shape == (batch_size, input_shape[1], input_shape[2])
-    
-
+def test_create_pipe():
+  triplets, features = get_triplets(watch_file="watched_guids.txt",
+                                    feature_file="features.txt")
+  print("triplets type",type(triplets),type(triplets[0]),type(triplets[0][0]))
+  print("triplets shape",len(triplets),len(triplets[0]),len(triplets[0][0]))
+  # build graph
+  pipe = TripletPipe()
+  batch_size = 2
+  triplets_iter = pipe.create_pipe(triplets=triplets, batch_size=batch_size, num_epochs=None)
+  guid_triplets = triplets_iter.get_next()
+  tf.add_to_collection("guid_triplets", guid_triplets)
+  # use graph
+  guid_triplets = tf.get_collection("guid_triplets")[0]
+  init_op = tf.global_variables_initializer()
+  with tf.Session() as sess:
+    sess.run(init_op)
+    guid_triplets_val = sess.run(guid_triplets)
+    guid_triplets_val = sess.run(guid_triplets)
+    print(guid_triplets_val, guid_triplets_val.shape)
+    assert guid_triplets_val.shape == (batch_size, 3)
+    # trans guid to feature
+    input_triplets = lookup(guid_triplets_val, features)
+    print(input_triplets)
+    print(input_triplets.shape)
+  
 if __name__ == "__main__":
-  test_TripletPipe()
+  test_create_pipe()

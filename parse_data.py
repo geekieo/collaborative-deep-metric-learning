@@ -158,18 +158,22 @@ def mine_triplets(all_cowatch, features):
 def lookup(batch_triplets, features):
   """Trans guids to features
   Arg:
-    batch_triplets: list of guid_triplets
-    features: dict
+    batch_triplets: list of guid_triplets, guids are bytes after sess.run
+    features: dict of ndarray. keys are unicode
   Return:
     batch_triplets: list of feature_triplets
   """
   triplets = []
   for _, guid_triplet in enumerate(batch_triplets):
-    triplet = []
-    for _, guid in enumerate(guid_triplet):
-      triplet.append(features[guid])
-    triplet = np.array(triplet)
-    triplets.append(triplet)
+    try:
+      triplet = []
+      for _, guid in enumerate(guid_triplet):
+        guid=bytes.decode(guid) 
+        triplet.append(features[guid])
+      triplet = np.array(triplet)
+      triplets.append(triplet)
+    except:
+      continue
   triplets = np.array(triplets)
   return triplets
 

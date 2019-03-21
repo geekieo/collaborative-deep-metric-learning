@@ -15,20 +15,14 @@ class BasePipe(object):
 class TripletPipe(BasePipe):
   
   def create_pipe(self,
-                  data=None,
-                  filename=None,
+                  triplets=None,
                   batch_size=10,
                   num_epochs=None,
                   num_readers=1,
-                  buffer_size=1000,
-                  **unused_params):
+                  buffer_size=1000):
     """Construct a memory data pipe.
     Args:
-      data: ndarray of triplet([anchor feature, positive feature, negative feature])
-            all training data.
-      filename: str. A path pattern to the data files. If 'data' and 'filename'
-                both are provided, then only data is used. 'data' and 'filename'
-                must have at least one.
+      triplets: ndarray of guid_triplets([anchor_guid, pos_guid, neg_guid]).
       batch_size: How many examples to process at a time.
       num_epochs: How many passes to make over the training data. Set to 'None'
                   to run indefinitely.
@@ -38,17 +32,13 @@ class TripletPipe(BasePipe):
       get the next batches of features tensor(anchor, positive, negative)
     rasie:
     """
-    if data is not None:
-      dataset = tf.data.Dataset.from_tensor_slices(data)
-      # Transformation: batch,shuffle,repeat
-      dataset = dataset.repeat(num_epochs)
-      dataset = dataset.batch(batch_size)
-      dataset = dataset.shuffle(buffer_size)
-      # iterator
-      iterator = dataset.make_one_shot_iterator()
-      return iterator
-    elif filename is not None:
-      pass
-    else:
-      raise ValueError('Input ERROR. Check argument "data" or "filename".')
+    dataset = tf.data.Dataset.from_tensor_slices(triplets)
+    # Transformation: batch,shuffle,repeat
+    dataset = dataset.repeat(num_epochs)
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.shuffle(buffer_size)
+    # iterator
+    iterator = dataset.make_one_shot_iterator()
+    return iterator
+
 
