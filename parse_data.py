@@ -155,3 +155,21 @@ def mine_triplets(all_cowatch, features):
   return triplets
   
 
+def lookup(batch_triplets, features):
+  """Trans guids to features
+  Arg:
+    batch_triplets: list of guid_triplets
+    features: dict
+  Return:
+    batch_triplets: list of feature_triplets
+  """
+  triplets = []
+  for _, guid_triplet in enumerate(batch_triplets):
+    triplet = []
+    for _, guid in enumerate(guid_triplet):
+      triplet.append(features[guid])
+    triplet = np.array(triplet)
+    triplets.append(triplet)
+  triplets = np.array(triplets)
+  return triplets
+
