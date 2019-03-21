@@ -32,6 +32,8 @@ def test_create_pipe():
     input_triplets = lookup(guid_triplets_val, features)
     print(input_triplets)
     print(input_triplets.shape)
-  
+    assert input_triplets.shape == (2, 3, 1500)
+
+    
 if __name__ == "__main__":
   test_create_pipe()
