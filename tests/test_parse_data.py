@@ -95,7 +95,10 @@ def test_mine_triplets():
 def test_lookup():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                                     feature_file="features.txt")
-  triplets = lookup(triplets,features)
+  guid_triplets = tf.constant(triplets)
+  with tf.Session() as sess:
+    guid_triplets_val = sess.run(guid_triplets)
+  triplets = lookup(guid_triplets_val, features)
   print(triplets)
   print(triplets.shape)
 
