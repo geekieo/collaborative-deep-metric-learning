@@ -3,6 +3,7 @@ Features are dict. Guids are list.
 """
 import sys
 import json
+import numpy as np
 from tensorflow import logging
 
 from utils import exe_time
@@ -15,7 +16,7 @@ def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature，
-  visual feature 是 str 格式的 1500 维的浮点向量。
+  visual feature 是 ndarray 格式的 1500 维的向量。
   """
   features = {}
   with open(filename,'r') as file:
@@ -24,6 +25,7 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
+        feature = np.array(feature.split(','),np.float32)
         features[guid]=feature
       except Exception as e:
         logging.warning(e+". Context: "+line)
@@ -93,7 +95,8 @@ def get_unique_watched_guids(all_watched_guids):
 
 def filter_features(features, all_watched_guids):
   """Filter features by the key of unique_guids
-  删除 features 中用 all_watched_guids 访问不到的 feature
+  删除 features 中用 all_watched_guids 没访问的 feature
+  并找出无法获取到 feature 的 guid 
   Args:
     features: dict
     all_watched_guids: 2-D list. list of watched guids.
@@ -106,9 +109,9 @@ def filter_features(features, all_watched_guids):
   watched_features={}
   for guid in unique_watched_guids:
     try:
-      watched_features[guid]=features[guid]
+      watched_features[guid]=features.pop(guid)
     except KeyError as e:
-      # logging.warning(str(e)+"  guid: "+str(guid))
+      # logging.warning("KeyError. guid: "+str(e))
       no_feature_guids.append(guid)
   return watched_features, no_feature_guids
 
@@ -142,7 +145,7 @@ def get_triplets(watch_file, feature_file):
     watch_file: str. file path of watched guid file.
     feature_file: str. file path of video feature.
   Return:
-    return: triplets. ndarray of [anchor feature, positive feature, negative feature]
+    return: list of guid triplets
   """
   # read file
   all_watched_guids = exe_time(read_watched_guids)(watch_file)
@@ -171,7 +174,8 @@ def get_triplets(watch_file, feature_file):
     +"\tNum:"+str(len(all_cowatch)))
       
   triplets = exe_time(mine_triplets)(all_cowatch, features)
-  logging.info("triplets Memory:"+str(sys.getsizeof(triplets)))
-  return triplets
+  logging.info("triplets Memory:"+str(sys.getsizeof(triplets))
+    +"\tNum:"+str(len(triplets)))
+  return triplets, features
   
   

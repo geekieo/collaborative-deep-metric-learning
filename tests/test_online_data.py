@@ -20,8 +20,9 @@ def test_read_features_txt():
   features = read_features_txt('features.txt')
   assert len(features)==254
   feature = list(features.values())[-1]
-  elements = feature.split(',')
-  assert len(elements)==1500
+  print(feature.shape)
+  print(type(feature[0]))
+  assert len(feature)==1500
 
 
 def test_trans_features_to_json():
@@ -57,6 +58,7 @@ def test_filter_features():
   assert len(features)==254
   all_watched_guids = read_watched_guids('watched_guids.txt')
   # 制造不和 all_watched_guids 对应的 features
+  print(type(all_watched_guids[0][1]))
   features.pop(all_watched_guids[0][1])
   features, no_feature_guids = filter_features(features, all_watched_guids)
   # print(len(watched_feature))
@@ -65,7 +67,6 @@ def test_filter_features():
 
 
 def test_filter_watched_guids():
-
   features_ori = read_features_txt("features.txt")
   assert len(features_ori)==254
   all_watched_guids = read_watched_guids('watched_guids.txt')
@@ -123,7 +124,7 @@ def test_filter_watched_guids():
   assert len(filtered_watched_guids[0])==7
 
 def test_get_triplets():
-  triplets = get_triplets(watch_file="watched_guids.txt",
+  triplets,features = get_triplets(watch_file="watched_guids.txt",
                           feature_file="features.txt")
   shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
   print(shape)
@@ -135,27 +136,26 @@ def test_read_features_txt_real():
     features = read_features_txt('/data/wengjy1/video_guid_inception_feature.txt')
     print(sys.getsizeof(features))
     feature = list(features.values())[-1]
-    elements = feature.split(',')
     assert len(elements)==1500
   except Exception as e:
     print(e)
 
 def test_get_triplets_real():
   try:
-    triplets = get_triplets(
+    triplets, features = get_triplets(
       watch_file="/data/wengjy1/watched_video_ids",
       feature_file="/data/wengjy1/video_guid_inception_feature.txt")
   except Exception as e:
     print(e)
 
 if __name__ == "__main__":
-  # test_read_features_txt()
+  test_read_features_txt()
   # test_trans_features_to_json()
   # test_read_features_json()
   # test_read_watched_guids()
   # test_get_unique_watched_guids()
   # test_filter_features()
   # test_filter_watched_guids()
-  # test_get_triplets()
-  test_read_features_txt_real()
-  test_get_triplets_real()
+  test_get_triplets()
+  # test_read_features_txt_real()
+  # test_get_triplets_real()
