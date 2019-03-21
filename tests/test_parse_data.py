@@ -17,6 +17,8 @@ from parse_data import yield_all_cowatch
 from parse_data import arrays_to_dict
 from parse_data import yield_negative_guid
 from parse_data import mine_triplets
+from parse_data import lookup
+from online_data import get_triplets
 
 def test_get_guids_index():
   guids = gen_unique_id_array(low=1, high=3*2, size=3, dtype=np.bytes_)
@@ -90,9 +92,18 @@ def test_mine_triplets():
   print(type(triplet), len(triplet), triplet[0])
 
 
+def test_lookup():
+  triplets, features = get_triplets(watch_file="watched_guids.txt",
+                                    feature_file="features.txt")
+  triplets = lookup(triplets,features)
+  print(triplets)
+  print(triplets.shape)
+
+
 if __name__ == "__main__":
-  test_get_one_list_of_cowatch()
-  test_yield_all_cowatch()
-  test_arrays_to_dict()
-  test_yield_negative_guid()
-  test_mine_triplets()
+  # test_get_one_list_of_cowatch()
+  # test_yield_all_cowatch()
+  # test_arrays_to_dict()
+  # test_yield_negative_guid()
+  # test_mine_triplets()
+  test_lookup()
