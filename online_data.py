@@ -25,7 +25,7 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
-        feature = np.array(feature.split(','),np.float32)
+        feature = np.array(feature.split(','), np.float32)
         features[guid]=feature
       except Exception as e:
         logging.warning(e+". Context: "+line)
@@ -145,7 +145,8 @@ def get_triplets(watch_file, feature_file):
     watch_file: str. file path of watched guid file.
     feature_file: str. file path of video feature.
   Return:
-    return: list of guid triplets
+    return: list of guid_triplets
+    features: dict of features
   """
   # read file
   all_watched_guids = exe_time(read_watched_guids)(watch_file)
