@@ -158,10 +158,12 @@ def mine_triplets(all_cowatch, features):
 def lookup(batch_triplets, features):
   """Trans guids to features
   Arg:
-    batch_triplets: list of guid_triplets, guids are bytes after sess.run
+    batch_triplets: 2-D ndarray of guid_triplets, guids are bytes after sess.run
+      the shape is (batch_size, 3)
     features: dict of ndarray. keys are unicode
   Return:
-    batch_triplets: list of feature_triplets
+    feature_triplets: 3-D ndarray of feature_triplets, the shape is (batch_size,
+      3,1500)
   """
   triplets = []
   for _, guid_triplet in enumerate(batch_triplets):
@@ -172,8 +174,9 @@ def lookup(batch_triplets, features):
         triplet.append(features[guid])
       triplet = np.array(triplet)
       triplets.append(triplet)
-    except:
+    except Exception as e:
+      logging.warning("lookup failed warning:"+str(e))
       continue
-  triplets = np.array(triplets)
-  return triplets
+  feature_triplets = np.array(triplets)
+  return feature_triplets
 

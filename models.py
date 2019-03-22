@@ -17,17 +17,16 @@ class VENet(BaseModel):
   def create_model(self, model_input, output_size=256, l2_penalty=1e-8,**unused_params):
     """Creates a embedding network with visual feature input.
     Return the inference of the model_input.
-
     Args:
-      model_input: matrix of input features.dimension: [batch, channel, feature]
+      model_input: matrix of input features.dimension: [batch, channel, feature],the
+        features should be float.
       output_size: size of output embedding. 
-
     Returns:
       A dictionary with a tensor containing the output of the
       model in the 'output' key. The dimensions of the tensor are
       [batch_size, output_size]."""
     with tf.name_scope("VENet"):
-      model_input = tf.cast(model_input, tf.float32)
+      # model_input = tf.cast(model_input, tf.float32)
       layer_1 = slim.fully_connected(
           model_input, 2560, activation_fn=tf.nn.sigmoid,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
