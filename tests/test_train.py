@@ -40,24 +40,26 @@ def test_build_graph():
   
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                              feature_file="features.txt")
+  batch_size = 2
+  num_epochs = None
   build_pipe_graph(triplets=triplets,
                    pipe=inputs.TripletPipe(),
-                   batch_size=2)
+                   batch_size=batch_size,
+                   num_epochs=num_epochs)
   guid_triplets = tf.get_collection("guid_triplets")[0]
 
-  input_triplets = tf.placeholder(tf.float32,shape=(2,3,1500), name="input_triplets")
-  build_graph(model=models.VENet(),
-              input_triplets=input_triplets,
+  input_triplets = tf.placeholder(tf.float32,shape=(batch_size,3,1500), name="input_triplets")
+  build_graph(input_triplets=input_triplets,
+              model=models.VENet(),
               output_size=256,
               loss_fn=losses.HingeLoss(),
-              batch_size=10,
               base_learning_rate=0.01,
               learning_rate_decay_examples=1000000,
               learning_rate_decay=0.95,
               optimizer_class=tf.train.AdamOptimizer,
               clip_gradient_norm=1.0,
               regularization_penalty=1)
-  global_step = tf.get_collection("global_step")[0]
+  global_step = tf.train.get_or_create_global_step()
   output_batch = tf.get_collection("output_batch")[0]
   loss = tf.get_collection("loss")[0]
   train_op = tf.get_collection("train_op")[0]
@@ -65,16 +67,16 @@ def test_build_graph():
 
   with tf.Session() as sess:
     sess.run(init_op)
-    for _ in range(3):
+    for i in range(3):
       guid_triplets_val = sess.run(guid_triplets)
       input_triplets_val = lookup(guid_triplets_val, features)
       
       _, global_step_val, output_batch_val, loss_val = sess.run(
           [train_op, global_step, output_batch, loss],
           feed_dict={input_triplets: input_triplets_val})
-      print(global_step_val)
-      assert output_batch_val.shape==(2, 3, 256)
-      print(loss_val)
+      assert global_step_val == i+1
+      assert output_batch_val.shape==(batch_size, 3, 256)
+      print(i+1, loss_val)
 
 
 def test_Trainer():
@@ -97,11 +99,11 @@ def test_Trainer():
                     loss_fn=loss_fn,
                     optimizer_class=optimizer_class,
                     batch_size=100,
-                    num_epochs=None)
-  trainer.run() 
+                    num_epochs=2)
+  trainer.run()
 
 
 if __name__ == "__main__":
   # test_build_pipe_graph()
-  test_build_graph()
-  # test_Trainer()
+  # test_build_graph()
+  test_Trainer()

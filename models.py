@@ -28,7 +28,7 @@ class VENet(BaseModel):
     with tf.name_scope("VENet"):
       # model_input = tf.cast(model_input, tf.float32)
       layer_1 = slim.fully_connected(
-          model_input, 2560, activation_fn=tf.nn.sigmoid,
+          model_input, 4000, activation_fn=tf.nn.sigmoid,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       layer_2 = slim.fully_connected(
           layer_1, output_size, activation_fn=tf.nn.sigmoid,
