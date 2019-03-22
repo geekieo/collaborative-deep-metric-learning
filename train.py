@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import os
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow import logging
@@ -131,17 +132,17 @@ class Trainer():
 
   def __init__(self, triplets, features, pipe, checkpoint_dir, model,
                loss_fn, optimizer_class, batch_size, num_epochs=None,
-               log_device_placement=True, last_step=None):
+               log_device_placement=True, last_step=None, debug=False):
     """
     triplets: 3-D list of guid triplets. from inputs.get_triplets
     features: dict of features. features are ndarray of np.float32.  from inputs.get_triplets
     """
     # self.is_master = (task.type == "master" and task.index == 0)
-    self.is_master = True 
+    # self.is_master = True 
     self.triplets = triplets
     self.features = features
     self.pipe = pipe
-    self.checkpoint_dir = checkpoint_dir
+    self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
     self.config = tf.ConfigProto(
         allow_soft_placement=True,log_device_placement=log_device_placement)
     self.model = model
@@ -150,6 +151,7 @@ class Trainer():
     self.batch_size = batch_size
     self.num_epochs = num_epochs
     self.last_step = last_step
+    self.debug = debug
 
   def build_pipe(self):
     """build the pipe graph """
@@ -172,55 +174,70 @@ class Trainer():
                 regularization_penalty=0)
 
   def run(self):
+    logging.info("Building graph.")
+    with tf.device('/cpu:0'):
+      self.build_pipe()
+
     input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
-    # with tf.device('/cpu:0'):
-    self.build_pipe()
     
     # with tf.device('/device:GPU:0'):
-    # with tf.device('/cpu:0'):
     self.build_model(input_triplets)
      
     global_step = tf.train.get_or_create_global_step()
-    # global_step = tf.get_collection("global_step")[0]
     guid_triplets = tf.get_collection("guid_triplets")[0]
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
     init_op = tf.global_variables_initializer()
 
-    hooks = [tf.train.NanTensorHook(loss)]
-    if self.last_step:
-      hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
-
-    logging.info("Starting monitored session.")
-    with tf.train.MonitoredTrainingSession(checkpoint_dir = self.checkpoint_dir,
-                                           hooks = hooks,
-                                           save_summaries_steps=100,
-                                           save_checkpoint_secs=600) as sess:
-      while not sess.should_stop():
-        guid_triplets_val = sess.run(guid_triplets)
-        input_triplets_val = lookup(guid_triplets_val, self.features)
-        # print(input_triplets_val.shape, type(input_triplets_val))
-        batch_start_time = time.time()
-        _, global_step_val, loss_val = sess.run(
-            [train_op, global_step, loss], feed_dict={input_triplets: input_triplets_val})
-        seconds_per_batch = time.time() - batch_start_time
-        examples_per_second = output_val.shape[0] / seconds_per_batch
-
-        if global_step_val % 10 == 0 and self.checkpoint_dir:
+    # hooks = [tf.train.NanTensorHook(loss)]
+    # if self.last_step:
+    #   hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
+    # with tf.Session(checkpoint_dir = self.checkpoint_dir,
+    #                                        hooks = hooks,
+    #                                        save_summaries_steps=100,
+    #                                        save_checkpoint_secs=600) as sess:
+    summary_op = tf.summary.merge_all()
+    saver = tf.train.Saver()
+    coord = tf.train.Coordinator()
+    logging.info("Starting session.")
+    with tf.Session() as sess:
+      sess.run(init_op)
+      train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
+      try:
+        while not coord.should_stop():
+          guid_triplets_val = sess.run(guid_triplets)
+          input_triplets_val = lookup(guid_triplets_val, self.features)
+          if self.debug:
+            logging.debug(input_triplets_val.shape, type(input_triplets_val))
+          batch_start_time = time.time()
+          _, global_step_val, loss_val, output_val, summary_val= sess.run(
+              [train_op, global_step, loss, output_batch,summary_op], feed_dict={input_triplets: input_triplets_val})
+          seconds_per_batch = time.time() - batch_start_time
+          examples_per_second = output_val.shape[0] / seconds_per_batch
           logging.info("training step " + str(global_step_val) + " | Loss: " +
-            ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
-          # model.evaluate()
-          # _, global_step_val, loss_val,output_val = sess.run(
-          #  [train_op, global_step, loss, output_batch])
-          # 计算 output_batch cowatch 余弦距离
-        else:
-          logging.info("training step " + str(global_step_val) + " | Loss: " +
-            ("%.2f" % loss_val) + " Examples/sec: " + ("%.2f" % examples_per_second))
+              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second))
 
+          if global_step_val % 100 == 0:
+            train_writer.add_summary(summary_val, global_step_val)
+            logging.info("add summary")
+          elif global_step_val % 110 == 0:
+            saver.save(sess, self.checkpoint_dir, global_step_val)
+            logging.info("save checkpoint")
+          elif global_step_val % 100000 == 0:
+            # evaluate
+            # _, global_step_val, loss_val, output_val = sess.run(
+            #  [train_op, global_step, loss, output_batch])
+            # 计算 output_batch cowatch 余弦距离
+            pass
+          
+      except tf.errors.OutOfRangeError:
+        logging.info('Done training -- epoch limit reached')
+      except Exception as e:
+        logging.warning(str(e))
+      finally:
+        coord.request_stop()
       logging.info("Exited training loop.")
-
-
 
 
 def main(unused_argv):
@@ -229,25 +246,26 @@ def main(unused_argv):
   from online_data import get_triplets
   triplets,features = get_triplets(watch_file="/data/wengjy1/watched_video_ids",
                                    feature_file="/data/wengjy1/video_guid_inception_feature.txt")
-  # triplets=np.array(triplets, dtype=np.float32)
-  # logging.info("Tensorflow version: %s.",tf.__version__)
-  # checkpoint_dir = "/Checkpoints/"
-  # model = find_class_by_name("VENet", [models])()
-  # pipe = find_class_by_name("TripletPipe", [inputs])()
-  # loss_fn = find_class_by_name("HingeLoss", [losses])()
-  # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  # # cluster = None
-  # # task_data = {"type": "master", "index": 0}
-  # # task = type("TaskSpec", (object,), task_data)
-  # trainer = Trainer(checkpoint_dir=checkpoint_dir,
-  #                   data=triplets,
-  #                   model=model,
-  #                   pipe=pipe,
-  #                   loss_fn=loss_fn,
-  #                   optimizer_class=optimizer_class,
-  #                   batch_size=100,
-  #                   num_epochs=1)
-  # trainer.run() 
+
+  logging.info("Tensorflow version: %s.",tf.__version__)
+  checkpoint_dir = "/Checkpoints/"
+  model = find_class_by_name("VENet", [models])()
+  pipe = find_class_by_name("TripletPipe", [inputs])()
+  loss_fn = find_class_by_name("HingeLoss", [losses])()
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+
+  trainer = Trainer(triplets=triplets,
+                    features=features,
+                    pipe=pipe,
+                    checkpoint_dir=checkpoint_dir,
+                    model=model,
+                    loss_fn=loss_fn,
+                    optimizer_class=optimizer_class,
+                    batch_size=100,
+                    num_epochs=None,
+                    debug=False)
+  trainer.run()
+
 
 if __name__ == "__main__":
   tf.app.run()

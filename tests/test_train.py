@@ -48,7 +48,7 @@ def test_build_graph():
                    num_epochs=num_epochs)
   guid_triplets = tf.get_collection("guid_triplets")[0]
 
-  input_triplets = tf.placeholder(tf.float32,shape=(batch_size,3,1500), name="input_triplets")
+  input_triplets = tf.placeholder(tf.float32, name="input_triplets")
   build_graph(input_triplets=input_triplets,
               model=models.VENet(),
               output_size=256,
@@ -99,7 +99,8 @@ def test_Trainer():
                     loss_fn=loss_fn,
                     optimizer_class=optimizer_class,
                     batch_size=100,
-                    num_epochs=2)
+                    num_epochs=None,
+                    debug=False)
   trainer.run()
 
 
