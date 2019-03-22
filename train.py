@@ -39,7 +39,7 @@ def build_pipe_graph(triplets,
                      pipe,
                      batch_size=100,
                      num_epochs=None,
-                     num_readers=1,):
+                     num_readers=1):
   """run pipe in CPU memory
   Args:
     triplets: 3-D list. guid triplets
@@ -52,13 +52,12 @@ def build_pipe_graph(triplets,
   guid_triplets = triplets_iter.get_next()
   tf.add_to_collection("guid_triplets", guid_triplets)
 
-def build_graph(model,
-                input_triplets,
+def build_graph(input_triplets,
+                model,
                 output_size=256,
                 loss_fn=losses.HingeLoss(),
-                batch_size=100,
                 base_learning_rate=0.01,
-                learning_rate_decay_examples=10000000,
+                learning_rate_decay_examples=100000,
                 learning_rate_decay=0.95,
                 optimizer_class=tf.train.AdamOptimizer,
                 clip_gradient_norm=1.0,
@@ -73,10 +72,8 @@ def build_graph(model,
     model: The core model (e.g. logistic or neural net). It should inherit
            from BaseModel.
     input_triplets: tf.placehoder. tf.float32. shape(batch_size, 3,1500)
-
     loss_fn: What kind of loss to apply to the model. It should inherit
                 from BaseLoss.
-    batch_size: How many examples to process at a time.
     base_learning_rate: What learning rate to initialize the optimizer with.
     optimizer_class: Which optimization algorithm to use.
     clip_gradient_norm: Magnitude of the gradient to clip to.
@@ -84,11 +81,10 @@ def build_graph(model,
                             compared to the label loss.
 
   """
-  global_step = tf.Variable(0, trainable=False, name="global_step")
-
   #create_model loss train_op add_to_collection
   result = model.create_model(input_triplets, output_size)
-
+  
+  global_step = tf.train.get_or_create_global_step()
   learning_rate = tf.train.exponential_decay(
     base_learning_rate,
     global_step,
@@ -122,10 +118,9 @@ def build_graph(model,
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
-  # optimizer 会为 global_step 做自增操作
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
-  tf.add_to_collection("global_step", global_step)
+  # tf.add_to_collection("global_step", global_step)
   tf.add_to_collection("input_batch", input_triplets)
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
@@ -137,6 +132,10 @@ class Trainer():
   def __init__(self, triplets, features, pipe, checkpoint_dir, model,
                loss_fn, optimizer_class, batch_size, num_epochs=None,
                log_device_placement=True, last_step=None):
+    """
+    triplets: 3-D list of guid triplets. from inputs.get_triplets
+    features: dict of features. features are ndarray of np.float32.  from inputs.get_triplets
+    """
     # self.is_master = (task.type == "master" and task.index == 0)
     self.is_master = True 
     self.triplets = triplets
@@ -159,38 +158,41 @@ class Trainer():
                      batch_size=self.batch_size,
                      num_epochs=self.num_epochs)
 
-  def build_model(self):
+  def build_model(self,input_triplets):
     """Find the model and build the graph."""
-    build_graph(model=self.model,
+    build_graph(input_triplets=input_triplets,
+                model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                batch_size=self.batch_size,
                 base_learning_rate=0.01,
-                learning_rate_decay_examples=1000000,
+                learning_rate_decay_examples=100000,
                 learning_rate_decay=0.95,
                 optimizer_class=self.optimizer_class,
                 clip_gradient_norm=0,
                 regularization_penalty=0)
 
   def run(self):
-    with tf.device('/cpu:0'):
-      self.build_pipe()
-      guid_triplets = tf.get_collection("guid_triplets")[0]
-
+    input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
+    # with tf.device('/cpu:0'):
+    self.build_pipe()
+    
     # with tf.device('/device:GPU:0'):
-    with tf.device('/cpu:0'):
-      self.build_model()      
-      global_step = tf.get_collection("global_step")[0]
-      loss = tf.get_collection("loss")[0]
-      output_batch = tf.get_collection("output_batch")[0]
-      train_op = tf.get_collection("train_op")[0]
-      init_op = tf.global_variables_initializer()
+    # with tf.device('/cpu:0'):
+    self.build_model(input_triplets)
+     
+    global_step = tf.train.get_or_create_global_step()
+    # global_step = tf.get_collection("global_step")[0]
+    guid_triplets = tf.get_collection("guid_triplets")[0]
+    loss = tf.get_collection("loss")[0]
+    output_batch = tf.get_collection("output_batch")[0]
+    train_op = tf.get_collection("train_op")[0]
+    init_op = tf.global_variables_initializer()
 
-      hooks = [tf.train.NanTensorHook(loss)]
-      if self.last_step:
-        hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
+    hooks = [tf.train.NanTensorHook(loss)]
+    if self.last_step:
+      hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
 
-    logging.info("%s: Starting monitored session.")
+    logging.info("Starting monitored session.")
     with tf.train.MonitoredTrainingSession(checkpoint_dir = self.checkpoint_dir,
                                            hooks = hooks,
                                            save_summaries_steps=100,
@@ -198,8 +200,7 @@ class Trainer():
       while not sess.should_stop():
         guid_triplets_val = sess.run(guid_triplets)
         input_triplets_val = lookup(guid_triplets_val, self.features)
-        # features[guid] -> graph
-        # tra_triplets
+        # print(input_triplets_val.shape, type(input_triplets_val))
         batch_start_time = time.time()
         _, global_step_val, loss_val = sess.run(
             [train_op, global_step, loss], feed_dict={input_triplets: input_triplets_val})
@@ -227,8 +228,7 @@ def main(unused_argv):
 
   from online_data import get_triplets
   triplets,features = get_triplets(watch_file="/data/wengjy1/watched_video_ids",
-                          feature_file="/data/wengjy1/video_guid_inception_feature.txt",
-                          return_features=True)
+                                   feature_file="/data/wengjy1/video_guid_inception_feature.txt")
   # triplets=np.array(triplets, dtype=np.float32)
   # logging.info("Tensorflow version: %s.",tf.__version__)
   # checkpoint_dir = "/Checkpoints/"
