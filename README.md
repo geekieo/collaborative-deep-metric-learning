@@ -1,5 +1,6 @@
 ## requirement
-tensorflow-gpu    1.13.1  
+tensorflow-gpu    1.12
+
 tqdm
   
 ## Overview of Files
