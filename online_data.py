@@ -28,7 +28,7 @@ def read_features_txt(filename):
         feature = np.array(feature.split(','), np.float32)
         features[guid]=feature
       except Exception as e:
-        logging.warning(e+". Context: "+line)
+        logging.warning(str(e)+". guid: "+guid)
   return features
 
 
@@ -64,8 +64,8 @@ def read_watched_guids(filename):
     data = file.readlines()
     for line in data:
       line = line.rstrip('\n')  # 删除行末的 \n
+      guids = line.split(',')
       try:
-        guids = line.split(',')
         guids = guids[1:]       # 删除第一个元素 uid
         watched_guids = []
         for guid in guids:
@@ -77,7 +77,7 @@ def read_watched_guids(filename):
         if len(watched_guids)>1:
           all_watched_guids.append(watched_guids)
       except Exception as e:
-        logging.warning(e+". Context: "+line)
+        logging.warning(str(e)+". uid: "+guids[0])
   return all_watched_guids
 
 
@@ -111,7 +111,6 @@ def filter_features(features, all_watched_guids):
     try:
       watched_features[guid]=features.pop(guid)
     except KeyError as e:
-      # logging.warning("KeyError. guid: "+str(e))
       no_feature_guids.append(guid)
   return watched_features, no_feature_guids
 
