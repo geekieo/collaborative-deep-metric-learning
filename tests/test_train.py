@@ -83,7 +83,7 @@ def test_Trainer():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                                     feature_file="features.txt")
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/Checkpoints/"
+  checkpoint_dir = "/home/wengjy1/test_Checkpoints/"
   model = find_class_by_name("VENet", [models])()
   pipe = find_class_by_name("TripletPipe", [inputs])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()

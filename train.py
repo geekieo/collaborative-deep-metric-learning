@@ -143,8 +143,8 @@ class Trainer():
     self.features = features
     self.pipe = pipe
     self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
-    self.config = tf.ConfigProto(
-        allow_soft_placement=True,log_device_placement=log_device_placement)
+    self.config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
+    self.config.gpu_options.allow_growth=True
     self.model = model
     self.loss_fn = loss_fn
     self.optimizer_class = optimizer_class
@@ -178,10 +178,9 @@ class Trainer():
     with tf.device('/cpu:0'):
       self.build_pipe()
 
-    input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
-    
-    # with tf.device('/device:GPU:0'):
-    self.build_model(input_triplets)
+    with tf.device('/device:GPU:0'):
+      input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
+      self.build_model(input_triplets)
      
     global_step = tf.train.get_or_create_global_step()
     guid_triplets = tf.get_collection("guid_triplets")[0]
@@ -201,7 +200,7 @@ class Trainer():
     saver = tf.train.Saver()
     coord = tf.train.Coordinator()
     logging.info("Starting session.")
-    with tf.Session() as sess:
+    with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       try:
@@ -215,21 +214,27 @@ class Trainer():
               [train_op, global_step, loss, output_batch,summary_op], feed_dict={input_triplets: input_triplets_val})
           seconds_per_batch = time.time() - batch_start_time
           examples_per_second = output_val.shape[0] / seconds_per_batch
-          logging.info("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second))
+          
 
           if global_step_val % 100 == 0:
             train_writer.add_summary(summary_val, global_step_val)
-            logging.info("add summary")
+            logging.info("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
+              "add summary")
           elif global_step_val % 110 == 0:
             saver.save(sess, self.checkpoint_dir, global_step_val)
-            logging.info("save checkpoint")
+            logging.info("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
+              "save checkpoint")
           elif global_step_val % 100000 == 0:
             # evaluate
             # _, global_step_val, loss_val, output_val = sess.run(
             #  [train_op, global_step, loss, output_batch])
             # 计算 output_batch cowatch 余弦距离
             pass
+          else:
+            logging.debug("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second))
           
       except tf.errors.OutOfRangeError:
         logging.info('Done training -- epoch limit reached')
@@ -248,7 +253,7 @@ def main(unused_argv):
                                    feature_file="/data/wengjy1/video_guid_inception_feature.txt")
 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/Checkpoints/"
+  checkpoint_dir = "/home/wengjy1/Checkpoints/"
   model = find_class_by_name("VENet", [models])()
   pipe = find_class_by_name("TripletPipe", [inputs])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
