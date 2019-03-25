@@ -11,6 +11,7 @@ from online_data import get_unique_watched_guids
 from online_data import filter_features
 from online_data import filter_watched_guids
 from online_data import get_triplets
+from online_data import gen_trining_data
 
 
 
@@ -18,9 +19,9 @@ def test_read_features_txt():
   features = read_features_txt('features.txt')
   assert len(features)==254
   feature = list(features.values())[-1]
-  print(feature.shape)
-  print(type(feature[0]))
   assert len(feature)==1500
+  print(feature)
+  print(type(feature))
 
 
 def test_read_watched_guids():
@@ -111,12 +112,17 @@ def test_filter_watched_guids():
   assert len(filtered_watched_guids)==13
   assert len(filtered_watched_guids[0])==7
 
+
 def test_get_triplets():
-  triplets,features = get_triplets(watch_file="watched_guids.txt",
-                          feature_file="features.txt")
-  shape = (len(triplets),len(triplets[0]),len(triplets[0][0]))
+  triplets,features,encode_map,decode_map = get_triplets(
+                            watch_file="watched_guids.txt",
+                            feature_file="features.txt")
+  shape = (len(triplets),len(triplets[0]))
   print(shape)
-  # shape == (240,3, guid_size)
+  print(triplets)
+  # print(features)
+  # print(encode_map)
+  # print(decode_map)
 
 
 def test_read_features_txt_real():
@@ -136,8 +142,14 @@ def test_get_triplets_real():
   except Exception as e:
     print(e)
 
+def test_gen_trining_data():
+  gen_trining_data(watch_file="watched_guids.txt",
+                   feature_file="features.txt",
+                   save_dir = '')
+
+
 if __name__ == "__main__":
-  test_read_features_txt()
+  # test_read_features_txt()
   # test_read_watched_guids()
   # test_get_unique_watched_guids()
   # test_filter_features()
@@ -145,3 +157,4 @@ if __name__ == "__main__":
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
+  test_gen_trining_data()

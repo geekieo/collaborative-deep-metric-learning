@@ -6,6 +6,9 @@ import numpy as np
 import copy
 
 from utils import exe_time
+from online_data import read_features_txt
+from online_data import read_watched_guids
+from online_data import get_triplets
 from imitation_data import num_uid, num_guid, feature_size
 from imitation_data import gen_unique_id_array
 from imitation_data import gen_watched_guids
@@ -14,6 +17,7 @@ from imitation_data import gen_features
 from parse_data import encode_guids
 from parse_data import encode_base_features
 from parse_data import encode_features
+from parse_data import encode_all_watched_guids
 from parse_data import get_one_list_of_cowatch
 from parse_data import get_all_cowatch
 from parse_data import yield_all_cowatch
@@ -21,8 +25,6 @@ from parse_data import arrays_to_dict
 from parse_data import yield_negative_guid
 from parse_data import mine_triplets
 from parse_data import lookup
-from online_data import read_features_txt
-from online_data import get_triplets
 
 
 def test_encode_guids():
@@ -44,6 +46,15 @@ def test_encode_features():
   print(encoded_features[0])
   assert not (encoded_features[0]-features_ori[decode_map[0]]).any()
 
+
+def test_encode_all_watched_guids():
+  features = read_features_txt('features.txt')
+  encode_map, decode_map = encode_base_features(features)
+  all_watched_guids = read_watched_guids('watched_guids.txt')
+  encoded_all_watch_guids = encode_all_watched_guids(all_watched_guids, encode_map)
+  print(encoded_all_watch_guids)
+  assert len(encoded_all_watch_guids)==13
+  assert encoded_all_watch_guids[0] is not None
 
 def test_get_one_list_of_cowatch():
   watch_guids = gen_unique_id_array(low=1, high=1000*2, size=1000, dtype=np.bytes_)
@@ -123,8 +134,9 @@ def test_lookup():
 
 
 if __name__ == "__main__":
-  test_encode_guids()
-  test_encode_features()
+  # test_encode_guids()
+  # test_encode_features()
+  test_encode_all_watched_guids()
   # test_get_one_list_of_cowatch()
   # test_yield_all_cowatch()
   # test_arrays_to_dict()
