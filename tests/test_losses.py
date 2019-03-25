@@ -4,7 +4,6 @@ sys.path.append("..")
 import tensorflow as tf
 import numpy as np
 
-from imitation_data import gen_unique_id_array
 from imitation_data import gen_all_watched_guids
 from imitation_data import gen_features
 from losses import HingeLoss

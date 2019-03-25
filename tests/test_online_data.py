@@ -6,8 +6,6 @@ import copy
 import sys
 
 from online_data import read_features_txt
-from online_data import trans_features_to_json
-from online_data import read_features_json
 from online_data import read_watched_guids
 from online_data import get_unique_watched_guids
 from online_data import filter_features
@@ -23,16 +21,6 @@ def test_read_features_txt():
   print(feature.shape)
   print(type(feature[0]))
   assert len(feature)==1500
-
-
-def test_trans_features_to_json():
-  trans_features_to_json('features.txt', 'features.json')
-  
-
-def test_read_features_json():
-  from_txt = read_features_txt('features.txt')
-  from_json = read_features_json('features.json')
-  assert from_txt.__eq__(from_txt)
 
 
 def test_read_watched_guids():
@@ -150,12 +138,10 @@ def test_get_triplets_real():
 
 if __name__ == "__main__":
   test_read_features_txt()
-  # test_trans_features_to_json()
-  # test_read_features_json()
   # test_read_watched_guids()
   # test_get_unique_watched_guids()
   # test_filter_features()
   # test_filter_watched_guids()
-  test_get_triplets()
+  # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()

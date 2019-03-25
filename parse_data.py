@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 """ Parse watched_guids to triplets with features
-本模块的主要任务是挖掘 cowatch，随机匹配 negative，获取对应 feature，最终
-生成可训练的 triplets。假设 watched_guids 可以访问到 features 中的所有feature。
+本模块的主要任务有：压缩编码 guids。挖掘 cowatch，统计 cowatch。随机匹配 
+negative，生成压缩编码的 guid triplets，以及对应压缩键值的 features。假设 
+watched_guids 可以访问到 features 中的所有feature。
 """
 import numpy as np
 from itertools import cycle
@@ -11,6 +12,39 @@ from tqdm import tqdm
 
 logging.set_verbosity(logging.DEBUG)
 
+
+# ========================= encoding guid =========================
+def encode_guids(guids):
+  """将 str guids 编码成有序的 index, 并返回编码/解码字典"""
+  encode_map={}
+  decode_map={}
+  for i,guid in enumerate(guids):
+    if not guid in encode_map:
+      encode_map[guid]=i
+      decode_map[i]=guid
+  return encode_map, decode_map
+
+def encode_base_features(features):
+  """ 以 features 的 keys 为基准，编码 guids"""
+  encode_map, decode_map = encode_guids(features.keys())
+  return encode_map, decode_map
+
+
+def encode_features(features, encode_map):
+  """ 编码 features 字典的 key
+  该方法将消耗 features 
+  features:dict. k,v 为 str guid, feature
+  encode_map: dict. k,v 为 str guid:int guid
+  """
+  encoded_features={}
+  while features:
+      guid, feature = features.popitem()
+      guid = encode_map[guid]
+      encoded_features[guid]=feature
+  return encoded_features
+
+
+# ========================= cowatch mining =========================
 def get_one_list_of_cowatch(watched_guids):
   """ 解析一组 watched_guids 的 co-watch
   Args: 
@@ -24,6 +58,7 @@ def get_one_list_of_cowatch(watched_guids):
       cowatch.append([watched_guids[i],watched_guids[i+1]])
       guids.append(guid)
   return cowatch, set(guids)
+
 
 def get_all_cowatch(all_watched_guids):
   """ 解析所有 watched_guids 的 co-watch
@@ -51,13 +86,7 @@ def yield_all_cowatch(all_watched_guids):
     yield cowatch
 
 
-def get_guids_index(guids):
-  """ guid 索引字典 
-  用于查找 guid 在 guids 中的索引
-  """
-  return {k: v for v, k in enumerate(guids)}
-  
-  
+# ========================= aggregate cowatch =========================
 def get_cowatch_graph(guids, all_cowatch):
   """统计所有观看历史，返回 co-watch 无向图，用于筛选 co-watch pair
   TODO: 过滤 co-watch 少于固定数量的 pair，过滤自己与自己组成的 pair
@@ -71,19 +100,14 @@ def get_cowatch_graph(guids, all_cowatch):
   pass
 
 
-def filter_cowatch_graph(cowatch_graph, threshold):
-  """ 使用 cowatch_graph 保留高于 threshold 的 cowatch 
+def select_cowatch(cowatch_graph, threshold):
+  """ 使用 cowatch_graph 丢弃低于 threshold 的 cowatched pair
   Args:
     cowatch_graph
     threshold
   Return:
     all_cowatch
   """
-  pass
-
-
-def guid_feature_filter(guids, features):
-  """ 使用 guids 检索 features, 保留有 feature 的 guid"""
   pass
 
 
@@ -100,6 +124,7 @@ def arrays_to_dict(array_1d,array_2d):
   return dict(zip(array_1d, array_2d))
 
 
+# ========================= triplet mining =========================
 def yield_negative_guid(guids):
   """循环输出随机采样样本，作为负样本"""
   neg_guids = copy.deepcopy(guids)
@@ -155,6 +180,7 @@ def mine_triplets(all_cowatch, features):
   return triplets
   
 
+# ========================= translate =========================
 def lookup(batch_triplets, features):
   """Trans guids to features
   Arg:

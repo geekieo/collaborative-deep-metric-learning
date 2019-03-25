@@ -2,15 +2,16 @@
 Features are dict. Guids are list.
 """
 import sys
-import json
 import numpy as np
 from tensorflow import logging
 
 from utils import exe_time
+from parse_data import encode_guids
 from parse_data import get_all_cowatch
 from parse_data import mine_triplets
 
 logging.set_verbosity(logging.DEBUG)
+
 
 def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
@@ -30,24 +31,6 @@ def read_features_txt(filename):
       except Exception as e:
         logging.warning(str(e)+". guid: "+guid)
   return features
-
-
-def trans_features_to_json(filename, save_dir):
-  """将 feature txt 文件转换成 json 格式。"""
-  features = read_features_txt(filename)
-  with open(save_dir, 'w') as file:
-    json.dump(features, file)
-  
-
-def read_features_json(filename):
-  """读取 feature json 文件，返回 dict。
-  文件内容参考 tests/features.json。
-  对于每行样本，分号前是 guid, 分号后是 visual feature，
-  visual feature 是 1500 维的浮点向量。
-  """
-  with open(filename, 'r') as file:
-    features = json.load(file)
-    return features
 
 
 def read_watched_guids(filename):

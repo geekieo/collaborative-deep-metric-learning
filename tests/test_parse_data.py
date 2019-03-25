@@ -3,6 +3,7 @@ import sys
 sys.path.append("..")
 import tensorflow as tf
 import numpy as np
+import copy
 
 from utils import exe_time
 from imitation_data import num_uid, num_guid, feature_size
@@ -10,7 +11,9 @@ from imitation_data import gen_unique_id_array
 from imitation_data import gen_watched_guids
 from imitation_data import gen_all_watched_guids
 from imitation_data import gen_features
-from parse_data import get_guids_index
+from parse_data import encode_guids
+from parse_data import encode_base_features
+from parse_data import encode_features
 from parse_data import get_one_list_of_cowatch
 from parse_data import get_all_cowatch
 from parse_data import yield_all_cowatch
@@ -18,12 +21,28 @@ from parse_data import arrays_to_dict
 from parse_data import yield_negative_guid
 from parse_data import mine_triplets
 from parse_data import lookup
+from online_data import read_features_txt
 from online_data import get_triplets
 
-def test_get_guids_index():
-  guids = gen_unique_id_array(low=1, high=3*2, size=3, dtype=np.bytes_)
-  guids_index = get_guids_index(guids)
-  print(guids_index)
+
+def test_encode_guids():
+  guids = gen_unique_id_array(low=8, high=8*2, size=5, dtype=np.bytes_)
+  guids = guids.tolist()
+  guids.append(guids[0])
+  # print(guids)
+  guids = iter(guids)
+  encode_map, decode_map = encode_guids(guids)
+  for guid in guids:
+    assert decode_map[encode_map[guid]]==guid
+
+def test_encode_features():
+  features = read_features_txt('features.txt')
+  features_ori = copy.deepcopy(features)
+  encode_map, decode_map = encode_base_features(features)
+  encoded_features = encode_features(features, encode_map)
+  print(features_ori[decode_map[0]])
+  print(encoded_features[0])
+  assert not (encoded_features[0]-features_ori[decode_map[0]]).any()
 
 
 def test_get_one_list_of_cowatch():
@@ -104,9 +123,11 @@ def test_lookup():
 
 
 if __name__ == "__main__":
+  test_encode_guids()
+  test_encode_features()
   # test_get_one_list_of_cowatch()
   # test_yield_all_cowatch()
   # test_arrays_to_dict()
   # test_yield_negative_guid()
   # test_mine_triplets()
-  test_lookup()
+  # test_lookup()
