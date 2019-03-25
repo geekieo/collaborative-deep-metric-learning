@@ -174,14 +174,16 @@ class Trainer():
                 regularization_penalty=0)
 
   def run(self):
-    logging.info("Building graph.")
-    with tf.device('/cpu:0'):
-      self.build_pipe()
 
     with tf.device('/device:GPU:0'):
+      logging.info("Building model graph.")
       input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
       self.build_model(input_triplets)
-     
+
+    with tf.device('/cpu:0'):
+      logging.info("Building pipe graph.")
+      self.build_pipe()
+
     global_step = tf.train.get_or_create_global_step()
     guid_triplets = tf.get_collection("guid_triplets")[0]
     loss = tf.get_collection("loss")[0]
