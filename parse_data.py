@@ -32,7 +32,7 @@ def encode_base_features(features):
 
 def encode_features(features, encode_map):
   """ 编码 features 字典的 key
-  该方法将消耗 features 
+  该方法会消费 features 
   features:dict. k,v 为 str guid, feature
   encode_map: dict. k,v 为 str guid:int guid
   """
@@ -42,6 +42,29 @@ def encode_features(features, encode_map):
       guid = encode_map[guid]
       encoded_features[guid]=feature
   return encoded_features
+
+
+def encode_watched_guids(watched_guids, encode_map):
+  """ 编码一组 watched_guids 
+  该方法会消费 watched_guids
+  """
+  encoded_watched_guids=[]
+  while watched_guids:
+    guid = watched_guids.pop()
+    encoded_watched_guids.append(encode_map[guid])
+  return encoded_watched_guids
+
+
+def encode_all_watched_guids(all_watched_guids, encode_map):
+  """ 编码全部 watched_guids
+  该方法会消费 all_watched_guids
+  """
+  encoded_all_watch_guids=[]
+  while all_watched_guids:
+    watched_guids = all_watched_guids.pop()
+    watched_guids = encode_watched_guids(watched_guids, encode_map)
+    encoded_all_watch_guids.append(watched_guids)
+  return encoded_all_watch_guids
 
 
 # ========================= cowatch mining =========================
@@ -87,13 +110,12 @@ def yield_all_cowatch(all_watched_guids):
 
 
 # ========================= aggregate cowatch =========================
-def get_cowatch_graph(guids, all_cowatch):
+def get_cowatch_graph(all_cowatch):
   """统计所有观看历史，返回 co-watch 无向图，用于筛选 co-watch pair
-  TODO: 过滤 co-watch 少于固定数量的 pair，过滤自己与自己组成的 pair
-  NOTE: 运行在内存上，用矩阵存储和操作
+  用于丢弃 co-watch pairs 中少于固定数量的 pair，丢弃自己与自己组成的 pair
+  所有 co-watch 中的 guid 必须是 index.
   Args:
-    guids: list of int.
-    all_cowatch: list of cowatch(pair of guids)
+    guids: list of co-watch pair. the guid should be index.
   Retrun:
     cowatch_graph: dict
   """

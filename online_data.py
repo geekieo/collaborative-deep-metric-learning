@@ -2,11 +2,15 @@
 Features are dict. Guids are list.
 """
 import sys
+import os
 import numpy as np
+import json
 from tensorflow import logging
 
 from utils import exe_time
-from parse_data import encode_guids
+from parse_data import encode_base_features
+from parse_data import encode_features
+from parse_data import encode_all_watched_guids
 from parse_data import get_all_cowatch
 from parse_data import mine_triplets
 
@@ -16,8 +20,8 @@ logging.set_verbosity(logging.DEBUG)
 def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
-  对于每行样本，分号前是 guid, 分号后是 visual feature，
-  visual feature 是 ndarray 格式的 1500 维的向量。
+  对于每行样本，分号前是 guid, 分号后是 visual feature。
+  visual feature 是 str 类型的 1500 维向量，需格式化后使用。
   """
   features = {}
   with open(filename,'r') as file:
@@ -26,7 +30,6 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
-        feature = np.array(feature.split(','), np.float32)
         features[guid]=feature
       except Exception as e:
         logging.warning(str(e)+". guid: "+guid)
@@ -131,34 +134,72 @@ def get_triplets(watch_file, feature_file):
     features: dict of features
   """
   # read file
-  all_watched_guids = exe_time(read_watched_guids)(watch_file)
-  logging.info("all_watched_guids Memory:"+str(sys.getsizeof(all_watched_guids))
-    +"\tNum:"+str(len(all_watched_guids)))
-
   features = exe_time(read_features_txt)(feature_file)
-  logging.info("features Memory:"+str(sys.getsizeof(features))
-    +"\tNum:"+str(len(features)))
+  logging.info("features size:"+str(sys.getsizeof(features))
+    +"\tnumber:"+str(len(features)))
+
+  all_watched_guids = exe_time(read_watched_guids)(watch_file)
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
+    +"\tnumber:"+str(len(all_watched_guids)))
+
+  # # encode guid to save memory and speed processing
+  encode_map, decode_map = exe_time(encode_base_features)(features)
+  features = exe_time(encode_features)(features, encode_map)
+  logging.info("features size:"+str(sys.getsizeof(features))
+    +"\tnumber:"+str(len(features)))
+  all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map)
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
+    +"\tnumber:"+str(len(all_watched_guids)))
 
   # filter all_watched_guids and features
   features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids)
-  logging.info("features Memory:"+str(sys.getsizeof(features))
-    +"\tNum:"+str(len(features)))
-  logging.info("no_feature_guids Memory:"+str(sys.getsizeof(no_feature_guids))
-    +"\tNum:"+str(len(no_feature_guids)))
+  logging.info("features size:"+str(sys.getsizeof(features))
+    +"\tnumber:"+str(len(features)))
+  logging.info("no_feature_guids size:"+str(sys.getsizeof(no_feature_guids))
+    +"\tnumber:"+str(len(no_feature_guids)))
 
   all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids)
-  logging.info("all_watched_guids Memory:"+str(sys.getsizeof(all_watched_guids))
-    +"\tNum:"+str(len(all_watched_guids)))
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
+    +"\tnumber:"+str(len(all_watched_guids)))
 
+  # select co_watch pair
+  # TODO
 
   # mine triplets
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
-  logging.info("all_cowatch Memory:"+str(sys.getsizeof(all_cowatch))
-    +"\tNum:"+str(len(all_cowatch)))
+  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
+    +"\tnumber:"+str(len(all_cowatch)))
       
   triplets = exe_time(mine_triplets)(all_cowatch, features)
-  logging.info("triplets Memory:"+str(sys.getsizeof(triplets))
-    +"\tNum:"+str(len(triplets)))
-  return triplets, features
+  logging.info("triplets size:"+str(sys.getsizeof(triplets))
+    +"\tnumber:"+str(len(triplets)))
   
+  return triplets, features, encode_map, decode_map
   
+
+def write_triplets(triplets, features, encode_map, decode_map, save_dir=''):
+  triplets_path = os.path.join(save_dir,'triplets.txt')
+  features_path = os.path.join(save_dir,'features.json')
+  encode_map_path = os.path.join(save_dir,'encode_map.json')
+  decode_map_path = os.path.join(save_dir,'decode_map.json')
+  with open(triplets_path, 'w') as file:
+    for triplet in triplets:
+      triplet = ','.join(list(map(str,triplet)))
+      file.write(triplet+'\n')
+  with open(features_path, 'w') as file:
+    json.dump(features, file, ensure_ascii=False)
+  with open(encode_map_path, 'w') as file:
+    json.dump(encode_map,file, ensure_ascii=False)
+  with open(decode_map_path, 'w') as file:
+    json.dump(decode_map, file, ensure_ascii=False)
+
+
+def gen_trining_data(watch_file, feature_file, save_dir=''):
+  triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file)
+  write_triplets(triplets, features, encode_map, decode_map, save_dir)
+
+
+if __name__ == "__main__":
+  gen_trining_data(watch_file="/data/wengjy1/watched_video_ids",
+                  feature_file="/data/wengjy1/video_guid_inception_feature.txt")
+
