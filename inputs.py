@@ -74,8 +74,8 @@ class MPTripletPipe(BasePipe):
     self.pool.close()
     self.pool.join()
 
-
-  def process(self, triplet_file, thread_index):
+  @staticmethod
+  def process(triplet_file, thread_index):
     with open(triplet_file, 'r') as file:
       logging.info(thread_index)
       runtimes = 0
