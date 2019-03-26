@@ -27,7 +27,7 @@ def read_features_txt(filename, parse=False):
   Arg:
     filename: string
     parse: boolean. if set, guid will be converted to integer,
-           feature will be converted to list of integers. if 
+           feature will be converted to list of floats. if 
            not, guid and feature are both string.
   """
   with open(filename,'r') as file:
@@ -40,7 +40,7 @@ def read_features_txt(filename, parse=False):
         if parse:
           try:
             guid = int(guid)
-            feature = list(map(int(feature.split(','))))
+            feature = list(map(float, (feature.split(','))))
           except Exception as e:
             logging.error(str(e))
         features[guid]=feature
