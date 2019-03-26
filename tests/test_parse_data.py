@@ -14,6 +14,9 @@ from imitation_data import gen_unique_id_array
 from imitation_data import gen_watched_guids
 from imitation_data import gen_all_watched_guids
 from imitation_data import gen_features
+from parse_data import get_unique_watched_guids
+from parse_data import filter_features
+from parse_data import filter_watched_guids
 from parse_data import encode_guids
 from parse_data import encode_base_features
 from parse_data import encode_features
@@ -25,6 +28,83 @@ from parse_data import arrays_to_dict
 from parse_data import yield_negative_guid
 from parse_data import mine_triplets
 from parse_data import lookup
+
+
+def test_get_unique_watched_guids():
+  all_watched_guids = read_watched_guids('watched_guids.txt')
+  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
+  assert len(unique_watched_guids)==251
+
+
+def test_filter_features():
+  features = read_features_txt('features.txt')
+  assert len(features)==254
+  all_watched_guids = read_watched_guids('watched_guids.txt')
+  # 制造不和 all_watched_guids 对应的 features
+  print(type(all_watched_guids[0][1]))
+  features.pop(all_watched_guids[0][1])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  # print(len(watched_feature))
+  assert len(features)==250
+  assert len(no_feature_guids)==1
+
+
+def test_filter_watched_guids():
+  features_ori = read_features_txt("features.txt")
+  assert len(features_ori)==254
+  all_watched_guids = read_watched_guids('watched_guids.txt')
+
+  features = copy.deepcopy(features_ori)
+  # print(all_watched_guids[0][0])
+  features.pop(all_watched_guids[0][0])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==13
+  # print(filtered_watched_guids[0])
+  assert len(filtered_watched_guids[0])==7
+
+  features = copy.deepcopy(features_ori)
+  features.pop(all_watched_guids[0][1])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==13
+  assert len(filtered_watched_guids[0])==6
+  
+  features = copy.deepcopy(features_ori)
+  features.pop(all_watched_guids[0][2])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==14
+  assert len(filtered_watched_guids[0])==2
+  
+  # 测试后半部分
+  features = copy.deepcopy(features_ori)
+  features.pop(all_watched_guids[0][5])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==14
+  assert len(filtered_watched_guids[0])==5
+  assert len(filtered_watched_guids[1])==2
+
+  features = copy.deepcopy(features_ori)
+  features.pop(all_watched_guids[0][6])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==13
+  assert len(filtered_watched_guids[0])==6
+
+  features = copy.deepcopy(features_ori)
+  features.pop(all_watched_guids[0][7])
+  features, no_feature_guids = filter_features(features, all_watched_guids)
+  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  assert len(all_watched_guids)==13
+  assert len(filtered_watched_guids)==13
+  assert len(filtered_watched_guids[0])==7
 
 
 def test_encode_guids():
@@ -134,9 +214,12 @@ def test_lookup():
 
 
 if __name__ == "__main__":
+  test_get_unique_watched_guids()
+  test_filter_features()
+  test_filter_watched_guids()
   # test_encode_guids()
   # test_encode_features()
-  test_encode_all_watched_guids()
+  # test_encode_all_watched_guids()
   # test_get_one_list_of_cowatch()
   # test_yield_all_cowatch()
   # test_arrays_to_dict()

@@ -13,6 +13,64 @@ from tqdm import tqdm
 logging.set_verbosity(logging.DEBUG)
 
 
+# ========================= filter guids =========================
+def get_unique_watched_guids(all_watched_guids):
+  """get unique guids from all wathced guids.
+  用于取得 watched_guids 和 features 的交集
+  return:
+    flatten list of unique_watched_guids
+  """
+  guids = [guid for watched_guids in all_watched_guids 
+                  for guid in watched_guids]
+  unique_watched_guids = list(set(guids))
+  return unique_watched_guids
+
+
+def filter_features(features, all_watched_guids):
+  """Filter features by the key of unique_guids
+  删除 features 中用 all_watched_guids 没访问的 feature
+  并找出无法获取到 feature 的 guid 
+  Args:
+    features: dict
+    all_watched_guids: 2-D list. list of watched guids.
+  Return:
+    watched_features: dict
+    no_feature_guids: list
+  """
+  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
+  no_feature_guids=[]
+  watched_features={}
+  for guid in unique_watched_guids:
+    try:
+      watched_features[guid]=features.pop(guid)
+    except KeyError as e:
+      no_feature_guids.append(guid)
+  return watched_features, no_feature_guids
+
+
+def filter_watched_guids(all_watched_guids, no_feature_guids):
+  """ Filter all_watched_guids by no_feature_guids.
+  删除 all_watched_guids 中访问不到 feature 的 guid，
+  并以此 guid 为分割点，将这一条 watched_guids 分成两条。
+  用于生成可成功获取 feature 的 cowatch。
+  """
+  no_feature_guids = set(no_feature_guids)
+  filtered_watched_guids=[]
+  for watched_guids in all_watched_guids:
+    # 切分出的列表的头元素在原列表的索引
+    head = 0
+    for i,guid in enumerate(watched_guids):
+      if guid in no_feature_guids:
+        # 忽略长度小于2的列表，无法生成 cowatch
+        if len(watched_guids[head:i]) > 1:
+          filtered_watched_guids.append(watched_guids[head:i])
+        head = i+1
+    # 忽略长度小于2的列表，无法生成 cowatch
+    if len(watched_guids[head:]) > 1:
+      filtered_watched_guids.append(watched_guids[head:])
+  return filtered_watched_guids
+
+
 # ========================= encoding guid =========================
 def encode_guids(guids):
   """将 str guids 编码成有序的 index, 并返回编码/解码字典"""
