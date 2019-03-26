@@ -21,7 +21,7 @@ logging.set_verbosity(logging.DEBUG)
 
 def test_build_pipe_graph():
   triplets, _ = get_triplets(watch_file="watched_guids.txt",
-                             feature_file="features.txt")
+                             feature_file="visual_features.txt")
   build_pipe_graph(triplets=triplets,
                    pipe=inputs.TripletPipe(),
                    batch_size=2)
@@ -39,7 +39,7 @@ def test_build_graph():
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
   
   triplets, features = get_triplets(watch_file="watched_guids.txt",
-                             feature_file="features.txt")
+                             feature_file="visual_features.txt")
   batch_size = 2
   num_epochs = None
   build_pipe_graph(triplets=triplets,
@@ -81,7 +81,7 @@ def test_build_graph():
 
 def test_Trainer():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
-                                    feature_file="features.txt")
+                                    feature_file="visual_features.txt")
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/test_Checkpoints/"
   model = find_class_by_name("VENet", [models])()

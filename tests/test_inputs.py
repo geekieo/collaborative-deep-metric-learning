@@ -10,7 +10,7 @@ from inputs import TripletPipe
 
 def test_TripletPipe():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
-                                    feature_file="features.txt")
+                                    feature_file="visual_features.txt")
   print("triplets type",type(triplets),type(triplets[0]),type(triplets[0][0]))
   print("triplets shape",len(triplets),len(triplets[0]),len(triplets[0][0]))
   # build graph
@@ -34,8 +34,7 @@ def test_TripletPipe():
     print(input_triplets.shape)
     assert input_triplets.shape == (2, 3, 1500)
 
-def test_
 
 
 if __name__ == "__main__":
-  # test_TripletPipe()
+  test_TripletPipe()  

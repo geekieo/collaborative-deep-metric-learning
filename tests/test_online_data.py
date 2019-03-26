@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
-""" watch_guids.txt 中的 guid 在 features.txt 中均有对应 feature"""
+""" watch_guids.txt 中的 guid 在 visual_features.txt 中均有对应 feature"""
 import sys
 sys.path.append("..")
 import copy
 import sys
 
 from online_data import read_features_txt
-from online_data import read_features_json
+# from online_data import read_features_json
 from online_data import read_watched_guids
 from online_data import get_triplets
 from online_data import gen_trining_data
@@ -14,7 +14,7 @@ from online_data import gen_trining_data
 
 
 def test_read_features_txt():
-  features = read_features_txt('features.txt')
+  features = read_features_txt('visual_features.txt')
   assert len(features)==254
   feature = list(features.values())[-1]
   assert len(feature)==1500
@@ -22,10 +22,10 @@ def test_read_features_txt():
   print(type(feature))
 
 
-def test_read_features_json():
-  features = read_features_json('features.json')
-  print(features['0'])
-  print(len(features))
+# def test_read_features_json():
+#   features = read_features_json('features.json')
+#   print(features['0'])
+#   print(len(features))
 
 
 def test_read_watched_guids():
@@ -44,7 +44,7 @@ def test_read_watched_guids():
 def test_get_triplets():
   triplets,features,encode_map,decode_map = get_triplets(
                             watch_file="watched_guids.txt",
-                            feature_file="features.txt")
+                            feature_file="visual_features.txt")
   shape = (len(triplets),len(triplets[0]))
   print(shape)
   print(triplets)
@@ -72,15 +72,14 @@ def test_get_triplets_real():
 
 def test_gen_trining_data():
   gen_trining_data(watch_file="watched_guids.txt",
-                   feature_file="features.txt",
+                   feature_file="visual_features.txt",
                    save_dir = '')
 
 
 if __name__ == "__main__":
   # test_read_features_txt()
-  test_read_features_json()
   # test_read_watched_guids()
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  # test_gen_trining_data()
+  test_gen_trining_data()
