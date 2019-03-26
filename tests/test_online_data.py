@@ -7,9 +7,6 @@ import sys
 
 from online_data import read_features_txt
 from online_data import read_watched_guids
-from online_data import get_unique_watched_guids
-from online_data import filter_features
-from online_data import filter_watched_guids
 from online_data import get_triplets
 from online_data import gen_trining_data
 
@@ -35,82 +32,6 @@ def test_read_watched_guids():
     '7e6840f6-569b-44ac-94bb-f685f7cde23f',
     'b8d18517-b61b-4b1a-b321-d999cc66c7af',
     'bcbc6cfd-4407-40be-bf04-d724d1da26b3']
-
-
-def test_get_unique_watched_guids():
-  all_watched_guids = read_watched_guids('watched_guids.txt')
-  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
-  assert len(unique_watched_guids)==251
-
-def test_filter_features():
-  features = read_features_txt('features.txt')
-  assert len(features)==254
-  all_watched_guids = read_watched_guids('watched_guids.txt')
-  # 制造不和 all_watched_guids 对应的 features
-  print(type(all_watched_guids[0][1]))
-  features.pop(all_watched_guids[0][1])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  # print(len(watched_feature))
-  assert len(features)==250
-  assert len(no_feature_guids)==1
-
-
-def test_filter_watched_guids():
-  features_ori = read_features_txt("features.txt")
-  assert len(features_ori)==254
-  all_watched_guids = read_watched_guids('watched_guids.txt')
-
-  features = copy.deepcopy(features_ori)
-  # print(all_watched_guids[0][0])
-  features.pop(all_watched_guids[0][0])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==13
-  # print(filtered_watched_guids[0])
-  assert len(filtered_watched_guids[0])==7
-
-  features = copy.deepcopy(features_ori)
-  features.pop(all_watched_guids[0][1])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==13
-  assert len(filtered_watched_guids[0])==6
-  
-  features = copy.deepcopy(features_ori)
-  features.pop(all_watched_guids[0][2])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==14
-  assert len(filtered_watched_guids[0])==2
-  
-  # 测试后半部分
-  features = copy.deepcopy(features_ori)
-  features.pop(all_watched_guids[0][5])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==14
-  assert len(filtered_watched_guids[0])==5
-  assert len(filtered_watched_guids[1])==2
-
-  features = copy.deepcopy(features_ori)
-  features.pop(all_watched_guids[0][6])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==13
-  assert len(filtered_watched_guids[0])==6
-
-  features = copy.deepcopy(features_ori)
-  features.pop(all_watched_guids[0][7])
-  features, no_feature_guids = filter_features(features, all_watched_guids)
-  filtered_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
-  assert len(all_watched_guids)==13
-  assert len(filtered_watched_guids)==13
-  assert len(filtered_watched_guids[0])==7
 
 
 def test_get_triplets():
@@ -151,9 +72,6 @@ def test_gen_trining_data():
 if __name__ == "__main__":
   # test_read_features_txt()
   # test_read_watched_guids()
-  # test_get_unique_watched_guids()
-  # test_filter_features()
-  # test_filter_watched_guids()
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()

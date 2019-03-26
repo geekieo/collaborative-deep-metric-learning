@@ -8,6 +8,8 @@ import json
 from tensorflow import logging
 
 from utils import exe_time
+from parse_data import filter_features
+from parse_data import filter_watched_guids
 from parse_data import encode_base_features
 from parse_data import encode_features
 from parse_data import encode_all_watched_guids
@@ -67,63 +69,6 @@ def read_watched_guids(filename):
   return all_watched_guids
 
 
-def get_unique_watched_guids(all_watched_guids):
-  """get unique guids from all wathced guids.
-  用于取得 watched_guids 和 features 的交集
-  return:
-    flatten list of unique_watched_guids
-  """
-  guids = [guid for watched_guids in all_watched_guids 
-                  for guid in watched_guids]
-  unique_watched_guids = list(set(guids))
-  return unique_watched_guids
-
-
-def filter_features(features, all_watched_guids):
-  """Filter features by the key of unique_guids
-  删除 features 中用 all_watched_guids 没访问的 feature
-  并找出无法获取到 feature 的 guid 
-  Args:
-    features: dict
-    all_watched_guids: 2-D list. list of watched guids.
-  Return:
-    watched_features: dict
-    no_feature_guids: list
-  """
-  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
-  no_feature_guids=[]
-  watched_features={}
-  for guid in unique_watched_guids:
-    try:
-      watched_features[guid]=features.pop(guid)
-    except KeyError as e:
-      no_feature_guids.append(guid)
-  return watched_features, no_feature_guids
-
-
-def filter_watched_guids(all_watched_guids, no_feature_guids):
-  """ Filter all_watched_guids by no_feature_guids.
-  删除 all_watched_guids 中访问不到 feature 的 guid，
-  并以此 guid 为分割点，将这一条 watched_guids 分成两条。
-  用于生成可成功获取 feature 的 cowatch。
-  """
-  no_feature_guids = set(no_feature_guids)
-  filtered_watched_guids=[]
-  for watched_guids in all_watched_guids:
-    # 切分出的列表的头元素在原列表的索引
-    head = 0
-    for i,guid in enumerate(watched_guids):
-      if guid in no_feature_guids:
-        # 忽略长度小于2的列表，无法生成 cowatch
-        if len(watched_guids[head:i]) > 1:
-          filtered_watched_guids.append(watched_guids[head:i])
-        head = i+1
-    # 忽略长度小于2的列表，无法生成 cowatch
-    if len(watched_guids[head:]) > 1:
-      filtered_watched_guids.append(watched_guids[head:])
-  return filtered_watched_guids
-
-
 def get_triplets(watch_file, feature_file):
   """
   Args:
@@ -142,15 +87,6 @@ def get_triplets(watch_file, feature_file):
   logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
     +"\tnumber:"+str(len(all_watched_guids)))
 
-  # # encode guid to save memory and speed processing
-  encode_map, decode_map = exe_time(encode_base_features)(features)
-  features = exe_time(encode_features)(features, encode_map)
-  logging.info("features size:"+str(sys.getsizeof(features))
-    +"\tnumber:"+str(len(features)))
-  all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map)
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
-    +"\tnumber:"+str(len(all_watched_guids)))
-
   # filter all_watched_guids and features
   features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids)
   logging.info("features size:"+str(sys.getsizeof(features))
@@ -159,6 +95,16 @@ def get_triplets(watch_file, feature_file):
     +"\tnumber:"+str(len(no_feature_guids)))
 
   all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids)
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
+    +"\tnumber:"+str(len(all_watched_guids)))
+
+
+  # encode guid to save memory and speed up processing
+  encode_map, decode_map = exe_time(encode_base_features)(features)
+  features = exe_time(encode_features)(features, encode_map)
+  logging.info("features size:"+str(sys.getsizeof(features))
+    +"\tnumber:"+str(len(features)))
+  all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map)
   logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
     +"\tnumber:"+str(len(all_watched_guids)))
 
