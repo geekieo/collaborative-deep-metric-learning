@@ -17,10 +17,15 @@ def test_read_features_txt():
   features = read_features_txt('visual_features.txt')
   assert len(features)==254
   feature = list(features.values())[-1]
-  assert len(feature)==1500
-  print(feature)
   print(type(feature))
 
+  # 转成 int 和 list of floats
+  features = read_features_txt('features.txt', parse=True)
+  assert len(features)==251
+  feature = list(features.values())[-1]
+  print(feature)
+  print(type(feature))
+  assert len(feature)==1500
 
 # def test_read_features_json():
 #   features = read_features_json('features.json')
@@ -77,9 +82,9 @@ def test_gen_trining_data():
 
 
 if __name__ == "__main__":
-  # test_read_features_txt()
+  test_read_features_txt()
   # test_read_watched_guids()
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  test_gen_trining_data()
+  # test_gen_trining_data()

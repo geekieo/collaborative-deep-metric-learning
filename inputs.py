@@ -149,7 +149,7 @@ class MPTripletPipe(object):
 if __name__ == '__main__':
     # process/pool shared python object!!!
     pipe = MPTripletPipe(triplet_file_patten='tests/*.triplet',
-                         feature_file="tests/features.json",
+                         feature_file="tests/features.txt",
                          debug=True)
 
     arc, pos, neg = pipe.create_pipe(batch_size=16, num_epochs=2)
