@@ -42,3 +42,5 @@ class TripletPipe(BasePipe):
     return iterator
 
 
+class BatchProcess(BasePipe):
+  pass
