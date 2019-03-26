@@ -6,6 +6,7 @@ import copy
 import sys
 
 from online_data import read_features_txt
+from online_data import read_features_json
 from online_data import read_watched_guids
 from online_data import get_triplets
 from online_data import gen_trining_data
@@ -19,6 +20,12 @@ def test_read_features_txt():
   assert len(feature)==1500
   print(feature)
   print(type(feature))
+
+
+def test_read_features_json():
+  features = read_features_json('features.json')
+  print(features['0'])
+  print(len(features))
 
 
 def test_read_watched_guids():
@@ -71,8 +78,9 @@ def test_gen_trining_data():
 
 if __name__ == "__main__":
   # test_read_features_txt()
+  test_read_features_json()
   # test_read_watched_guids()
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  test_gen_trining_data()
+  # test_gen_trining_data()

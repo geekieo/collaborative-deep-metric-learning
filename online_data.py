@@ -25,8 +25,8 @@ def read_features_txt(filename):
   对于每行样本，分号前是 guid, 分号后是 visual feature。
   visual feature 是 str 类型的 1500 维向量，需格式化后使用。
   """
-  features = {}
   with open(filename,'r') as file:
+    features = {}
     data = file.readlines()
     for line in data:
       line = line.strip('\n')   #删除行末的 \n
@@ -35,8 +35,13 @@ def read_features_txt(filename):
         features[guid]=feature
       except Exception as e:
         logging.warning(str(e)+". guid: "+guid)
-  return features
+    return features
 
+
+def read_features_json(filename):
+  with open(filename, 'r') as file:
+    features = json.load(file)
+    return features
 
 def read_watched_guids(filename):
   """读取 watched_guids txt 文件, 返回 list
@@ -47,8 +52,8 @@ def read_watched_guids(filename):
   retrun:
     all_watched_guids: 2-D list contains wathced guids of each user
   """
-  all_watched_guids=[]
   with open(filename, 'r') as file:
+    all_watched_guids=[]
     data = file.readlines()
     for line in data:
       line = line.rstrip('\n')  # 删除行末的 \n
@@ -66,7 +71,7 @@ def read_watched_guids(filename):
           all_watched_guids.append(watched_guids)
       except Exception as e:
         logging.warning(str(e)+". uid: "+guids[0])
-  return all_watched_guids
+    return all_watched_guids
 
 
 def get_triplets(watch_file, feature_file):
