@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow import logging
 from online_data import read_features_json
 
-logging.set_verbosity(logging.INFO)
+logging.set_verbosity(logging.DEBUG)
 
 class BasePipe(object):
   """Inherit from this class when implementing new readers."""
@@ -49,7 +49,7 @@ class TripletPipe(BasePipe):
 
 class MPTripletPipe(BasePipe):
   def __init__(self, triplet_file_patten, feature_file, manager,
-              queue_length=2 ** 14, num_epochs=1):
+              queue_length=2 ** 14, num_epochs=1,debug=False):
     """
     Arg:
       triplet_file_patten: filename patten
@@ -58,6 +58,8 @@ class MPTripletPipe(BasePipe):
     """
     self.triplet_files = tf.gfile.Glob(triplet_file_patten) 
     self.features = read_features_json(feature_file)
+    if debug:
+      logging.debug(self.triplet_files)
     self.num_epochs = num_epochs
     self.manager = manager
     self.triplet_queue = manager.Queue(maxsize=queue_length)
@@ -148,7 +150,8 @@ if __name__ == '__main__':
 
   pipe = MPTripletPipe(triplet_file_patten='tests/*.triplet',
                        feature_file="tests/features.json",
-                       manager=manager)
+                       manager=manager,
+                       debug=True)
 
   arc, pos, neg = pipe.create_pipe(batch_size=16)
   if arc is not None:
