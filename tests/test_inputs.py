@@ -8,15 +8,15 @@ from parse_data import lookup
 from inputs import TripletPipe
 
 
-def test_create_pipe():
+def test_TripletPipe():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                                     feature_file="features.txt")
   print("triplets type",type(triplets),type(triplets[0]),type(triplets[0][0]))
   print("triplets shape",len(triplets),len(triplets[0]),len(triplets[0][0]))
   # build graph
-  pipe = TripletPipe()
+  pipe = TripletPipe(triplets)
   batch_size = 2
-  triplets_iter = pipe.create_pipe(triplets=triplets, batch_size=batch_size, num_epochs=None)
+  triplets_iter = pipe.create_pipe(batch_size=batch_size, num_epochs=None)
   guid_triplets = triplets_iter.get_next()
   tf.add_to_collection("guid_triplets", guid_triplets)
   # use graph
@@ -34,6 +34,8 @@ def test_create_pipe():
     print(input_triplets.shape)
     assert input_triplets.shape == (2, 3, 1500)
 
-    
+def test_
+
+
 if __name__ == "__main__":
-  test_create_pipe()
+  # test_TripletPipe()
