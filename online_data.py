@@ -147,6 +147,6 @@ def gen_trining_data(watch_file, feature_file, save_dir=''):
 
 if __name__ == "__main__":
   gen_trining_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
-                  feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt"
+                  feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
                   save_dir='/data/wengjy1/cdml')
 
