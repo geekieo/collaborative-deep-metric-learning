@@ -251,8 +251,8 @@ def main(unused_argv):
   # TODO Prepare distributed arguments here. 
 
   from online_data import get_triplets
-  triplets,features = get_triplets(watch_file="/data/wengjy1/watched_video_ids",
-                                   feature_file="/data/wengjy1/video_guid_inception_feature.txt")
+  triplets,features = get_triplets(watch_file="/data/wengjy1/cdml/watched_video_ids",
+                                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt")
 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/Checkpoints/"
