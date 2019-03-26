@@ -69,7 +69,8 @@ class MPTripletPipe(object):
         self.pool = Pool(len(self.triplet_files))
         for index,triplet_file in enumerate(self.triplet_files):
             self.pool.apply_async(self.process, args=(triplet_file, self.features, str(index),
-                                                      self.triplet_queue, self.mq, num_epochs))
+                                                      self.triplet_queue, self.mq, num_epochs,
+                                                      debug))
     
 
     @staticmethod
@@ -90,9 +91,10 @@ class MPTripletPipe(object):
                                 line = file.readline()
                             else:
                                 return
-#                         triplet = line.strip().split(',') #debug
-                        triplet = list(
-                            map(lambda x: features[x], line.strip().split(',')))
+                        triplet = list(map(int,line.strip().split(','))) # list of guids, dtype int
+                        if debug:
+                            logging.debug(str(triplet))
+                        triplet = list(map(lambda x: features[x], triplet))
                         if triplet is None:
                             continue
                         triplet_queue.put(triplet)
@@ -152,6 +154,7 @@ if __name__ == '__main__':
                          feature_file="tests/features.txt",
                          debug=True)
 
-    arc, pos, neg = pipe.create_pipe(batch_size=16, num_epochs=2)
-    if arc is not None:
-        print(arc.shape)
+    triplet = pipe.create_pipe(batch_size=5, num_epochs=2)
+    if triplet is not None:
+        print(triplet.shape)
+        print(triplet[0])

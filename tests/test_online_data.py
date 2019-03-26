@@ -82,9 +82,9 @@ def test_gen_trining_data():
 
 
 if __name__ == "__main__":
-  test_read_features_txt()
   # test_read_watched_guids()
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  # test_gen_trining_data()
+  test_gen_trining_data()
+  test_read_features_txt()
