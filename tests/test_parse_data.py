@@ -37,7 +37,7 @@ def test_get_unique_watched_guids():
 
 
 def test_filter_features():
-  features = read_features_txt('features.txt')
+  features = read_features_txt('visual_features.txt')
   assert len(features)==254
   all_watched_guids = read_watched_guids('watched_guids.txt')
   # 制造不和 all_watched_guids 对应的 features
@@ -50,7 +50,7 @@ def test_filter_features():
 
 
 def test_filter_watched_guids():
-  features_ori = read_features_txt("features.txt")
+  features_ori = read_features_txt("visual_features.txt")
   assert len(features_ori)==254
   all_watched_guids = read_watched_guids('watched_guids.txt')
 
@@ -118,7 +118,7 @@ def test_encode_guids():
     assert decode_map[encode_map[guid]]==guid
 
 def test_encode_features():
-  features = read_features_txt('features.txt')
+  features = read_features_txt('visual_features.txt')
   features_ori = copy.deepcopy(features)
   encode_map, decode_map = encode_base_features(features)
   encoded_features = encode_features(features, encode_map)
@@ -128,7 +128,7 @@ def test_encode_features():
 
 
 def test_encode_all_watched_guids():
-  features = read_features_txt('features.txt')
+  features = read_features_txt('visual_features.txt')
   encode_map, decode_map = encode_base_features(features)
   all_watched_guids = read_watched_guids('watched_guids.txt')
   encoded_all_watch_guids = encode_all_watched_guids(all_watched_guids, encode_map)
@@ -204,7 +204,7 @@ def test_mine_triplets():
 
 def test_lookup():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
-                                    feature_file="features.txt")
+                                    feature_file="visual_features.txt")
   guid_triplets = tf.constant(triplets)
   with tf.Session() as sess:
     guid_triplets_val = sess.run(guid_triplets)

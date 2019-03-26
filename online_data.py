@@ -19,11 +19,16 @@ from parse_data import mine_triplets
 logging.set_verbosity(logging.DEBUG)
 
 
-def read_features_txt(filename):
+def read_features_txt(filename, parse=False):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature。
   visual feature 是 str 类型的 1500 维向量，需格式化后使用。
+  Arg:
+    filename: string
+    parse: boolean. if set, guid will be converted to integer,
+           feature will be converted to list of integers. if 
+           not, guid and feature are both string.
   """
   with open(filename,'r') as file:
     features = {}
@@ -32,16 +37,22 @@ def read_features_txt(filename):
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
+        if parse:
+          try:
+            guid = int(guid)
+            feature = list(map(int(feature.split(','))))
+          except Exception as e:
+            logging.error(str(e))
         features[guid]=feature
       except Exception as e:
         logging.warning(str(e)+". guid: "+guid)
     return features
 
 
-def read_features_json(filename):
-  with open(filename, 'r') as file:
-    features = json.load(file)
-    return features
+# def read_features_json(filename):
+#   with open(filename, 'r') as file:
+#     features = json.load(file)
+#     return features
 
 def read_watched_guids(filename):
   """读取 watched_guids txt 文件, 返回 list
@@ -130,7 +141,7 @@ def get_triplets(watch_file, feature_file):
 
 def write_triplets(triplets, features, encode_map, decode_map, save_dir=''):
   triplets_path = os.path.join(save_dir,'triplets.txt')
-  features_path = os.path.join(save_dir,'features.json')
+  features_path = os.path.join(save_dir,'features.txt')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
   decode_map_path = os.path.join(save_dir,'decode_map.json')
   with open(triplets_path, 'w') as file:
@@ -138,7 +149,9 @@ def write_triplets(triplets, features, encode_map, decode_map, save_dir=''):
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
   with open(features_path, 'w') as file:
-    json.dump(features, file, ensure_ascii=False)
+    while features:
+      guid, feature = features.popitem()
+      file.write(str(guid)+';'+feature+'\n') 
   with open(encode_map_path, 'w') as file:
     json.dump(encode_map,file, ensure_ascii=False)
   with open(decode_map_path, 'w') as file:

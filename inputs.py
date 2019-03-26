@@ -6,7 +6,7 @@ from multiprocessing import Pool, Manager
 import numpy as np
 import tensorflow as tf
 from tensorflow import logging
-from online_data import read_features_json
+from online_data import read_features_txt
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -57,7 +57,7 @@ class MPTripletPipe(object):
           feature_file: filename
         """
         self.triplet_files = tf.gfile.Glob(triplet_file_patten)
-        self.features = read_features_json(feature_file)
+        self.features = read_features_txt(feature_file, parse=True)
         if debug:
             logging.debug(self.triplet_files)
             logging.debug('__init__'+str(id(self.features)))
@@ -75,7 +75,7 @@ class MPTripletPipe(object):
     @staticmethod
     def process(triplet_file, features, thread_index, triplet_queue, mq, num_epochs=1,debug=False):
         if debug:
-            logging.debug('process:'+str(id(features)))
+            logging.debug('process features id:'+str(id(features)))
         with open(triplet_file, 'r') as file:
             logging.info(thread_index)
             runtimes = 0
@@ -90,12 +90,12 @@ class MPTripletPipe(object):
                                 line = file.readline()
                             else:
                                 return
-                        sample = line.strip().split(',')
-#                         sample = list(
-#                             map(lambda x: features[x], line.strip().split(',')))
-                        if sample is None:
+#                         triplet = line.strip().split(',') #debug
+                        triplet = list(
+                            map(lambda x: features[x], line.strip().split(',')))
+                        if triplet is None:
                             continue
-                        triplet_queue.put(sample)
+                        triplet_queue.put(triplet)
                         position = file.tell()
                     else:
                         time.sleep(0.01)
@@ -119,19 +119,15 @@ class MPTripletPipe(object):
           a batch of training triplets, 
         '''
         self.run_multiporcess(num_epochs)
-        arc = []
-        pos = []
-        neg = []
+        triplets=[]
         wait_num = 0
         exitFlag = False
         while not exitFlag:
             if not self.triplet_queue.empty():
                 wait_num = 0
-                data = self.triplet_queue.get()
-                arc.append(data[0])
-                pos.append(data[1])
-                neg.append(data[2])
-                if len(arc) == batch_size:
+                triplet = self.triplet_queue.get()
+                triplets.append(triplet)
+                if len(triplets) == batch_size:
                     exitFlag = True
             else:
                 wait_num += 1
@@ -142,8 +138,8 @@ class MPTripletPipe(object):
                 print("queue is empty, wait:{}".format(wait_num))
                 time.sleep(1)
         if wait_num >= 100:
-            return [None, None, None]
-        return [np.asarray(arc), np.asarray(pos), np.asarray(neg)]
+            return None
+        return np.array(triplets)
     
     def __del__(self):
         self.pool.close()
