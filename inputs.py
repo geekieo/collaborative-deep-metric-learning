@@ -58,6 +58,7 @@ class MPTripletPipe(object):
         """
         self.triplet_files = tf.gfile.Glob(triplet_file_patten)
         self.features = read_features_txt(feature_file, parse=True)
+        self.debug = debug
         if debug:
             logging.debug(self.triplet_files)
             logging.debug('__init__'+str(id(self.features)))
@@ -70,11 +71,16 @@ class MPTripletPipe(object):
         for index,triplet_file in enumerate(self.triplet_files):
             self.pool.apply_async(self.process, args=(triplet_file, self.features, str(index),
                                                       self.triplet_queue, self.mq, num_epochs,
-                                                      debug))
+                                                      self.debug))
     
 
     @staticmethod
     def process(triplet_file, features, thread_index, triplet_queue, mq, num_epochs=1,debug=False):
+        """
+        子进程为静态函数。
+        共享变量。
+        不能用类变量，所以需要传入所有变量
+        """
         if debug:
             logging.debug('process features id:'+str(id(features)))
         with open(triplet_file, 'r') as file:
