@@ -35,7 +35,7 @@ def clip_gradient_norms(gradients_to_variables, max_norm):
     clipped_grads_and_vars.append((grad, var))
   return clipped_grads_and_vars
 
-
+@DeprecationWarning
 def build_pipe_graph(triplets,
                      pipe,
                      batch_size=100,
@@ -130,29 +130,23 @@ def build_graph(input_triplets,
 
 class Trainer():
 
-  def __init__(self, triplets, features, pipe, checkpoint_dir, model,
-               loss_fn, optimizer_class, batch_size, num_epochs=None,
-               log_device_placement=True, last_step=None, debug=False):
-    """
-    triplets: 3-D list of guid triplets. from inputs.get_triplets
-    features: dict of features. features are ndarray of np.float32.  from inputs.get_triplets
-    """
+  def __init__(self, pipe, batch_size, num_epochs, model, loss_fn, 
+               checkpoint_dir, optimizer_class, config,
+               last_step=None, debug=False):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
-    self.triplets = triplets
-    self.features = features
     self.pipe = pipe
-    self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
-    self.config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
-    self.config.gpu_options.allow_growth=True
-    self.model = model
-    self.loss_fn = loss_fn
-    self.optimizer_class = optimizer_class
     self.batch_size = batch_size
     self.num_epochs = num_epochs
+    self.model = model
+    self.loss_fn = loss_fn
+    self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
+    self.optimizer_class = optimizer_class
+    self.config = config
     self.last_step = last_step
     self.debug = debug
 
+  @DeprecationWarning
   def build_pipe(self):
     """build the pipe graph """
     build_pipe_graph(triplets=self.triplets,
@@ -175,17 +169,15 @@ class Trainer():
 
   def run(self):
 
+    pipe.create_pipe(self.num_epochs)
+
     with tf.device('/device:GPU:0'):
       logging.info("Building model graph.")
       input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
       self.build_model(input_triplets)
 
-    with tf.device('/cpu:0'):
-      logging.info("Building pipe graph.")
-      self.build_pipe()
 
     global_step = tf.train.get_or_create_global_step()
-    guid_triplets = tf.get_collection("guid_triplets")[0]
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
@@ -200,17 +192,21 @@ class Trainer():
     #                                        save_checkpoint_secs=600) as sess:
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
-    coord = tf.train.Coordinator()
     logging.info("Starting session.")
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       try:
-        while not coord.should_stop():
-          guid_triplets_val = sess.run(guid_triplets)
-          input_triplets_val = lookup(guid_triplets_val, self.features)
+        while True:
+          input_triplets_val = pipe.get_batch(self.batch_size)
+          if input_triplets_val is None:
+            # summary save model
+            train_writer.add_summary(summary_val, global_step_val)
+            saver.save(sess, self.checkpoint_dir, global_step_val)
+            logging.info('pipe end!')
+            break
           if self.debug:
-            logging.debug(input_triplets_val.shape, type(input_triplets_val))
+            logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           batch_start_time = time.time()
           _, global_step_val, loss_val, output_val, summary_val= sess.run(
               [train_op, global_step, loss, output_batch,summary_op], feed_dict={input_triplets: input_triplets_val})
@@ -242,34 +238,30 @@ class Trainer():
         logging.info('Done training -- epoch limit reached')
       except Exception as e:
         logging.warning(str(e))
-      finally:
-        coord.request_stop()
       logging.info("Exited training loop.")
 
 
 def main(unused_argv):
   # TODO Prepare distributed arguments here. 
-
-  from online_data import get_triplets
-  triplets,features = get_triplets(watch_file="/data/wengjy1/cdml/watched_video_ids",
-                                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt")
-
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/Checkpoints/"
+  pipe = inputs.MPTripletPipe(triplet_file_patten='tests/*.triplet',
+                              feature_file="tests/features.txt",
+                              debug=True)
   model = find_class_by_name("VENet", [models])()
-  pipe = find_class_by_name("TripletPipe", [inputs])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-
-  trainer = Trainer(triplets=triplets,
-                    features=features,
-                    pipe=pipe,
-                    checkpoint_dir=checkpoint_dir,
+  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
+  config.gpu_options.allow_growth=True
+  trainer = Trainer(pipe=pipe,
+                    batch_size=1000,
+                    num_epochs=5,
                     model=model,
                     loss_fn=loss_fn,
+                    checkpoint_dir=checkpoint_dir,
                     optimizer_class=optimizer_class,
-                    batch_size=100,
-                    num_epochs=None,
+                    config=config
+                    last_step=None,
                     debug=False)
   trainer.run()
 
