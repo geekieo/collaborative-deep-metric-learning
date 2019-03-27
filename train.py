@@ -183,13 +183,6 @@ class Trainer():
     train_op = tf.get_collection("train_op")[0]
     init_op = tf.global_variables_initializer()
 
-    # hooks = [tf.train.NanTensorHook(loss)]
-    # if self.last_step:
-    #   hooks.append(tf.train.StopAtStepHook(last_step=self.last_step))
-    # with tf.Session(checkpoint_dir = self.checkpoint_dir,
-    #                                        hooks = hooks,
-    #                                        save_summaries_steps=100,
-    #                                        save_checkpoint_secs=600) as sess:
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
     logging.info("Starting session.")

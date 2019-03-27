@@ -18,7 +18,7 @@ from train import Trainer
 
 logging.set_verbosity(logging.DEBUG)
 
-
+@DeprecationWarning
 def test_build_pipe_graph():
   triplets, _ = get_triplets(watch_file="watched_guids.txt",
                              feature_file="visual_features.txt")
@@ -80,26 +80,26 @@ def test_build_graph():
 
 
 def test_Trainer():
-  triplets, features = get_triplets(watch_file="watched_guids.txt",
-                                    feature_file="visual_features.txt")
+  # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/home/wengjy1/test_Checkpoints/"
+  checkpoint_dir = "/home/wengjy1/Checkpoints/"
+  pipe = inputs.MPTripletPipe(triplet_file_patten='*.triplet',
+                              feature_file="features.txt",
+                              debug=True)
   model = find_class_by_name("VENet", [models])()
-  pipe = find_class_by_name("TripletPipe", [inputs])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  # cluster = None
-  # task_data = {"type": "master", "index": 0}
-  # task = type("TaskSpec", (object,), task_data)
-  trainer = Trainer(triplets=triplets,
-                    features=features,
-                    pipe=pipe,
-                    checkpoint_dir=checkpoint_dir,
+  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
+  config.gpu_options.allow_growth=True
+  trainer = Trainer(pipe=pipe,
+                    batch_size=1000,
+                    num_epochs=5,
                     model=model,
                     loss_fn=loss_fn,
+                    checkpoint_dir=checkpoint_dir,
                     optimizer_class=optimizer_class,
-                    batch_size=100,
-                    num_epochs=None,
+                    config=config
+                    last_step=None,
                     debug=False)
   trainer.run()
 
