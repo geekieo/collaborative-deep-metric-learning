@@ -9,7 +9,7 @@ from tensorflow import logging
 from online_data import read_features_txt
 
 logging.set_verbosity(logging.DEBUG)
-
+FEATURES={}
 
 class BasePipe(object):
   """Inherit from this class when implementing new readers."""
@@ -56,51 +56,54 @@ class MPTripletPipe(object):
       triplet_file_patten: filename patten
       feature_file: filename
     """
+    global FEATURES
+    FEATURES = read_features_txt(feature_file, parse=True)
     self.triplet_files = tf.gfile.Glob(triplet_file_patten)
-    self.features = read_features_txt(feature_file, parse=True)
+    logging.info(self.triplet_files)
     self.debug = debug
-    if debug:
-      logging.debug(self.triplet_files)
-      logging.debug('__init__'+str(id(self.features)))
+    if self.debug:
+      logging.debug('__init__ features id: '+str(id(FEATURES)))
 
-  def run_multiporcess(self, num_epochs, queue_length=2 ** 14):
+  def create_pipe(self, num_epochs, queue_length=2 ** 14):
+    """多进程读取多个 guid_triplets 文件，在子进程中将 guid 映射成 feature
+    """
     manager = Manager()
     self.triplet_queue = manager.Queue(maxsize=queue_length)
     self.mq = manager.Queue(maxsize=10)
+    # self.features = manager.dict(FEATURES)
     self.pool = Pool(len(self.triplet_files))
     for index, triplet_file in enumerate(self.triplet_files):
-      self.pool.apply_async(self.process, args=(triplet_file, self.features, str(index),
-                                                self.triplet_queue, self.mq, num_epochs,
-                                                self.debug))
+      self.pool.apply_async(self.subprocess, args=(triplet_file, str(index),
+                                            self.triplet_queue, self.mq, num_epochs,
+                                            self.debug))
 
   @staticmethod
-  def process(triplet_file, features, thread_index, triplet_queue, mq, num_epochs=1, debug=False):
-    """
-    子进程为静态函数。
-    共享变量。
-    不能用类变量，所以需要传入所有变量
-    """
+  def subprocess(triplet_file, thread_index, triplet_queue, mq, num_epochs, debug=False):
+    """子进程为静态函数。不能用类变量，所以需要传入所需变量。"""
+    global FEATURES
     if debug:
-      logging.debug('process features id:'+str(id(features)))
+      logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
     with open(triplet_file, 'r') as file:
-      logging.info(thread_index)
       runtimes = 0
       while mq.qsize() <= 0:
         try:
           if not triplet_queue.full():
             line = file.readline()
             if not line:
+              if debug:
+                logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
               runtimes += 1
               if runtimes < num_epochs:
                 file.seek(0)
                 line = file.readline()
               else:
+                logging.info('thread_index: '+str(thread_index)+' subprocess end')
                 return
             # list of guids, dtype int
             triplet = list(map(int, line.strip().split(',')))
-            if debug:
-              logging.debug(str(triplet))
-            triplet = list(map(lambda x: features[x], triplet))
+            # if debug:
+            #   logging.debug('thread_index: '+str(thread_index)+'; triplet: '+str(triplet))
+            triplet = list(map(lambda x: FEATURES[x], triplet))
             if triplet is None:
               continue
             triplet_queue.put(triplet)
@@ -118,36 +121,34 @@ class MPTripletPipe(object):
             file.seek(position)
           except Exception as e:
             logging.warning(position, str(e))
-
-  def create_pipe(self, batch_size=50, num_epochs=2):
-      '''get batch training data with format [arc, pos, neg]
-      Arg:
-        batch_size
-      Retrun:
-        a batch of training triplets, 
-      '''
-      self.run_multiporcess(num_epochs)
-      triplets = []
-      wait_num = 0
-      exitFlag = False
-      while not exitFlag:
-          if not self.triplet_queue.empty():
-              wait_num = 0
-              triplet = self.triplet_queue.get()
-              triplets.append(triplet)
-              if len(triplets) == batch_size:
-                  exitFlag = True
-          else:
-              wait_num += 1
-              if wait_num >= 100:
-                  print('queue is empty, i do not wanna to wait any more!!!')
-                  exitFlag = True
-              # queueLock.release()
-              print("queue is empty, wait:{}".format(wait_num))
-              time.sleep(1)
-      if wait_num >= 100:
-          return None
-      return np.array(triplets)
+  
+  def get_batch(self,batch_size, wait_times=100):
+    '''get batch training data with format [arc, pos, neg]
+    Arg:
+      batch_size
+    Retrun:
+      a batch of training triplets, 
+    '''
+    triplets = []
+    wait_num = 0
+    exitFlag = False
+    while not exitFlag:
+      if not self.triplet_queue.empty():
+        wait_num = 0
+        triplet = self.triplet_queue.get()
+        triplets.append(triplet)
+        if len(triplets) == batch_size:
+          exitFlag = True
+      else:
+        wait_num += 1
+        logging.info("queue is empty, wait:{}".format(wait_num))
+        if wait_num >= wait_times:
+          logging.info('queue is empty, i do not wanna to wait any more!!!')
+          exitFlag = True
+        time.sleep(1)
+    if wait_num >= wait_times:
+      return None
+    return np.array(triplets)
 
   def __del__(self):
     self.pool.close()
@@ -155,12 +156,19 @@ class MPTripletPipe(object):
 
 
 if __name__ == '__main__':
-  # process/pool shared python object!!!
   pipe = MPTripletPipe(triplet_file_patten='tests/*.triplet',
-                        feature_file="tests/features.txt",
-                        debug=True)
-
-  triplet = pipe.create_pipe(batch_size=5, num_epochs=2)
-  if triplet is not None:
+                       feature_file="tests/features.txt",
+                       debug=True)
+  pipe.create_pipe(num_epochs=2)
+  # 单例
+  triplet = pipe.get_batch(batch_size=50, wait_times=10)
+  print(triplet.shape)
+  print(triplet[0])
+  # 循环
+  while True:
+    triplet = pipe.get_batch(batch_size=50)
+    if triplet is None:
+        # summary save model
+        logging.info('Loop end!')
+        break
     print(triplet.shape)
-    print(triplet[0])
