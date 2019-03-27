@@ -84,27 +84,28 @@ def test_Trainer():
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/Checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten='*.triplet',
-                              feature_file="features.txt",
-                              debug=True)
+                            feature_file="features.txt",
+                            debug=False)
+
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
+  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)
   config.gpu_options.allow_growth=True
+
   trainer = Trainer(pipe=pipe,
-                    batch_size=1000,
-                    num_epochs=5,
-                    model=model,
-                    loss_fn=loss_fn,
-                    checkpoint_dir=checkpoint_dir,
-                    optimizer_class=optimizer_class,
-                    config=config
-                    last_step=None,
-                    debug=False)
+                num_epochs=5,
+                batch_size=10,
+                wait_times=10,
+                model=model,
+                loss_fn=loss_fn,
+                checkpoint_dir=checkpoint_dir,
+                optimizer_class=optimizer_class,
+                config=config,
+                last_step=None,
+                debug=False)
   trainer.run()
 
-
 if __name__ == "__main__":
-  # test_build_pipe_graph()
   # test_build_graph()
   test_Trainer()
