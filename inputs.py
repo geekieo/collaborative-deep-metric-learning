@@ -100,11 +100,13 @@ class MPTripletPipe(object):
                 logging.info('thread_index: '+str(thread_index)+' subprocess end')
                 return
             # list of guids, dtype int
-            triplet = list(map(int, line.strip().split(',')))
+            guid_triplet = list(map(int, line.strip().split(',')))
             # if debug:
-            #   logging.debug('thread_index: '+str(thread_index)+'; triplet: '+str(triplet))
-            triplet = list(map(lambda x: FEATURES[x], triplet))
-            if triplet is None:
+            #   logging.debug('thread_index: '+str(thread_index)+'; guid_triplet: '+str(guid_triplet))
+            try:
+              triplet = list(map(lambda x: FEATURES[x], guid_triplet))
+            except Exception as e:
+              logging.warning('subprocess: '+str(e))
               continue
             triplet_queue.put(triplet)
             position = file.tell()

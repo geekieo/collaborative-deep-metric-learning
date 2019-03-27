@@ -126,7 +126,8 @@ def build_graph(input_triplets,
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
-  tf.add_to_collection("gradients", gradients) #debug
+  # tf.add_to_collection("gradients", gradients) #debug
+
 
 
 class Trainer():
@@ -173,17 +174,17 @@ class Trainer():
 
     self.pipe.create_pipe(self.num_epochs)
 
-    with tf.device('/device:GPU:0'):
-      logging.info("Building model graph.")
-      input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
-      self.build_model(input_triplets)
+    # with tf.device('/cpu:0'):
+    logging.info("Building model graph.")
+    input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
+    self.build_model(input_triplets)
 
 
     global_step = tf.train.get_or_create_global_step()
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
-    gradients = tf.get_collection("gradients")[0]
+    # gradients = tf.get_collection("gradients")[0]
     init_op = tf.global_variables_initializer()
 
 
@@ -196,7 +197,7 @@ class Trainer():
       try:
         while True:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
-          print('input_triplets_val: ',input_triplets_val[0])
+          # print('input_triplets_val[0]: ',input_triplets_val[0])
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
@@ -206,16 +207,18 @@ class Trainer():
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           batch_start_time = time.time()
-          _, global_step_val, loss_val, summary_val, gradients_val= sess.run(
-              [train_op, global_step, loss,summary_op,gradients], feed_dict={input_triplets: input_triplets_val})
+          _, global_step_val, loss_val, summary_val = sess.run(
+              [train_op, global_step, loss,summary_op],
+              feed_dict={input_triplets: input_triplets_val})
           seconds_per_batch = time.time() - batch_start_time
-          print('gradients_val: ',gradients_val)
+          # print('gradients_val: ',gradients_val)
+
           if global_step_val % 100 == 0:
             train_writer.add_summary(summary_val, global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) +
               "add summary")
-          elif global_step_val % 110 == 0:
+          elif global_step_val % 500 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch)  +

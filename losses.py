@@ -32,8 +32,8 @@ class HingeLoss(BaseLoss):
     with tf.name_scope("loss_hinge"):
       triplets = tf.cast(triplets, tf.float32)
       anchors, positives, negatives = tf.split(triplets, 3, axis=1)
-      pos_dist = tf.square(tf.subtract(anchors,positives), name="pos_dist")
-      neg_dist = tf.square(tf.subtract(anchors,negatives), name="neg_dist")
+      pos_dist = tf.reduce_sum(tf.square((anchors - positives)), axis=2, name="pos_dist")
+      neg_dist = tf.reduce_sum(tf.square((anchors - negatives)), axis=2, name="neg_dist")
       hinge_dist = tf.maximum(pos_dist - neg_dist + margin, 0.0, name="hinge_dist")
       hinge_loss = tf.reduce_mean(hinge_dist, name="hinge_loss")
       return hinge_loss
