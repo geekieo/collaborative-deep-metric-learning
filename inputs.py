@@ -89,6 +89,7 @@ class MPTripletPipe(object):
         try:
           if not triplet_queue.full():
             line = file.readline()
+            triplet = []
             if not line:
               if debug:
                 logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
@@ -108,7 +109,8 @@ class MPTripletPipe(object):
             except Exception as e:
               logging.warning('subprocess: '+str(e))
               continue
-            triplet_queue.put(triplet)
+            if len(triplet)==3:
+              triplet_queue.put(triplet)
             position = file.tell()
           else:
             time.sleep(0.01)
