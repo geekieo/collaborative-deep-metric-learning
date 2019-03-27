@@ -95,8 +95,8 @@ def build_graph(input_triplets,
   tf.summary.scalar('learning_rate', learning_rate)
   optimizer = optimizer_class(learning_rate)
 
-  for variable in slim.get_model_variables():
-    tf.summary.histogram(variable.op.name, variable)
+  # for variable in slim.get_model_variables():
+  #   tf.summary.histogram(variable.op.name, variable)
 
   output_triplets = result["output"]
   loss = loss_fn.calculate_loss(output_triplets)
@@ -122,10 +122,11 @@ def build_graph(input_triplets,
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
   # tf.add_to_collection("global_step", global_step)
-  tf.add_to_collection("input_batch", input_triplets)
+  # tf.add_to_collection("input_batch", input_triplets)
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
+  tf.add_to_collection("gradients", gradients) #debug
 
 
 class Trainer():
@@ -182,7 +183,9 @@ class Trainer():
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
+    gradients = tf.get_collection("gradients")[0]
     init_op = tf.global_variables_initializer()
+
 
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
@@ -193,6 +196,7 @@ class Trainer():
       try:
         while True:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
+          print(input_triplets_val[0])
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
@@ -201,13 +205,12 @@ class Trainer():
             break
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
-          batch_start_time = time.time()
-          _, global_step_val, loss_val, output_val, summary_val= sess.run(
-              [train_op, global_step, loss, output_batch,summary_op], feed_dict={input_triplets: input_triplets_val})
-          seconds_per_batch = time.time() - batch_start_time
-          examples_per_second = output_val.shape[0] / seconds_per_batch
-          
-
+          # batch_start_time = time.time()
+          _, global_step_val, loss_val, summary_val, gradients_val= sess.run(
+              [train_op, global_step, loss,summary_op,gradients], feed_dict={input_triplets: input_triplets_val})
+          # seconds_per_batch = time.time() - batch_start_time
+          # examples_per_second = seconds_per_batch / output_val.shape[0]
+          print(gradients_val)
           if global_step_val % 100 == 0:
             train_writer.add_summary(summary_val, global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
