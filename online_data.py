@@ -42,7 +42,7 @@ def read_features_txt(filename, parse=False):
             guid = int(guid)
             feature = list(map(float, (feature.split(','))))
           except Exception as e:
-            logging.error(str(e))
+            logging.error('read_features_txt: '+str(e))
         features[guid]=feature
       except Exception as e:
         logging.warning(str(e)+". guid: "+guid)
