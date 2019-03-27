@@ -99,7 +99,8 @@ def build_graph(input_triplets,
   #   tf.summary.histogram(variable.op.name, variable)
 
   output_triplets = result["output"]
-  loss = loss_fn.calculate_loss(output_triplets)
+  # loss = loss_fn.calculate_loss(output_triplets)
+  loss, anchors, positives, negatives, pos_dist, neg_dist, hinge_dist = loss_fn.calculate_loss(output_triplets)
 
   reg_loss = tf.constant(0.0)
   reg_losses = tf.losses.get_regularization_losses()
@@ -121,13 +122,19 @@ def build_graph(input_triplets,
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
-  # tf.add_to_collection("global_step", global_step)
   # tf.add_to_collection("input_batch", input_triplets)
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
-  # tf.add_to_collection("gradients", gradients) #debug
-
+  
+  #debug
+  tf.add_to_collection("gradients", gradients) 
+  tf.add_to_collection("anchors",anchors)
+  tf.add_to_collection("positives",positives)
+  tf.add_to_collection("negatives",negatives)
+  tf.add_to_collection("pos_dist",pos_dist)
+  tf.add_to_collection("neg_dist",neg_dist)
+  tf.add_to_collection("hinge_dist",hinge_dist)
 
 
 class Trainer():
@@ -184,9 +191,15 @@ class Trainer():
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
-    # gradients = tf.get_collection("gradients")[0]
+    gradients = tf.get_collection("gradients")[0]
     init_op = tf.global_variables_initializer()
 
+    anchors = tf.get_collection("anchors")[0]
+    positives = tf.get_collection("positives")[0]
+    negatives = tf.get_collection("negatives")[0]
+    pos_dist = tf.get_collection("pos_dist")[0]
+    neg_dist = tf.get_collection("neg_dist")[0]
+    hinge_dist = tf.get_collection("hinge_dist")[0]
 
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
@@ -207,11 +220,21 @@ class Trainer():
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           batch_start_time = time.time()
-          _, global_step_val, loss_val, summary_val = sess.run(
+          _, global_step_val, loss_val, summary_val= sess.run(
               [train_op, global_step, loss,summary_op],
               feed_dict={input_triplets: input_triplets_val})
+          # _, global_step_val, loss_val, summary_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val = sess.run(
+          #     [train_op, global_step, loss,summary_op,anchors, positives, negatives,pos_dist,neg_dist,hinge_dist],
+          #     feed_dict={input_triplets: input_triplets_val})
+
           seconds_per_batch = time.time() - batch_start_time
           # print('gradients_val: ',gradients_val)
+          # print('anchors_val',anchors_val)
+          # print('positives_val',positives_val)
+          # print('negatives_val',negatives_val)
+          # print('pos_dist_val',pos_dist_val)
+          # print('neg_dist_val',neg_dist_val)
+          # print('hinge_dist_val',hinge_dist_val)
 
           if global_step_val % 100 == 0:
             train_writer.add_summary(summary_val, global_step_val)
