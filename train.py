@@ -130,14 +130,15 @@ def build_graph(input_triplets,
 
 class Trainer():
 
-  def __init__(self, pipe, batch_size, num_epochs, model, loss_fn, 
+  def __init__(self, pipe, num_epochs, batch_size, wait_times, model, loss_fn, 
                checkpoint_dir, optimizer_class, config,
                last_step=None, debug=False):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
-    self.batch_size = batch_size
     self.num_epochs = num_epochs
+    self.batch_size = batch_size
+    self.wait_times = wait_times
     self.model = model
     self.loss_fn = loss_fn
     self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
@@ -169,7 +170,7 @@ class Trainer():
 
   def run(self):
 
-    pipe.create_pipe(self.num_epochs)
+    self.pipe.create_pipe(self.num_epochs)
 
     with tf.device('/device:GPU:0'):
       logging.info("Building model graph.")
@@ -191,12 +192,12 @@ class Trainer():
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       try:
         while True:
-          input_triplets_val = pipe.get_batch(self.batch_size)
+          input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
             saver.save(sess, self.checkpoint_dir, global_step_val)
-            logging.info('pipe end!')
+            logging.info('pipe end! Add summary. Save checkpoint.')
             break
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
@@ -213,7 +214,7 @@ class Trainer():
               ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
               "add summary")
           elif global_step_val % 110 == 0:
-            saver.save(sess, self.checkpoint_dir, global_step_val)
+            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
               "save checkpoint")
@@ -238,22 +239,23 @@ def main(unused_argv):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/Checkpoints/"
-  pipe = inputs.MPTripletPipe(triplet_file_patten='tests/*.triplet',
-                              feature_file="tests/features.txt",
-                              debug=True)
+  pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
+                              feature_file="/data/wengjy1/cdml/features.txt",
+                              debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=log_device_placement)
+  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
+                    num_epochs=10,
                     batch_size=1000,
-                    num_epochs=5,
+                    wait_times=100,
                     model=model,
                     loss_fn=loss_fn,
                     checkpoint_dir=checkpoint_dir,
                     optimizer_class=optimizer_class,
-                    config=config
+                    config=config,
                     last_step=None,
                     debug=False)
   trainer.run()
