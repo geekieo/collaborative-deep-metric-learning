@@ -196,7 +196,7 @@ class Trainer():
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
-            saver.save(sess, self.checkpoint_dir, global_step_val)
+            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info('pipe end! Add summary. Save checkpoint.')
             break
           if self.debug:
