@@ -196,7 +196,7 @@ class Trainer():
       try:
         while True:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
-          print(input_triplets_val[0])
+          print('input_triplets_val: ',input_triplets_val[0])
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
@@ -205,21 +205,20 @@ class Trainer():
             break
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
-          # batch_start_time = time.time()
+          batch_start_time = time.time()
           _, global_step_val, loss_val, summary_val, gradients_val= sess.run(
               [train_op, global_step, loss,summary_op,gradients], feed_dict={input_triplets: input_triplets_val})
-          # seconds_per_batch = time.time() - batch_start_time
-          # examples_per_second = seconds_per_batch / output_val.shape[0]
-          print(gradients_val)
+          seconds_per_batch = time.time() - batch_start_time
+          print('gradients_val: ',gradients_val)
           if global_step_val % 100 == 0:
             train_writer.add_summary(summary_val, global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
+              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) +
               "add summary")
           elif global_step_val % 110 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second) +
+              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch)  +
               "save checkpoint")
           elif global_step_val % 100000 == 0:
             # evaluate
@@ -229,7 +228,7 @@ class Trainer():
             pass
           else:
             logging.debug("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tExamples/sec: " + ("%.2f" % examples_per_second))
+              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
           
       except tf.errors.OutOfRangeError:
         logging.info('Done training -- epoch limit reached')
