@@ -127,7 +127,7 @@ class MPTripletPipe(object):
     Arg:
       batch_size
     Retrun:
-      a batch of training triplets, 
+      3-D array of training triplets, dtype np.float32
     '''
     triplets = []
     wait_num = 0
@@ -148,7 +148,7 @@ class MPTripletPipe(object):
         time.sleep(1)
     if wait_num >= wait_times:
       return None
-    return np.array(triplets)
+    return np.array(triplets, dtype=np.float32)
 
   def __del__(self):
     self.pool.close()
@@ -172,3 +172,4 @@ if __name__ == '__main__':
         logging.info('Loop end!')
         break
     print(triplet.shape)
+    print(triplet.dtype)

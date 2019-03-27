@@ -261,6 +261,7 @@ def mine_triplets(all_cowatch, features):
   
 
 # ========================= translate =========================
+@DeprecationWarning
 def lookup(batch_triplets, features):
   """Trans guids to features
   Arg:
