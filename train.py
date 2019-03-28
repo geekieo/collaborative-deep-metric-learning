@@ -207,20 +207,21 @@ class Trainer():
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
-      try:
-        while True:
+      while True:
+        try:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
-            logging.info('pipe end! Add summary. Save checkpoint.')
+            logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             break
           if not input_triplets_val.shape == (self.batch_size,3,1500):
             continue
           # print('input_triplets_val[0]: ',input_triplets_val[0])
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
+          
           batch_start_time = time.time()
           _, global_step_val, loss_val, summary_val= sess.run(
               [train_op, global_step, loss,summary_op],
@@ -228,8 +229,8 @@ class Trainer():
           # _, global_step_val, loss_val, summary_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val = sess.run(
           #     [train_op, global_step, loss,summary_op,anchors, positives, negatives,pos_dist,neg_dist,hinge_dist],
           #     feed_dict={input_triplets: input_triplets_val})
-
           seconds_per_batch = time.time() - batch_start_time
+            
           # print('gradients_val: ',gradients_val)
           # print('anchors_val',anchors_val)
           # print('positives_val',positives_val)
@@ -253,12 +254,10 @@ class Trainer():
             #  [train_op, global_step, loss, output_batch])
             # 计算 output_batch cowatch 余弦距离
             pass
-          
-          
-      except tf.errors.OutOfRangeError:
-        logging.info('Done training -- epoch limit reached')
-      except Exception as e:
-        logging.error(str(e))
+
+        except Exception as e:
+          logging.error(str(e)) 
+      
       logging.info("Exited training loop.")
 
 

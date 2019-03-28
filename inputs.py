@@ -109,7 +109,8 @@ class MPTripletPipe(object):
             except Exception as e:
               logging.warning('subprocess: '+str(e))
               continue
-            if len(triplet)==3:
+            # check feature shape
+            if len(triplet)==3 and len(triplet[0])==1500 and len(triplet[1])==1500 and len(triplet[2])==1500:
               triplet_queue.put(triplet)
             position = file.tell()
           else:
@@ -160,8 +161,8 @@ class MPTripletPipe(object):
 
 
 if __name__ == '__main__':
-  pipe = MPTripletPipe(triplet_file_patten='tests/*.triplet',
-                       feature_file="tests/features.txt",
+  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
+                       feature_file="/data/wengjy1/cdml/features.txt",
                        debug=True)
   pipe.create_pipe(num_epochs=2)
   # 单例
@@ -173,7 +174,7 @@ if __name__ == '__main__':
     triplet = pipe.get_batch(batch_size=50)
     if triplet is None:
         # summary save model
-        logging.info('Loop end!')
+        logging.info('input main: Loop end!')
         break
-    print(triplet.shape)
-    print(triplet.dtype)
+    if not triplet.shape[1:]==(3,1500):
+      print("input main: triplet shape ERROR")
