@@ -236,33 +236,28 @@ class Trainer():
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           
           batch_start_time = time.time()
-          _, global_step_val, loss_val, summary_val, input_batch_val, layer_1_val, layer_2_val, output_batch_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val,hinge_loss_val, final_loss_val= sess.run(
-              [train_op, global_step, loss, summary_op,input_batch, layer_1, layer_2, output_batch, anchors, positives, negatives,pos_dist,neg_dist,hinge_dist, hinge_loss, final_loss],
+          _, global_step_val, loss_val, summary_val= sess.run(
+              [train_op, global_step, loss,summary_op],
               feed_dict={input_triplets: input_triplets_val})
-#           _, global_step_val, loss_val, summary_val= sess.run(
-#               [train_op, global_step, loss,summary_op],
-#               feed_dict={input_triplets: input_triplets_val})
-          # _, global_step_val, loss_val, summary_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val = sess.run(
-          #     [train_op, global_step, loss,summary_op,anchors, positives, negatives,pos_dist,neg_dist,hinge_dist],
+
+          # _, global_step_val, loss_val, summary_val, input_batch_val, layer_1_val, layer_2_val, output_batch_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val,hinge_loss_val, final_loss_val= sess.run(
+          #     [train_op, global_step, loss, summary_op,input_batch, layer_1, layer_2, output_batch, anchors, positives, negatives,pos_dist,neg_dist,hinge_dist, hinge_loss, final_loss],
           #     feed_dict={input_triplets: input_triplets_val})
+          # print('input_batch_val',input_batch_val.shape,input_batch_val,
+          #     'layer_1_val',layer_1_val.shape,layer_1_val,
+          #     'layer_2_val',layer_2_val.shape,layer_2_val,
+          #     'output_batch_val',output_batch_val.shape,output_batch_val, 
+          #     'anchors_val',anchors_val.shape,anchors_val, 
+          #     'positives_val',positives_val.shape, positives_val, 
+          #     'negatives_val',negatives_val.shape, negatives_val, 
+          #     'pos_dist_val',pos_dist_val.shape, pos_dist_val, 
+          #     'neg_dist_val',neg_dist_val.shape, neg_dist_val, 
+          #     'hinge_dist_val',hinge_dist_val.shape, hinge_dist_val, 
+          #     'hinge_loss_val',hinge_loss_val.shape, hinge_loss_val, 
+          #     'final_loss_val',final_loss_val.shape, final_loss_val,
+          #     sep='\n')
+
           seconds_per_batch = time.time() - batch_start_time
-            
-          print('input_batch_val',input_batch_val.shape,input_batch_val,
-              'layer_1_val',layer_1_val.shape,layer_1_val,
-              'layer_2_val',layer_2_val.shape,layer_2_val,
-              'output_batch_val',output_batch_val.shape,output_batch_val, 
-              'anchors_val',anchors_val.shape,anchors_val, 
-              'positives_val',positives_val.shape, positives_val, 
-              'negatives_val',negatives_val.shape, negatives_val, 
-              'pos_dist_val',pos_dist_val.shape, pos_dist_val, 
-              'neg_dist_val',neg_dist_val.shape, neg_dist_val, 
-              'hinge_dist_val',hinge_dist_val.shape, hinge_dist_val, 
-              'hinge_loss_val',hinge_loss_val.shape, hinge_loss_val, 
-              'final_loss_val',final_loss_val.shape, final_loss_val,
-              sep='\n')
-            
-#           print('layer_1_val',layer_1_val.shape,layer_1_val,
-#               sep='\n')
         
           logging.debug("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
