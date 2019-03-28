@@ -15,15 +15,15 @@ from online_data import gen_trining_data
 
 def test_read_features_txt():
   features = read_features_txt('visual_features.txt')
-  assert len(features)==254
+  assert len(features)==253
   feature = list(features.values())[-1]
-  print(type(feature))
+  assert isinstance(feature,str)
 
   # 转成 int 和 list of floats
   features = read_features_txt('features.txt', parse=True)
   assert len(features)==251
   feature = list(features.values())[-1]
-  print(feature)
+  # print(feature)
   print(type(feature))
   assert len(feature)==1500
 
@@ -86,5 +86,5 @@ if __name__ == "__main__":
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  test_gen_trining_data()
+  # test_gen_trining_data()
   test_read_features_txt()

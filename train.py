@@ -170,8 +170,8 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                base_learning_rate=0.01,
-                learning_rate_decay_examples=100000,
+                base_learning_rate=1.0,
+                learning_rate_decay_examples=10000000,
                 learning_rate_decay=0.95,
                 optimizer_class=self.optimizer_class,
                 clip_gradient_norm=0,
@@ -210,13 +210,15 @@ class Trainer():
       try:
         while True:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
-          # print('input_triplets_val[0]: ',input_triplets_val[0])
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info('pipe end! Add summary. Save checkpoint.')
             break
+          if not input_triplets_val.shape == (self.batch_size,3,1500):
+            continue
+          # print('input_triplets_val[0]: ',input_triplets_val[0])
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           batch_start_time = time.time()
@@ -236,30 +238,27 @@ class Trainer():
           # print('neg_dist_val',neg_dist_val)
           # print('hinge_dist_val',hinge_dist_val)
 
-          if global_step_val % 100 == 0:
+          logging.debug("training step " + str(global_step_val) + " | Loss: " +
+              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
+
+          if global_step_val % 200 == 0:
             train_writer.add_summary(summary_val, global_step_val)
-            logging.info("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) +
-              "add summary")
-          elif global_step_val % 500 == 0:
+            logging.info("add summary")
+          if global_step_val % 1000 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
-            logging.info("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch)  +
-              "save checkpoint")
-          elif global_step_val % 100000 == 0:
+            logging.info("save checkpoint")
+          if global_step_val % 100000 == 0:
             # evaluate
             # _, global_step_val, loss_val, output_val = sess.run(
             #  [train_op, global_step, loss, output_batch])
             # 计算 output_batch cowatch 余弦距离
             pass
-          else:
-            logging.debug("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
+          
           
       except tf.errors.OutOfRangeError:
         logging.info('Done training -- epoch limit reached')
       except Exception as e:
-        logging.warning(str(e))
+        logging.error(str(e))
       logging.info("Exited training loop.")
 
 
