@@ -36,16 +36,24 @@ def read_features_txt(filename, parse=False):
     for line in data:
       line = line.strip('\n')   #删除行末的 \n
       try:
-        guid, feature = line.split(';')
+        str_guid, str_feature = line.split(';')
         if parse:
           try:
-            guid = int(guid)
-            feature = list(map(float, (feature.split(','))))
+            guid = int(str_guid)
+            feature = list(map(float, (str_feature.split(','))))
+            if len(feature) == 1500:
+              features[guid]=feature
           except Exception as e:
-            logging.error('read_features_txt: '+str(e))
-        features[guid]=feature
+            logging.warning('read_features_txt parse: '+str(e))
+        else:
+          try:
+            feature = list(map(float, (str_feature.split(','))))
+            if len(feature) == 1500:
+              features[str_guid]=str_feature
+          except Exception as e:
+            logging.warning('read_features_txt: '+str(e))
       except Exception as e:
-        logging.warning(str(e)+". guid: "+guid)
+        logging.warning('read_features_txt'+str(e))
     return features
 
 

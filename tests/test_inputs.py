@@ -6,8 +6,9 @@ import numpy as np
 from online_data import get_triplets
 from parse_data import lookup
 from inputs import TripletPipe
+from inputs import MPTripletPipe
 
-
+@DeprecationWarning
 def test_TripletPipe():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                                     feature_file="visual_features.txt")
@@ -34,7 +35,24 @@ def test_TripletPipe():
     print(input_triplets.shape)
     assert input_triplets.shape == (2, 3, 1500)
 
-
+def test_MPTripletPipe():
+  pipe = MPTripletPipe(triplet_file_patten='*.triplet',
+                       feature_file="features.txt",
+                       debug=True)
+  pipe.create_pipe(num_epochs=2)
+  # 单例
+  triplet = pipe.get_batch(batch_size=50, wait_times=10)
+  print(triplet.shape)
+  print(triplet[0])
+  # 循环
+  while True:
+    triplet = pipe.get_batch(batch_size=50)
+    if triplet is None:
+        # summary save model
+        logging.info('Loop end!')
+        break
+    assert triplet.shape[1:]==(3,1500)
+    print(triplet.dtype)
 
 if __name__ == "__main__":
-  test_TripletPipe()  
+  test_MPTripletPipe()
