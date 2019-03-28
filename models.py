@@ -34,7 +34,7 @@ class VENet(BaseModel):
           layer_1, output_size, activation_fn=tf.nn.sigmoid,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       output = tf.nn.l2_normalize(layer_2)
-      return {"output": output}
+      return {"output": output, "layer_1":layer_1, "layer_2":layer_2}
 
   def evaluate():
     pass
