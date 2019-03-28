@@ -99,8 +99,9 @@ def build_graph(input_triplets,
   #   tf.summary.histogram(variable.op.name, variable)
 
   output_triplets = result["output"]
-  # loss = loss_fn.calculate_loss(output_triplets)
-  loss, anchors, positives, negatives, pos_dist, neg_dist, hinge_dist = loss_fn.calculate_loss(output_triplets)
+  loss_result = loss_fn.calculate_loss(output_triplets)
+  loss = loss_result['hinge_loss']
+
 
   reg_loss = tf.constant(0.0)
   reg_losses = tf.losses.get_regularization_losses()
@@ -122,20 +123,22 @@ def build_graph(input_triplets,
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
-  # tf.add_to_collection("input_batch", input_triplets)
+
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
   
-  #debug
+#   #debug
+  tf.add_to_collection("layer_1", result["layer_1"])
+  tf.add_to_collection("layer_2", result["layer_2"])
+  tf.add_to_collection("input_batch", input_triplets)
   tf.add_to_collection("gradients", gradients) 
-  tf.add_to_collection("anchors",anchors)
-  tf.add_to_collection("positives",positives)
-  tf.add_to_collection("negatives",negatives)
-  tf.add_to_collection("pos_dist",pos_dist)
-  tf.add_to_collection("neg_dist",neg_dist)
-  tf.add_to_collection("hinge_dist",hinge_dist)
-
+  tf.add_to_collection("anchors", loss_result["anchors"])
+  tf.add_to_collection("positives", loss_result["positives"])
+  tf.add_to_collection("negatives", loss_result["negatives"])
+  tf.add_to_collection("pos_dist", loss_result["pos_dist"])
+  tf.add_to_collection("neg_dist", loss_result["neg_dist"])
+  tf.add_to_collection("hinge_dist", loss_result["hinge_dist"])
 
 class Trainer():
 
@@ -170,8 +173,8 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                base_learning_rate=1.0,
-                learning_rate_decay_examples=10000000,
+                base_learning_rate=0.01,
+                learning_rate_decay_examples=100000,
                 learning_rate_decay=0.95,
                 optimizer_class=self.optimizer_class,
                 clip_gradient_norm=0,
@@ -191,22 +194,27 @@ class Trainer():
     loss = tf.get_collection("loss")[0]
     output_batch = tf.get_collection("output_batch")[0]
     train_op = tf.get_collection("train_op")[0]
-    gradients = tf.get_collection("gradients")[0]
     init_op = tf.global_variables_initializer()
 
+    # debug
+    layer_1 = tf.get_collection("layer_1")[0]
+    layer_2 = tf.get_collection("layer_2")[0]
+    input_batch = tf.get_collection("input_batch")[0]
     anchors = tf.get_collection("anchors")[0]
     positives = tf.get_collection("positives")[0]
     negatives = tf.get_collection("negatives")[0]
     pos_dist = tf.get_collection("pos_dist")[0]
     neg_dist = tf.get_collection("neg_dist")[0]
     hinge_dist = tf.get_collection("hinge_dist")[0]
-
+    gradients = tf.get_collection("gradients")[0]
+    
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
     logging.info("Starting session.")
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
+
       while True:
         try:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
@@ -218,27 +226,36 @@ class Trainer():
             break
           if not input_triplets_val.shape == (self.batch_size,3,1500):
             continue
-          # print('input_triplets_val[0]: ',input_triplets_val[0])
+          # print('input_triplets_val.shape: ',input_triplets_val.shap)
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           
           batch_start_time = time.time()
-          _, global_step_val, loss_val, summary_val= sess.run(
-              [train_op, global_step, loss,summary_op],
+          _, global_step_val, loss_val, summary_val, layer_1_val, layer_2_val, output_batch_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val= sess.run(
+              [train_op, global_step, loss, summary_op, layer_1, layer_2, output_batch, anchors, positives, negatives,pos_dist,neg_dist,hinge_dist],
               feed_dict={input_triplets: input_triplets_val})
+#           _, global_step_val, loss_val, summary_val= sess.run(
+#               [train_op, global_step, loss,summary_op],
+#               feed_dict={input_triplets: input_triplets_val})
           # _, global_step_val, loss_val, summary_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val = sess.run(
           #     [train_op, global_step, loss,summary_op,anchors, positives, negatives,pos_dist,neg_dist,hinge_dist],
           #     feed_dict={input_triplets: input_triplets_val})
           seconds_per_batch = time.time() - batch_start_time
             
-          # print('gradients_val: ',gradients_val)
-          # print('anchors_val',anchors_val)
-          # print('positives_val',positives_val)
-          # print('negatives_val',negatives_val)
-          # print('pos_dist_val',pos_dist_val)
-          # print('neg_dist_val',neg_dist_val)
-          # print('hinge_dist_val',hinge_dist_val)
-
+#           print('layer_1_val',layer_1_val.shape,layer_1_val,
+#               'layer_2_val',layer_2_val.shape,layer_2_val,
+#               'output_batch_val',output_batch_val.shape,output_batch_val, 
+#               'anchors_val',anchors_val.shape,anchors_val, 
+#               'positives_val',positives_val.shape, positives_val, 
+#               'negatives_val',negatives_val.shape, negatives_val, 
+#               'pos_dist_val',pos_dist_val.shape, pos_dist_val, 
+#               'neg_dist_val',neg_dist_val.shape, neg_dist_val, 
+#               'hinge_dist_val',hinge_dist_val.shape, hinge_dist_val, 
+#               sep='\n')
+            
+          print('layer_1_val',layer_1_val.shape,layer_1_val,
+              sep='\n')
+        
           logging.debug("training step " + str(global_step_val) + " | Loss: " +
               ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
 
@@ -257,7 +274,7 @@ class Trainer():
 
         except Exception as e:
           logging.error(str(e)) 
-      
+      self.pipe.__del__()
       logging.info("Exited training loop.")
 
 
