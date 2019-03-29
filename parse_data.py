@@ -146,8 +146,8 @@ def get_all_cowatch(all_watched_guids):
   """ 解析所有 watched_guids 的 co-watch
   Args:
     all_watched_guids: list of watched_guids
-  return：
-    all_cowatch：list of cowatch guids
+  return:
+    all_cowatch: list of cowatch guids
     all_guids: set of guid. all unique guids in all_cowatch
   """
   all_cowatch = []

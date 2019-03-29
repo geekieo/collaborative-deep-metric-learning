@@ -66,8 +66,8 @@ def read_features_npy(filename):
   """
   np_file = '%s.npy' % (filename)
   if os.path.exists(np_file):
-    features = np.load(np_file)
-    return features
+    feature_array = np.load(np_file)
+    return feature_array
   with open(filename,'r') as file:
     features = {}
     feature_list = []
@@ -79,14 +79,18 @@ def read_features_npy(filename):
         features[int(guid)] = list(map(float, (feature.split(','))))
       except Exception as e:
         logging.error('read_features_npy file to dict: '+str(e))
-    try：
-      for i in len(features):
-        feature_list.append(features[i])
-    except Exception as e：
-      logging.error('read_features_npy list to ndarray: '+str(e))
+
+      for i in range(len(features)):
+        try:
+          feature = features[i]
+        except Exception as e:
+          feature = ''
+          logging.warning('read_features_npy list to ndarray: '+str(e))
+        feature_list.append(features)
+          
     feature_array = np.asarray(feature_list)
     np.save(np_file, feature_array)
-    return features
+    return feature_array
 
 
 # def read_features_json(filename):
