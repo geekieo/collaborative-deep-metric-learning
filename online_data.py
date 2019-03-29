@@ -59,6 +59,30 @@ def read_features_txt(filename, parse=False):
     return features
 
 
+def read_features_npy(filename):
+  """features 的 key 为从 0 开始的 dict，value 为 ndarray。这里把
+  features 用 ndarray 存放，其索引天然为key。用 ndarray 的索引批量
+  查询 ndarray 能提高 batch 查询速度。
+  """
+  np_file = '%s.npy' % (filename)
+  if os.path.exists(np_file):
+    features = np.load(np_file)
+    return features
+  with open(filename,'r') as file:
+    features = []
+    data = file.readlines()
+    for line in data:
+      line = line.strip('\n')   #删除行末的 \n
+      try:
+        guid, feature = line.split(';')
+        features.append(list(map(float, (feature.split(',')))))
+      except Exception as e:
+        logging.error('read_features_npy: '+str(e))
+    features = np.asarray(features)
+    np.save(np_file, features)
+    return features
+
+
 # def read_features_json(filename):
 #   with open(filename, 'r') as file:
 #     features = json.load(file)
@@ -144,7 +168,7 @@ def get_triplets(watch_file, feature_file, threshold=3):
   all_cowatch = exe_time(select_cowatch)(graph, threshold)
   logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
     +"\tnumber:"+str(len(all_cowatch)))
-      
+
   # mine triplets
   triplets = exe_time(mine_triplets)(all_cowatch, features)
   logging.info("triplets size:"+str(sys.getsizeof(triplets))
