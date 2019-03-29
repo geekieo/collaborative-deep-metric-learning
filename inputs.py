@@ -90,35 +90,35 @@ class MPTripletPipe(object):
       runtimes = 0
       triplets = []
       position = 0
-     while True:
-      try:
-        for i in range(batch_size):
-          line = file.readline()
-          if not line:
-            if debug:
-              logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
-            runtimes += 1
-            if runtimes < num_epochs:
-              file.seek(0)
-              line = file.readline()
-            else:
-              logging.info('thread_index: '+str(thread_index)+' subprocess end')
-              return
-          arc, pos, neg = line.strip().split(',')
-          triplets.append([int(arc), int(pos), int(neg)])
-        triplet_queue.put(triplets)
-        triplets.clear()
-      except Exception as e:
-        logging.warning('subprocess:'+str(e))
+      while True:
         try:
-          file.close()
+          for i in range(batch_size):
+            line = file.readline()
+            if not line:
+              if debug:
+                logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
+              runtimes += 1
+              if runtimes < num_epochs:
+                file.seek(0)
+                line = file.readline()
+              else:
+                logging.info('thread_index: '+str(thread_index)+' subprocess end')
+                return
+            arc, pos, neg = line.strip().split(',')
+            triplets.append([int(arc), int(pos), int(neg)])
+          triplet_queue.put(triplets)
+          triplets.clear()
         except Exception as e:
-          pass
-        try:
-          file = open(file_name, 'r')
-          file.seek(position)
-        except Exception as e:
-          logging.warning(position, str(e))
+          logging.warning('subprocess:'+str(e))
+          try:
+            file.close()
+          except Exception as e:
+            pass
+          try:
+            file = open(file_name, 'r')
+            file.seek(position)
+          except Exception as e:
+            logging.warning(position, str(e))
   
   def get_batch(self, wait_times=100):
     '''get batch training data with format [arc, pos, neg]
@@ -141,7 +141,6 @@ class MPTripletPipe(object):
           logging.info('queue is empty, i do not wanna to wait any more!!!')
           exitFlag = True
         time.sleep(1)
-    return None
 
   def __del__(self):
     self.pool.close()

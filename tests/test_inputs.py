@@ -37,11 +37,11 @@ def test_TripletPipe():
 
 def test_MPTripletPipe():
   pipe = MPTripletPipe(triplet_file_patten='*.triplet',
-                       feature_file="features.txt",
-                       debug=True)
-  pipe.create_pipe(num_epochs=2)
+                          feature_file="features.txt",
+                          debug=False)
+  pipe.create_pipe(num_epochs=2, batch_size=50)
   # 单例
-  triplet = pipe.get_batch(batch_size=50, wait_times=10)
+  triplet = pipe.get_batch(wait_times=10)
   print(triplet.shape)
   print(triplet[0])
   # 循环
