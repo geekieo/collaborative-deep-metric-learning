@@ -183,7 +183,7 @@ class Trainer():
 
   def run(self):
 
-    self.pipe.create_pipe(self.num_epochs)
+    self.pipe.create_pipe(self.num_epochs, self.batch_size)
 
     # with tf.device('/cpu:0'):
     logging.info("Building model graph.")
@@ -220,7 +220,7 @@ class Trainer():
       summary_val=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
       while True:
         try:
-          input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
+          input_triplets_val = self.pipe.get_batch(self.wait_times)
           if input_triplets_val is None:
             # summary save model
             train_writer.add_summary(summary_val, global_step_val)
