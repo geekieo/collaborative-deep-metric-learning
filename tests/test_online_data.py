@@ -78,7 +78,11 @@ def test_get_triplets_real():
 def test_gen_trining_data():
   gen_trining_data(watch_file="watched_guids.txt",
                    feature_file="visual_features.txt",
-                   save_dir = '')
+                   threshold=1,
+                   save_dir = '',
+                   split=2)
+
+
 
 
 if __name__ == "__main__":
@@ -86,5 +90,5 @@ if __name__ == "__main__":
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  # test_gen_trining_data()
+  test_gen_trining_data()
   test_read_features_txt()

@@ -67,6 +67,7 @@ def gen_watched_guids(guids, low, high):
   watched_guids = watched_guids.tolist()
   return watched_guids
 
+
 def gen_all_watched_guids(guids, num_cowatch, low=2, high=30):
   """ 在 guids 中随机挑选随机数目的 guid
   Args:
@@ -83,6 +84,7 @@ def gen_all_watched_guids(guids, num_cowatch, low=2, high=30):
     all_watched_guids.append(watched_guids)
   return all_watched_guids
 
+
 def gen_triplets(batch_size, feature_size):
   shape = [batch_size, 3, feature_size]
   triplets = gen_features(num_feature=shape[0]*shape[1],
@@ -90,3 +92,15 @@ def gen_triplets(batch_size, feature_size):
   triplets = np.reshape(triplets, shape)
   return triplets
 
+
+def arrays_to_dict(array_1d,array_2d):
+  """ 将 1darray 和 array_2d 组合成一个字典
+  要求两个array行数相同，array_1d.shape[0] == array_2d.shape[0]
+  可用于生成 {guid:feature} 的 feature dict
+  Args:
+    array_1d: 1-D array-like 
+    array_2d: 2-D ndarray
+  Return:
+    dict. key 为 array_1d 的元素，value 为 array_2d 的元素
+  """
+  return dict(zip(array_1d, array_2d))
