@@ -14,6 +14,8 @@ from parse_data import encode_base_features
 from parse_data import encode_features
 from parse_data import encode_all_watched_guids
 from parse_data import get_all_cowatch
+from parse_data import get_cowatch_graph
+from parse_data import select_cowatch
 from parse_data import mine_triplets
 
 logging.set_verbosity(logging.DEBUG)
@@ -93,11 +95,12 @@ def read_watched_guids(filename):
     return all_watched_guids
 
 
-def get_triplets(watch_file, feature_file):
+def get_triplets(watch_file, feature_file, threshold=3):
   """
   Args:
     watch_file: str. file path of watched guid file.
     feature_file: str. file path of video feature.
+    threshold:int. a threshold of cowatch number use to select cowatch pair
   Return:
     return: list of guid_triplets
     features: dict of features
@@ -122,7 +125,6 @@ def get_triplets(watch_file, feature_file):
   logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
     +"\tnumber:"+str(len(all_watched_guids)))
 
-
   # encode guid to save memory and speed up processing
   encode_map, decode_map = exe_time(encode_base_features)(features)
   features = exe_time(encode_features)(features, encode_map)
@@ -132,14 +134,18 @@ def get_triplets(watch_file, feature_file):
   logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
     +"\tnumber:"+str(len(all_watched_guids)))
 
-  # select co_watch pair
-  # TODO
-
-  # mine triplets
+  # get cowatch
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
   logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
     +"\tnumber:"+str(len(all_cowatch)))
+  
+  # select co_watch
+  graph = exe_time(get_cowatch_graph)(all_cowatch)
+  all_cowatch = exe_time(select_cowatch)(graph, threshold)
+  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
+    +"\tnumber:"+str(len(all_cowatch)))
       
+  # mine triplets
   triplets = exe_time(mine_triplets)(all_cowatch, features)
   logging.info("triplets size:"+str(sys.getsizeof(triplets))
     +"\tnumber:"+str(len(triplets)))
@@ -147,7 +153,7 @@ def get_triplets(watch_file, feature_file):
   return triplets, features, encode_map, decode_map
   
 
-def write_triplets(triplets, features, encode_map, decode_map, save_dir=''):
+def write_triplets(triplets, features=None, encode_map=None, decode_map=None, save_dir='',split=4):
   triplets_path = os.path.join(save_dir,'triplets.txt')
   features_path = os.path.join(save_dir,'features.txt')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
@@ -156,23 +162,32 @@ def write_triplets(triplets, features, encode_map, decode_map, save_dir=''):
     for triplet in triplets:
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
-  with open(features_path, 'w') as file:
-    while features:
-      guid, feature = features.popitem()
-      file.write(str(guid)+';'+feature+'\n') 
-  with open(encode_map_path, 'w') as file:
-    json.dump(encode_map,file, ensure_ascii=False)
-  with open(decode_map_path, 'w') as file:
-    json.dump(decode_map, file, ensure_ascii=False)
+  if features is not None:
+    with open(features_path, 'w') as file:
+      while features:
+        guid, feature = features.popitem()
+        file.write(str(guid)+';'+feature+'\n') 
+  if encode_map is not None:
+    with open(encode_map_path, 'w') as file:
+      json.dump(encode_map,file, ensure_ascii=False)
+  if encode_map is not None:
+    with open(decode_map_path, 'w') as file:
+      json.dump(decode_map, file, ensure_ascii=False)
+  if split > 0:
+    row_cnt = int(len(triplets) / split)+1
+    command = "split -l %d %s --additional-suffix=.triplet" % (row_cnt, triplets_path) 
+    os.system(command)
 
 
-def gen_trining_data(watch_file, feature_file, save_dir=''):
-  triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file)
-  write_triplets(triplets, features, encode_map, decode_map, save_dir)
+def gen_trining_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
+  triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
+  write_triplets(triplets, features, encode_map, decode_map, save_dir,split)
 
 
 if __name__ == "__main__":
   gen_trining_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-                  save_dir='/data/wengjy1/cdml')
+                  threshold = 3,
+                  save_dir='/data/wengjy1/cdml_1',
+                  split=4)
 

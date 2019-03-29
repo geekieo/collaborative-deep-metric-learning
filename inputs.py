@@ -50,14 +50,20 @@ class TripletPipe(BasePipe):
 
 
 class MPTripletPipe(object):
-  def __init__(self, triplet_file_patten, feature_file, debug=False):
+  def __init__(self, triplet_file_patten, feature_file=None, features=None, debug=False):
     """
     Arg:
       triplet_file_patten: filename patten
       feature_file: filename
     """
     global FEATURES
-    FEATURES = read_features_txt(feature_file, parse=True)
+    if feature_file is not None:
+      FEATURES = read_features_txt(feature_file, parse=True)
+    elif features is not None:
+      FEATURES = features
+    else:
+      logging.error('__init__ missing 1 required positional argument, \
+        at least one of \'feature_file\' and \'features\' needs to be set')
     self.triplet_files = tf.gfile.Glob(triplet_file_patten)
     logging.info(self.triplet_files)
     self.debug = debug
@@ -161,6 +167,7 @@ class MPTripletPipe(object):
 
 
 if __name__ == '__main__':
+  # test
   pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
                        feature_file="/data/wengjy1/cdml/features.txt",
                        debug=True)

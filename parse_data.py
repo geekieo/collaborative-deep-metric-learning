@@ -9,6 +9,7 @@ from itertools import cycle
 import copy
 from tensorflow import logging
 from tqdm import tqdm
+import random
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -167,43 +168,52 @@ def yield_all_cowatch(all_watched_guids):
     yield cowatch
 
 
-# ========================= aggregate cowatch =========================
+# ========================= select cowatch =========================
 def get_cowatch_graph(all_cowatch):
-  """统计所有观看历史，返回 co-watch 无向图，用于筛选 co-watch pair
-  用于丢弃 co-watch pairs 中少于固定数量的 pair，丢弃自己与自己组成的 pair
-  所有 co-watch 中的 guid 必须是 index.
+  """统计所有观看历史，返回 co-watch 无向图，丢弃自己与自己组成的 pair
+  NOTE 所有 co-watch 中的 guid 必须是 index.
   Args:
     guids: list of co-watch pair. the guid should be index.
   Retrun:
-    cowatch_graph: dict
+    graph: dict
   """
-  pass
-
+  graph = {}
+  for cowatch in all_cowatch:
+    if not(isinstance(cowatch[0],int) and isinstance(cowatch[0],int)):
+      rint('get_cowatch_graph: cowatch is not int',str(cowatch))
+      continue
+    # 有向转无向，并丢弃自己与自己组成的 co-watch pair
+    if cowatch[0] < cowatch[1]:
+      edge = str(cowatch[0])+','+str(cowatch[1])
+    elif cowatch[0] > cowatch[1]:
+      edge = str(cowatch[1])+','+str(cowatch[0])
+    else:
+      print('get_cowatch_graph: drop self pair',str(cowatch))
+      continue
+    # 统计边长
+    if edge in graph:
+      graph[edge] += 1
+    else:
+      graph[edge] = 1
+  return graph
 
 def select_cowatch(cowatch_graph, threshold):
-  """ 使用 cowatch_graph 丢弃低于 threshold 的 cowatched pair
+  """ 使用 cowatch_graph 筛选高于 threshold 的 cowatched pair
   Args:
     cowatch_graph
     threshold
   Return:
     all_cowatch
   """
-  pass
+  all_cowatch = []
+  for edge in cowatch_graph:
+    if cowatch_graph[edge]>=threshold:
+      cowatch = list(map(int, edge.split(',')))
+      random.shuffle(cowatch)
+      all_cowatch.append(cowatch)
+  return all_cowatch
 
-
-def arrays_to_dict(array_1d,array_2d):
-  """ 将 1darray 和 array_2d 组合成一个字典
-  要求两个array行数相同，array_1d.shape[0] == array_2d.shape[0]
-  可用于生成 {guid:feature} 的 feature dict
-  Args:
-    array_1d: 1-D array-like 
-    array_2d: 2-D ndarray
-  Return:
-    dict. key 为 array_1d 的元素，value 为 array_2d 的元素
-  """
-  return dict(zip(array_1d, array_2d))
-
-
+  
 # ========================= triplet mining =========================
 def yield_negative_guid(guids):
   """循环输出随机采样样本，作为负样本"""

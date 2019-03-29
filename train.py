@@ -4,7 +4,6 @@ import os
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow import logging
-# from tensorflow import flags
 # from tensorflow.python.client import device_lib
 
 import losses
@@ -189,7 +188,7 @@ class Trainer():
 
     # with tf.device('/cpu:0'):
     logging.info("Building model graph.")
-    input_triplets = tf.placeholder(tf.float32, shape=(self.batch_size,3,1500), name="input_triplets")
+    input_triplets = tf.placeholder(tf.float32, shape=(None,3,1500), name="input_triplets")
     self.build_model(input_triplets)
 
 
@@ -219,7 +218,7 @@ class Trainer():
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
-
+      summary_val=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
       while True:
         try:
           input_triplets_val = self.pipe.get_batch(self.batch_size, self.wait_times)
@@ -281,13 +280,25 @@ class Trainer():
       logging.info("Exited training loop.")
 
 
-def main(unused_argv):
+def main(use_original_data=True):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/home/wengjy1/Checkpoints/"
-  pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
-                              feature_file="/data/wengjy1/cdml/features.txt",
-                              debug=False)
+  checkpoint_dir = "/home/wengjy1/checkpoints/"
+  if use_original_data:
+    triplets, features, encode_map, decode_map = get_triplets(
+      watch_file="/data/wengjy1/cdml/watched_video_ids",
+      feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
+      threshold=3)
+    write_triplets(triplets, features, encode_map, decode_map,
+      save_dir='/data/wengjy1/cdml_1',
+      split=4)
+    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
+                            features=features,
+                            debug=False)
+  else:
+    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
+                                feature_file="/data/wengjy1/cdml_1/features.txt",
+                                debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
@@ -308,4 +319,7 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  import os
+  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
+  use_original_data = True
+  tf.app.run(use_original_data)

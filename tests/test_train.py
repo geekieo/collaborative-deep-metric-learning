@@ -80,30 +80,42 @@ def test_build_graph():
 
 
 def test_Trainer():
-  # TODO Prepare distributed arguments here. 
+  import os
+  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
+  use_original_data = True
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/home/wengjy1/Checkpoints/"
-  pipe = inputs.MPTripletPipe(triplet_file_patten='*.triplet',
-                            feature_file="features.txt",
+  checkpoint_dir = "/home/wengjy1/checkpoints/"
+  if use_original_data:
+    triplets, features, encode_map, decode_map = get_triplets(
+      watch_file="/home/wengjy1/cdml/test/watched_guids.txt",
+      feature_file="/home/wengjy1/cdml/test/visual_features.txt",
+      threshold=1)
+    write_triplets(triplets, features, encode_map, decode_map,
+      save_dir='/home/wengjy1/cdml/test',
+      split=3)
+    pipe = inputs.MPTripletPipe(triplet_file_patten='/home/wengjy1/cdml/test/*.triplet',
+                            features=features,
                             debug=False)
-
+  else:
+    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
+                                feature_file="/data/wengjy1/cdml_1/features.txt",
+                                debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)
   config.gpu_options.allow_growth=True
-
   trainer = Trainer(pipe=pipe,
-                num_epochs=5,
-                batch_size=10,
-                wait_times=10,
-                model=model,
-                loss_fn=loss_fn,
-                checkpoint_dir=checkpoint_dir,
-                optimizer_class=optimizer_class,
-                config=config,
-                last_step=None,
-                debug=False)
+                    num_epochs=10,
+                    batch_size=1000,
+                    wait_times=100,
+                    model=model,
+                    loss_fn=loss_fn,
+                    checkpoint_dir=checkpoint_dir,
+                    optimizer_class=optimizer_class,
+                    config=config,
+                    last_step=None,
+                    debug=False)
   trainer.run()
 
 if __name__ == "__main__":
