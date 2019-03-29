@@ -10,7 +10,6 @@ import losses
 import inputs
 import models
 from utils import find_class_by_name
-from parse_data import lookup
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -97,7 +96,7 @@ def build_graph(input_triplets,
   # for variable in slim.get_model_variables():
   #   tf.summary.histogram(variable.op.name, variable)
 
-  output_triplets = result["output"]
+  output_triplets = result["l2_norm"]
   loss_result = loss_fn.calculate_loss(output_triplets)
   loss = loss_result['hinge_loss']
 
@@ -259,7 +258,7 @@ class Trainer():
           seconds_per_batch = time.time() - batch_start_time
         
           logging.debug("training step " + str(global_step_val) + " | Loss: " +
-              ("%.2f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
+              ("%.8f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
 
           if global_step_val % 200 == 0:
             train_writer.add_summary(summary_val, global_step_val)
@@ -280,23 +279,11 @@ class Trainer():
       logging.info("Exited training loop.")
 
 
-def main(use_original_data=True):
+def main():
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/checkpoints/"
-  if use_original_data:
-    triplets, features, encode_map, decode_map = get_triplets(
-      watch_file="/data/wengjy1/cdml/watched_video_ids",
-      feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-      threshold=3)
-    write_triplets(triplets, features, encode_map, decode_map,
-      save_dir='/data/wengjy1/cdml_1',
-      split=4)
-    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
-                            features=features,
-                            debug=False)
-  else:
-    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
+  pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
                                 feature_file="/data/wengjy1/cdml_1/features.txt",
                                 debug=False)
   model = find_class_by_name("VENet", [models])()
@@ -321,5 +308,4 @@ def main(use_original_data=True):
 if __name__ == "__main__":
   import os
   os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
-  use_original_data = True
-  tf.app.run(use_original_data)
+  tf.app.run()

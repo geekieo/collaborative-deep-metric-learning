@@ -8,7 +8,6 @@ from tensorflow import logging
 import models
 import inputs
 import losses
-from online_data import get_triplets
 from parse_data import lookup
 from utils import find_class_by_name
 from train import build_pipe_graph
@@ -82,24 +81,16 @@ def test_build_graph():
 def test_Trainer():
   import os
   os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
-  use_original_data = True
+  # original_data = '/home/wengjy1/cdml/tests/'
+  original_data = None
+
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = "/home/wengjy1/checkpoints/"
-  if use_original_data:
-    triplets, features, encode_map, decode_map = get_triplets(
-      watch_file="/home/wengjy1/cdml/test/watched_guids.txt",
-      feature_file="/home/wengjy1/cdml/test/visual_features.txt",
-      threshold=1)
-    write_triplets(triplets, features, encode_map, decode_map,
-      save_dir='/home/wengjy1/cdml/test',
-      split=3)
-    pipe = inputs.MPTripletPipe(triplet_file_patten='/home/wengjy1/cdml/test/*.triplet',
-                            features=features,
-                            debug=False)
-  else:
-    pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
-                                feature_file="/data/wengjy1/cdml_1/features.txt",
-                                debug=False)
+  pipe = inputs.MPTripletPipe(original_data = original_data,
+                              triplet_file_patten='/home/wengjy1/cdml/tests/*.triplet',
+                              feature_file="/home/wengjy1/tests/cdml/features.txt",
+                              debug=False)
+
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
@@ -107,8 +98,8 @@ def test_Trainer():
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
                     num_epochs=10,
-                    batch_size=1000,
-                    wait_times=100,
+                    batch_size=100,
+                    wait_times=10,
                     model=model,
                     loss_fn=loss_fn,
                     checkpoint_dir=checkpoint_dir,
