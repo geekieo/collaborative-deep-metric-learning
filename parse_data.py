@@ -91,7 +91,7 @@ def encode_base_features(features):
 
 def encode_features(features, encode_map):
   """ 编码 features 字典的 key
-  该方法会消费 features 
+  该方法会消费 features
   features:dict. k,v 为 str guid, feature
   encode_map: dict. k,v 为 str guid:int guid
   """

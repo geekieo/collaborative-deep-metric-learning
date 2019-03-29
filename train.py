@@ -282,7 +282,7 @@ class Trainer():
 def main():
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/home/wengjy1/checkpoints/"
+  checkpoint_dir = "/data/wengjy1/cdml_1/checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
                                 feature_file="/data/wengjy1/cdml_1/features.txt",
                                 debug=False)

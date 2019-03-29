@@ -60,26 +60,32 @@ def read_features_txt(filename, parse=False):
 
 
 def read_features_npy(filename):
-  """features 的 key 为从 0 开始的 dict，value 为 ndarray。这里把
-  features 用 ndarray 存放，其索引天然为key。用 ndarray 的索引批量
-  查询 ndarray 能提高 batch 查询速度。
+  """features 必须是 key 从 0 自增的 dict，其 value 为 ndarray。这里
+  把 features 按 key 的顺序存成 ndarray，其索引天然为key。用 ndarray
+  的索引批量查询 ndarray 能提高 batch 查询速度。
   """
   np_file = '%s.npy' % (filename)
   if os.path.exists(np_file):
     features = np.load(np_file)
     return features
   with open(filename,'r') as file:
-    features = []
+    features = {}
+    feature_list = []
     data = file.readlines()
     for line in data:
       line = line.strip('\n')   #删除行末的 \n
       try:
         guid, feature = line.split(';')
-        features.append(list(map(float, (feature.split(',')))))
+        features[int(guid)] = list(map(float, (feature.split(','))))
       except Exception as e:
-        logging.error('read_features_npy: '+str(e))
-    features = np.asarray(features)
-    np.save(np_file, features)
+        logging.error('read_features_npy file to dict: '+str(e))
+    try：
+      for i in len(features):
+        feature_list.append(features[i])
+    except Exception as e：
+      logging.error('read_features_npy list to ndarray: '+str(e))
+    feature_array = np.asarray(feature_list)
+    np.save(np_file, feature_array)
     return features
 
 
@@ -131,48 +137,39 @@ def get_triplets(watch_file, feature_file, threshold=3):
   """
   # read file
   features = exe_time(read_features_txt)(feature_file)
-  logging.info("features size:"+str(sys.getsizeof(features))
-    +"\tnumber:"+str(len(features)))
+  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
 
   all_watched_guids = exe_time(read_watched_guids)(watch_file)
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
-    +"\tnumber:"+str(len(all_watched_guids)))
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
 
   # filter all_watched_guids and features
   features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids)
-  logging.info("features size:"+str(sys.getsizeof(features))
-    +"\tnumber:"+str(len(features)))
-  logging.info("no_feature_guids size:"+str(sys.getsizeof(no_feature_guids))
-    +"\tnumber:"+str(len(no_feature_guids)))
+  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
+  logging.info("no_feature_guids size:"+str(sys.getsizeof(no_feature_guids))+"\tnum:"+str(len(no_feature_guids)))
 
   all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids)
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
-    +"\tnumber:"+str(len(all_watched_guids)))
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
 
-  # encode guid to save memory and speed up processing
+  # encode guid to sequential integer, to save memory and speed up processing
   encode_map, decode_map = exe_time(encode_base_features)(features)
   features = exe_time(encode_features)(features, encode_map)
-  logging.info("features size:"+str(sys.getsizeof(features))
-    +"\tnumber:"+str(len(features)))
+  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
+  
   all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map)
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))
-    +"\tnumber:"+str(len(all_watched_guids)))
+  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
 
   # get cowatch
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
-  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
-    +"\tnumber:"+str(len(all_cowatch)))
+  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
   
   # select co_watch
   graph = exe_time(get_cowatch_graph)(all_cowatch)
   all_cowatch = exe_time(select_cowatch)(graph, threshold)
-  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))
-    +"\tnumber:"+str(len(all_cowatch)))
+  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
 
   # mine triplets
   triplets = exe_time(mine_triplets)(all_cowatch, features)
-  logging.info("triplets size:"+str(sys.getsizeof(triplets))
-    +"\tnumber:"+str(len(triplets)))
+  logging.info("triplets size:"+str(sys.getsizeof(triplets))+"\tnum:"+str(len(triplets)))
   
   return triplets, features, encode_map, decode_map
   

@@ -89,44 +89,36 @@ class MPTripletPipe(object):
     with open(triplet_file, 'r') as file:
       runtimes = 0
       triplets = []
-      while mq.qsize() <= 0:
+      position = 0
+     while True:
+      try:
+        for i in range(batch_size):
+          line = file.readline()
+          if not line:
+            if debug:
+              logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
+            runtimes += 1
+            if runtimes < num_epochs:
+              file.seek(0)
+              line = file.readline()
+            else:
+              logging.info('thread_index: '+str(thread_index)+' subprocess end')
+              return
+          arc, pos, neg = line.strip().split(',')
+          triplets.append([int(arc), int(pos), int(neg)])
+        triplet_queue.put(triplets)
+        triplets.clear()
+      except Exception as e:
+        logging.warning('subprocess:'+str(e))
         try:
-          if not triplet_queue.full():
-            line = file.readline()
-            triplet = []
-            if not line:
-              if debug:
-                logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
-              runtimes += 1
-              if runtimes < num_epochs:
-                file.seek(0)
-                line = file.readline()
-              else:
-                logging.info('thread_index: '+str(thread_index)+' subprocess end')
-                return
-            # list of guids, dtype int
-            guid_triplet = list(map(int, line.strip().split(',')))
-            # if debug:
-            #   logging.debug('thread_index: '+str(thread_index)+'; guid_triplet: '+str(guid_triplet))
-            if len(guid_triplet)==3:
-              triplets.append(guid_triplet)
-              if len(triplets) == batch_size:
-                triplet_queue.put(triplets)
-                triplets.clear()
-            position = file.tell()
-          else:
-            time.sleep(0.01)
+          file.close()
         except Exception as e:
-          logging.warning('subprocess:'+str(e))
-          try:
-            file.close()
-          except Exception as e:
-            pass
-          try:
-            file = open(file_name, 'r')
-            file.seek(position)
-          except Exception as e:
-            logging.warning(position, str(e))
+          pass
+        try:
+          file = open(file_name, 'r')
+          file.seek(position)
+        except Exception as e:
+          logging.warning(position, str(e))
   
   def get_batch(self, wait_times=100):
     '''get batch training data with format [arc, pos, neg]
@@ -161,14 +153,14 @@ if __name__ == '__main__':
   pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
                        feature_file="/data/wengjy1/cdml/features.txt",
                        debug=True)
-  pipe.create_pipe(num_epochs=2)
+  pipe.create_pipe(num_epochs=2,batch_size=50)
   # 单例
-  triplet = pipe.get_batch(batch_size=50, wait_times=10)
+  triplet = pipe.get_batch(wait_times=10)
   print(triplet.shape)
   print(triplet[0])
   # 循环
   while True:
-    triplet = pipe.get_batch(batch_size=50)
+    triplet = pipe.get_batch(wait_times=10)
     if triplet is None:
         # summary save model
         logging.info('input main: Loop end!')
