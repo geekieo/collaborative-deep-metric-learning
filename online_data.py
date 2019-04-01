@@ -6,6 +6,7 @@ import os
 import numpy as np
 import json
 from tensorflow import logging
+import collections
 
 from utils import exe_time
 from parse_data import filter_features
@@ -33,27 +34,28 @@ def read_features_txt(filename, parse=False):
            not, guid and feature are both string.
   """
   with open(filename,'r') as file:
-    features = {}
+    features = collections.OrderedDict()
     data = file.readlines()
     for line in data:
       line = line.strip('\n')   #删除行末的 \n
       try:
         str_guid, str_feature = line.split(';')
         if parse:
+          # 弃用。因索引为从0开始有序的整数，改用 npy 批量检索。
           try:
             guid = int(str_guid)
             feature = list(map(float, (str_feature.split(','))))
             if len(feature) == 1500:
               features[guid]=feature
           except Exception as e:
-            logging.warning('read_features_txt parse: '+str(e))
+            logging.warning('read_features_txt parse: drop feature. '+str(e))
         else:
           try:
             feature = list(map(float, (str_feature.split(','))))
             if len(feature) == 1500:
               features[str_guid]=str_feature
           except Exception as e:
-            logging.warning('read_features_txt: '+str(e))
+            logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
         logging.warning('read_features_txt'+str(e))
     return features
@@ -156,7 +158,7 @@ def get_triplets(watch_file, feature_file, threshold=3):
 
   # encode guid to sequential integer, to save memory and speed up processing
   encode_map, decode_map = exe_time(encode_base_features)(features)
-  features = exe_time(encode_features)(features, encode_map)
+  features = exe_time(encode_features)(features, decode_map)  # input decode_map
   logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
   
   all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map)
@@ -178,20 +180,23 @@ def get_triplets(watch_file, feature_file, threshold=3):
   return triplets, features, encode_map, decode_map
   
 
-def write_triplets(triplets, features=None, encode_map=None, decode_map=None, save_dir='',split=4):
+def write_triplets(triplets, features, encode_map=None, decode_map=None, save_dir='',split=4):
+  """
+  args:
+    triplets: list of str
+    features: ndarray of 1500 np.float32 elements
+    encode_map: dict
+    decode_map: dict
+  """
   triplets_path = os.path.join(save_dir,'triplets.txt')
-  features_path = os.path.join(save_dir,'features.txt')
+  features_path = os.path.join(save_dir,'features.npy')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
   decode_map_path = os.path.join(save_dir,'decode_map.json')
   with open(triplets_path, 'w') as file:
     for triplet in triplets:
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
-  if features is not None:
-    with open(features_path, 'w') as file:
-      while features:
-        guid, feature = features.popitem()
-        file.write(str(guid)+';'+feature+'\n') 
+  np.save(features_path, feature_array)
   if encode_map is not None:
     with open(encode_map_path, 'w') as file:
       json.dump(encode_map,file, ensure_ascii=False)

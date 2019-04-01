@@ -124,10 +124,8 @@ def test_encode_features():
   features = read_features_txt('visual_features.txt')
   features_ori = copy.deepcopy(features)
   encode_map, decode_map = encode_base_features(features)
-  encoded_features = encode_features(features, encode_map)
-  print(features_ori[decode_map[0]])
-  print(encoded_features[0])
-  assert not (encoded_features[0]-features_ori[decode_map[0]]).any()
+  encoded_features = encode_features(features, decode_map)
+  assert encoded_features[0] == features_ori[decode_map[0]]
 
 
 def test_encode_all_watched_guids():
@@ -187,13 +185,13 @@ def test_yield_negative_guid():
 
 
 def test_mine_triplets():
-  guids = gen_unique_id_array(low=1, high=num_guid, size=num_guid, dtype=np.bytes_)
+  guids = gen_unique_id_array(low=0, high=num_guid, size=num_guid, dtype=np.int)
   watched_guids = gen_all_watched_guids(guids,num_cowatch=300,low=2,high=100)
   all_cowatch = get_all_cowatch(watched_guids)
   features_vectors = gen_features(num_feature=num_guid, feature_size=feature_size)
-  features=arrays_to_dict(guids,features_vectors)
+  # features=arrays_to_dict(guids,features_vectors)
 
-  triplet = mine_triplets(all_cowatch, features)
+  triplet = mine_triplets(all_cowatch, features_vectors)
   print(type(triplet), len(triplet), triplet[0])
 
 
@@ -216,7 +214,7 @@ def test_selest_cowatch():
   print('all_cowatch',all_cowatch)
   print('new_all_cowatch',new_all_cowatch)
 
-
+@DeprecationWarning
 def test_lookup():
   triplets, features = get_triplets(watch_file="watched_guids.txt",
                                     feature_file="visual_features.txt")
@@ -237,8 +235,8 @@ if __name__ == "__main__":
   # test_encode_all_watched_guids()
   # test_get_one_list_of_cowatch()
   # test_get_cowatch_graph()
-  test_selest_cowatch()
+  # test_selest_cowatch()
   # test_yield_all_cowatch()
   # test_yield_negative_guid()
-  # test_mine_triplets()
+  test_mine_triplets()
   # test_lookup()

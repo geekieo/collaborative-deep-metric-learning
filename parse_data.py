@@ -10,6 +10,7 @@ import copy
 from tensorflow import logging
 from tqdm import tqdm
 import random
+import collections
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -40,7 +41,7 @@ def filter_features(features, all_watched_guids):
   """
   unique_watched_guids = get_unique_watched_guids(all_watched_guids)
   no_feature_guids=[]
-  watched_features={}
+  watched_features=collections.OrderedDict()
   for guid in unique_watched_guids:
     try:
       watched_features[guid]=features.pop(guid)
@@ -75,32 +76,41 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
 # ========================= encoding guid =========================
 def encode_guids(guids):
   """将 str guids 编码成有序的 index, 并返回编码/解码字典"""
-  encode_map={}
-  decode_map={}
-  for i,guid in enumerate(guids):
+  encode_map=collections.OrderedDict()
+  decode_map=collections.OrderedDict()
+  for index, guid in enumerate(guids):
     if not guid in encode_map:
-      encode_map[guid]=i
-      decode_map[i]=guid
+      encode_map[guid]=index
+      decode_map[index]=guid
   return encode_map, decode_map
 
+
 def encode_base_features(features):
-  """ 以 features 的 keys 为基准，编码 guids"""
+  """ 以 features 的 keys 为基准，编码 guids
+  features:dict. k,v 为 str guid, feature
+  """
   encode_map, decode_map = encode_guids(features.keys())
   return encode_map, decode_map
 
 
-def encode_features(features, encode_map):
-  """ 编码 features 字典的 key
-  该方法会消费 features
-  features:dict. k,v 为 str guid, feature
-  encode_map: dict. k,v 为 str guid:int guid
+def encode_features(features, decode_map):
+  """ 编码 features
+  NOTE: 用 decode_map 编码 features
+  将 features 按照 decode_map 的编码从0开始有序放进列表。
+  decode_map 编码自 features，key 为从0开始有序的整数。
+  该方法会消费原始 features 字典。
+  args:
+    features:dict. k,v 为 str guid, feature
+    decode_map: OrderedDict. k,v 为 int guid: str guid
+  return:
+    array_feature: 
   """
-  encoded_features={}
-  while features:
-      guid, feature = features.popitem()
-      guid = encode_map[guid]
-      encoded_features[guid]=feature
-  return encoded_features
+  encoded_features = []
+  for index, int_guid in enumerate(decode_map):
+    guid = decode_map[index]
+    value = features.pop(guid)
+    encoded_features.append(value)
+  return np.asarray(encoded_features)
 
 
 def encode_watched_guids(watched_guids, encode_map):
@@ -216,10 +226,11 @@ def select_cowatch(cowatch_graph, threshold):
   
 # ========================= triplet mining =========================
 def yield_negative_guid(guids):
-  """循环输出随机采样样本，作为负样本"""
-  neg_guids = copy.deepcopy(guids)
-  np.random.shuffle(neg_guids)
-  for neg_guid in cycle(neg_guids):
+  """循环输出随机采样样本，作为负样本
+  NOTE：本方法会影响源 guids 的排序
+  """
+  np.random.shuffle(guids)
+  for neg_guid in cycle(guids):
     yield neg_guid
 
 
@@ -248,19 +259,18 @@ def mine_triplets(all_cowatch, features):
 
   Args:
     all_cowatch: list of co-watch pair(list of guids)
-    features: dict of features vector, the key is guid, 
-              the value is feature string
-    return_features: boolean. control the element in triplets
+    features: 2-D ndarray of featuress, the index is guid, 
+              the value is ndarray
   Retrun:
     triplets: list of triplets.  triplet is list of 3 guid,
             [anchor_guid, pos_guid, neg_guid]
   """
-  if not isinstance(all_cowatch,list) and not isinstance(features,dict):
+  if not isinstance(all_cowatch,list) and not isinstance(features,np.ndarray):
     logging.error("Invalid arguments. Type should be list, dict instead of"+
       str(type(all_cowatch))+str(type(features)))
     return None
-  guids=list(features.keys())
-  neg_iter = yield_negative_guid(guids)
+  indexes = list(range(len(features)))
+  neg_iter = yield_negative_guid(indexes)
   # 初始化
   triplets = []
   # TODO 这里可以用多线程
@@ -289,11 +299,11 @@ def lookup(batch_triplets, features):
       for _, guid in enumerate(guid_triplet):
         guid=bytes.decode(guid) 
         triplet.append(features[guid])
-      triplet = np.array(triplet)
+      triplet = np.asarray(triplet)
       triplets.append(triplet)
     except Exception as e:
       logging.warning("lookup failed warning:"+str(e))
       continue
-  feature_triplets = np.array(triplets)
+  feature_triplets = np.asarray(triplets)
   return feature_triplets
 
