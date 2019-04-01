@@ -100,17 +100,17 @@ def encode_features(features, decode_map):
   decode_map 编码自 features，key 为从0开始有序的整数。
   该方法会消费原始 features 字典。
   args:
-    features:dict. k,v 为 str guid, feature
+    features:dict. k,v 为 str guid, feature vector
     decode_map: OrderedDict. k,v 为 int guid: str guid
   return:
     array_feature: 
   """
   encoded_features = []
   for index, int_guid in enumerate(decode_map):
-    guid = decode_map[index]
-    value = features.pop(guid)
-    encoded_features.append(value)
-  return np.asarray(encoded_features)
+    str_guid = decode_map[index]
+    feature = features.pop(str_guid) # list of 1500 float
+    encoded_features.append(feature)
+  return np.asarray(encoded_features, dtype=np.float32)
 
 
 def encode_watched_guids(watched_guids, encode_map):

@@ -22,16 +22,13 @@ from parse_data import mine_triplets
 logging.set_verbosity(logging.DEBUG)
 
 
-def read_features_txt(filename, parse=False):
+def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature。
   visual feature 是 str 类型的 1500 维向量，需格式化后使用。
   Arg:
     filename: string
-    parse: boolean. if set, guid will be converted to integer,
-           feature will be converted to list of floats. if 
-           not, guid and feature are both string.
   """
   with open(filename,'r') as file:
     features = collections.OrderedDict()
@@ -40,22 +37,12 @@ def read_features_txt(filename, parse=False):
       line = line.strip('\n')   #删除行末的 \n
       try:
         str_guid, str_feature = line.split(';')
-        if parse:
-          # 弃用。因索引为从0开始有序的整数，改用 npy 批量检索。
-          try:
-            guid = int(str_guid)
-            feature = list(map(float, (str_feature.split(','))))
-            if len(feature) == 1500:
-              features[guid]=feature
-          except Exception as e:
-            logging.warning('read_features_txt parse: drop feature. '+str(e))
-        else:
-          try:
-            feature = list(map(float, (str_feature.split(','))))
-            if len(feature) == 1500:
-              features[str_guid]=str_feature
-          except Exception as e:
-            logging.warning('read_features_txt: drop feature. '+str(e))
+        try:
+          feature = list(map(float, (str_feature.split(','))))
+          if len(feature) == 1500:
+            features[str_guid]=feature
+        except Exception as e:
+          logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
         logging.warning('read_features_txt'+str(e))
     return features
@@ -66,33 +53,9 @@ def read_features_npy(filename):
   把 features 按 key 的顺序存成 ndarray，其索引天然为key。用 ndarray
   的索引批量查询 ndarray 能提高 batch 查询速度。
   """
-  np_file = '%s.npy' % (filename)
-  if os.path.exists(np_file):
-    feature_array = np.load(np_file)
-    return feature_array
-  with open(filename,'r') as file:
-    features = {}
-    feature_list = []
-    data = file.readlines()
-    for line in data:
-      line = line.strip('\n')   #删除行末的 \n
-      try:
-        guid, feature = line.split(';')
-        features[int(guid)] = list(map(float, (feature.split(','))))
-      except Exception as e:
-        logging.error('read_features_npy file to dict: '+str(e))
-
-      for i in range(len(features)):
-        try:
-          feature = features[i]
-        except Exception as e:
-          feature = ''
-          logging.warning('read_features_npy list to ndarray: '+str(e))
-        feature_list.append(features)
-          
-    feature_array = np.asarray(feature_list)
-    np.save(np_file, feature_array)
-    return feature_array
+  features = np.load(filename)
+  return features
+  
 
 
 # def read_features_json(filename):
@@ -192,14 +155,18 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
   features_path = os.path.join(save_dir,'features.npy')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
   decode_map_path = os.path.join(save_dir,'decode_map.json')
+
   with open(triplets_path, 'w') as file:
     for triplet in triplets:
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
-  np.save(features_path, feature_array)
+
+  np.save(features_path, features)
+
   if encode_map is not None:
     with open(encode_map_path, 'w') as file:
       json.dump(encode_map,file, ensure_ascii=False)
+      
   if encode_map is not None:
     with open(decode_map_path, 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
