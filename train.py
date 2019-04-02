@@ -262,8 +262,8 @@ class Trainer():
           trian_time = time.time() - batch_start_time
         
           logging.debug("training step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
-              " | sec/batch:\tfetch: " + ("%.4f" % fetch_time) +
-              "\ttraining: " + ("%.4f" % trian_time))
+              " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
+              " training: " + ("%.4f" % trian_time)+"sec")
 
           if global_step_val % 200 == 0:
             train_writer.add_summary(summary_val, global_step_val)
