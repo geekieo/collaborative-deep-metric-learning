@@ -68,12 +68,12 @@ def test_gen_trining_data():
   gen_trining_data(watch_file="watched_guids.txt",
                    feature_file="visual_features.txt",
                    threshold=1,
-                   save_dir = '',
+                   save_dir = 'training_data',
                    split=2)
 
 
 def test_read_features_npy():
-  features = read_features_npy('features.npy')
+  features = read_features_npy('training_data/features.npy')
   print(type(features),features.shape)
   for feature in features:
     print(type(feature))

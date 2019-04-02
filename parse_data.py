@@ -188,6 +188,7 @@ def get_cowatch_graph(all_cowatch):
     graph: dict
   """
   graph = {}
+  drop_count=0
   for cowatch in all_cowatch:
     if not(isinstance(cowatch[0],int) and isinstance(cowatch[0],int)):
       rint('get_cowatch_graph: cowatch is not int',str(cowatch))
@@ -198,13 +199,14 @@ def get_cowatch_graph(all_cowatch):
     elif cowatch[0] > cowatch[1]:
       edge = str(cowatch[1])+','+str(cowatch[0])
     else:
-      print('get_cowatch_graph: drop self pair',str(cowatch))
+      drop_count += 1
       continue
     # 统计边长
     if edge in graph:
       graph[edge] += 1
     else:
       graph[edge] = 1
+  print('get_cowatch_graph: drop self pair: ', str(drop_count))
   return graph
 
 def select_cowatch(cowatch_graph, threshold):
