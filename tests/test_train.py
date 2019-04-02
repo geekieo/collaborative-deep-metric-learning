@@ -85,12 +85,11 @@ def test_Trainer():
   original_data = None
 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/home/wengjy1/checkpoints/"
-  pipe = inputs.MPTripletPipe(original_data = original_data,
-                              triplet_file_patten='/home/wengjy1/cdml/tests/*.triplet',
-                              feature_file="/home/wengjy1/tests/cdml/features.txt",
-                              debug=False)
-
+  train_dir = "/home/wengjy1/cdml_1"    # NOTE 路径是 home
+  checkpoint_dir = train_dir+"/checkpoints/")
+  pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
+                                feature_file = train_dir + "/features.txt",
+                                debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
