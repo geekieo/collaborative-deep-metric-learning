@@ -77,35 +77,5 @@ def test_build_graph():
       assert output_batch_val.shape==(batch_size, 3, 256)
       print(i+1, loss_val)
 
-
-def test_Trainer():
-  import os
-  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
-
-  logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/home/wengjy1/cdml_1"    # NOTE 路径是 home
-  checkpoint_dir = train_dir+"/checkpoints/")
-  pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
-                                feature_file = train_dir + "/features.txt",
-                                debug=False)
-  model = find_class_by_name("VENet", [models])()
-  loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)
-  config.gpu_options.allow_growth=True
-  trainer = Trainer(pipe=pipe,
-                    num_epochs=10,
-                    batch_size=100,
-                    wait_times=10,
-                    model=model,
-                    loss_fn=loss_fn,
-                    checkpoint_dir=checkpoint_dir,
-                    optimizer_class=optimizer_class,
-                    config=config,
-                    last_step=None,
-                    debug=False)
-  trainer.run()
-
 if __name__ == "__main__":
-  # test_build_graph()
-  test_Trainer()
+  test_build_graph()
