@@ -188,5 +188,5 @@ if __name__ == "__main__":
                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
                   threshold = 3,
                   save_dir='/data/wengjy1/cdml_1',
-                  split=4)
+                  split=16)
 
