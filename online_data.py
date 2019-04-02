@@ -180,7 +180,7 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
     os.system(command)
 
 
-def gen_trining_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
+def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
   triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
   write_triplets(triplets, features, encode_map, decode_map, save_dir,split)
 
@@ -188,7 +188,7 @@ def gen_trining_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
 
 
 if __name__ == "__main__":
-  gen_trining_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
+  gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
                   threshold = 3,
                   save_dir='/data/wengjy1/cdml_1',
