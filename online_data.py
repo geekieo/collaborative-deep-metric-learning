@@ -151,6 +151,9 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
     encode_map: dict
     decode_map: dict
   """
+  if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+
   triplets_path = os.path.join(save_dir,'triplets.txt')
   features_path = os.path.join(save_dir,'features.npy')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
@@ -172,7 +175,8 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
       json.dump(decode_map, file, ensure_ascii=False)
   if split > 0:
     row_cnt = int(len(triplets) / split)+1
-    command = "split -l %d %s --additional-suffix=.triplet" % (row_cnt, triplets_path) 
+    os.system("cd %s" % save_dir)
+    command = "split -l %d triplets.txt --additional-suffix=.triplet" % (row_cnt) 
     os.system(command)
 
 
