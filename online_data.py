@@ -174,11 +174,13 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
     with open(decode_map_path, 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
   if split > 0:
-    row_cnt = int(len(triplets) / split)+1
-    os.system("cd %s" % save_dir)
+    row_num = len(triplets)
+    row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
+    cwd = os.getcwd()
+    os.chdir(save_dir)
     command = "split -l %d triplets.txt --additional-suffix=.triplet" % (row_cnt) 
     os.system(command)
-
+    os.chdir(cwd)
 
 def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
   triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
@@ -192,5 +194,5 @@ if __name__ == "__main__":
                     feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
                     threshold = 3,
                     save_dir='/data/wengjy1/cdml_1',
-                    split=16)
+                    split=8)
 
