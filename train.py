@@ -282,9 +282,10 @@ class Trainer():
 def main():
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = "/data/wengjy1/cdml_1/checkpoints/"
-  pipe = inputs.MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1/*.triplet',
-                                feature_file="/data/wengjy1/cdml_1/features.txt",
+  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+  checkpoint_dir = train_dir+"/checkpoints/")
+  pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
+                                feature_file = train_dir + "/features.txt",
                                 debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
