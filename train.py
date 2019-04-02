@@ -284,7 +284,7 @@ class Trainer():
       logging.info("Exited training loop.")
 
 
-def main():
+def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
