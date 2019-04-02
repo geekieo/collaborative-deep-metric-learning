@@ -166,7 +166,7 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
   if encode_map is not None:
     with open(encode_map_path, 'w') as file:
       json.dump(encode_map,file, ensure_ascii=False)
-      
+
   if encode_map is not None:
     with open(decode_map_path, 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
@@ -179,6 +179,8 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
 def gen_trining_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
   triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
   write_triplets(triplets, features, encode_map, decode_map, save_dir,split)
+
+# ==================== 仅根据观看历史（远程获取features）多进程生成训练数据 ====================
 
 
 if __name__ == "__main__":

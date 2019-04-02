@@ -118,8 +118,8 @@ class MPTripletPipe(object):
             file = open(file_name, 'r')
             file.seek(position)
           except Exception as e:
-            logging.warning(position, str(e))
-  
+            logging.warning('subprocess:'+str(position)+str(e))
+
   def get_batch(self, wait_times=100):
     '''get batch training data with format [arc, pos, neg]
     Retrun:
