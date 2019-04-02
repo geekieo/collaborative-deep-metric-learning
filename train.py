@@ -10,6 +10,7 @@ import losses
 import inputs
 import models
 from utils import find_class_by_name
+from utils import get_local_time
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -154,7 +155,8 @@ class Trainer():
     self.wait_times = wait_times
     self.model = model
     self.loss_fn = loss_fn
-    self.checkpoint_dir = os.path.join(checkpoint_dir, model.__class__.__name__)
+    self.checkpoint_dir = os.path.join(checkpoint_dir, 
+                          model.__class__.__name__+"_"+get_local_time())
     self.optimizer_class = optimizer_class
     self.config = config
     self.last_step = last_step
@@ -285,7 +287,7 @@ def main():
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
   checkpoint_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
-                                feature_file = train_dir + "/features.txt",
+                                feature_file = train_dir + "/features.npy",
                                 debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()

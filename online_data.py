@@ -193,6 +193,6 @@ if __name__ == "__main__":
   gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                     feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
                     threshold = 3,
-                    save_dir='/data/wengjy1/cdml_1',
+                    save_dir='/data/wengjy1/train_dir',
                     split=8)
 
