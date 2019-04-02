@@ -222,6 +222,7 @@ class Trainer():
       summary_val=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
       while True:
         try:
+          fetch_start_time = time.time()
           input_triplets_val = self.pipe.get_batch(self.wait_times)
           if input_triplets_val is None:
             # summary save model
@@ -234,6 +235,7 @@ class Trainer():
           # print('input_triplets_val.shape: ',input_triplets_val.shap)
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
+          fetch_time = fetch_start_time -time.time()
           
           batch_start_time = time.time()
           _, global_step_val, loss_val, summary_val= sess.run(
@@ -257,10 +259,11 @@ class Trainer():
           #     'final_loss_val',final_loss_val.shape, final_loss_val,
           #     sep='\n')
 
-          seconds_per_batch = time.time() - batch_start_time
+          trian_time = time.time() - batch_start_time
         
-          logging.debug("training step " + str(global_step_val) + " | Loss: " +
-              ("%.8f" % loss_val) + "\tsec/batch: " + ("%.2f" % seconds_per_batch) )
+          logging.debug("training step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
+              "\tfetch sec/batch: " + ("%.8f" % fetch_time) +
+              "\ttraining sec/batch: " + ("%.8f" % trian_time))
 
           if global_step_val % 200 == 0:
             train_writer.add_summary(summary_val, global_step_val)
