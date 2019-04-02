@@ -9,7 +9,7 @@ from online_data import read_features_txt
 from online_data import read_features_npy
 from online_data import read_watched_guids
 from online_data import get_triplets
-from online_data import gen_trining_data
+from online_data import gen_training_data
 
 
 def test_read_features_txt():
@@ -64,12 +64,12 @@ def test_get_triplets_real():
   except Exception as e:
     print(e)
 
-def test_gen_trining_data():
-  gen_trining_data(watch_file="watched_guids.txt",
-                   feature_file="visual_features.txt",
-                   threshold=1,
-                   save_dir = 'training_data',
-                   split=2)
+def test_gen_training_data():
+  gen_training_data(watch_file="watched_guids.txt",
+                    feature_file="visual_features.txt",
+                    threshold=1,
+                    save_dir = 'training_data',
+                    split=2)
 
 
 def test_read_features_npy():
@@ -86,5 +86,5 @@ if __name__ == "__main__":
   # test_get_triplets()
   # test_read_features_txt_real()
   # test_get_triplets_real()
-  test_gen_trining_data()
+  test_gen_training_data()
   test_read_features_npy()
