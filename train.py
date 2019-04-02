@@ -236,7 +236,7 @@ class Trainer():
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
           fetch_time = fetch_start_time -time.time()
-          
+
           batch_start_time = time.time()
           _, global_step_val, loss_val, summary_val= sess.run(
               [train_op, global_step, loss,summary_op],
@@ -262,8 +262,8 @@ class Trainer():
           trian_time = time.time() - batch_start_time
         
           logging.debug("training step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
-              "\tfetch sec/batch: " + ("%.8f" % fetch_time) +
-              "\ttraining sec/batch: " + ("%.8f" % trian_time))
+              " | sec/batch:\tfetch: " + ("%.4f" % fetch_time) +
+              "\ttraining: " + ("%.4f" % trian_time))
 
           if global_step_val % 200 == 0:
             train_writer.add_summary(summary_val, global_step_val)
