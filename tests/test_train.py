@@ -81,8 +81,6 @@ def test_build_graph():
 def test_Trainer():
   import os
   os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
-  # original_data = '/home/wengjy1/cdml/tests/'
-  original_data = None
 
   logging.info("Tensorflow version: %s.",tf.__version__)
   train_dir = "/home/wengjy1/cdml_1"    # NOTE 路径是 home
