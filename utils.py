@@ -15,3 +15,10 @@ def find_class_by_name(name, modules):
   """Searches the provided modules for the named class and returns it."""
   modules = [getattr(module, name, None) for module in modules]
   return next(a for a in modules if a)
+
+
+def get_local_time():
+  """return a string of local datatime"""
+  return time.strftime("%y%m%d_%H%M%S", time.localtime())
+
+

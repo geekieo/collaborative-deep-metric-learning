@@ -60,10 +60,10 @@ class MPTripletPipe(object):
     FEATURES = read_features_npy(feature_file)
     
     self.triplet_files = tf.gfile.Glob(triplet_file_patten)
-    logging.info(self.triplet_files)
+    logging.info('MPTripletPipe __init__ triplet_files: '+str(self.triplet_files))
     self.debug = debug
     if self.debug:
-      logging.debug('__init__ features id: '+str(id(FEATURES)))
+      logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
     """多进程读取多个 guid_triplets 文件，在子进程中将 guid 映射成 feature
