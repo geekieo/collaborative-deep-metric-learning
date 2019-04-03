@@ -295,7 +295,7 @@ def main(args):
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)
+  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
                     num_epochs=10,
