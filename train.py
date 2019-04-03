@@ -261,7 +261,7 @@ class Trainer():
 
           trian_time = time.time() - batch_start_time
 
-          if global_step_val % 50:
+          if global_step_val % 50 == 0:
             logging.info("Step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
