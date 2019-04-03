@@ -101,7 +101,6 @@ def build_graph(input_triplets,
   loss_result = loss_fn.calculate_loss(output_triplets)
   loss = loss_result['hinge_loss']
 
-
   reg_loss = tf.constant(0.0)
   reg_losses = tf.losses.get_regularization_losses()
   if reg_losses:
@@ -120,8 +119,10 @@ def build_graph(input_triplets,
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
-  train_op = optimizer.apply_gradients(gradients, global_step=global_step)
+  tf.summary.scalar("pos_dist",loss_result['pos_dist'])
+  tf.summary.scalar("pos_dist",loss_result['pos_dist'])
 
+  train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
@@ -235,7 +236,7 @@ class Trainer():
           # print('input_triplets_val.shape: ',input_triplets_val.shap)
           if self.debug:
             logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
-          fetch_time = fetch_start_time -time.time()
+          fetch_time = time.time() - fetch_start_time
 
           batch_start_time = time.time()
           _, global_step_val, loss_val, summary_val= sess.run(
@@ -260,15 +261,15 @@ class Trainer():
           #     sep='\n')
 
           trian_time = time.time() - batch_start_time
-        
-          logging.info("Step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
-              " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
-              " train: " + ("%.4f" % trian_time)+"sec")
 
-          if global_step_val % 200 == 0:
+          if global_step_val % 50:
+            logging.info("Step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
+                " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
+                " train: " + ("%.4f" % trian_time)+"sec")
+          if global_step_val % 250 == 0:
             train_writer.add_summary(summary_val, global_step_val)
             logging.info("add summary")
-          if global_step_val % 1000 == 0:
+          if global_step_val % 2500 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
             logging.info("save checkpoint")
           if global_step_val % 100000 == 0:
@@ -300,7 +301,7 @@ def main(args):
   trainer = Trainer(pipe=pipe,
                     num_epochs=10,
                     batch_size=1000,
-                    wait_times=100,
+                    wait_times=50,
                     model=model,
                     loss_fn=loss_fn,
                     checkpoint_dir=checkpoint_dir,
