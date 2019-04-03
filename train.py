@@ -94,10 +94,12 @@ def build_graph(input_triplets,
   tf.summary.scalar('learning_rate', learning_rate)
   optimizer = optimizer_class(learning_rate)
 
-  # for variable in slim.get_model_variables():
-  #   tf.summary.histogram(variable.op.name, variable)
-
   output_triplets = result["l2_norm"]
+
+  output_mean = tf.reduce_mean(output_triplets)
+  # 我们要学到可分性好的 embedding, 那么其方差应该是偏大的, 均值应该是变大的
+  tf.summary.scalar("output_mean", output_mean)
+
   loss_result = loss_fn.calculate_loss(output_triplets)
   loss = loss_result['hinge_loss']
 
@@ -118,11 +120,6 @@ def build_graph(input_triplets,
   if clip_gradient_norm > 0:
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
-
-  mean_pos_dist=tf.reduce_mean(loss_result['pos_dist'])
-  tf.summary.scalar("mean_pos_dist",mean_pos_dist)
-  mean_neg_dist=tf.reduce_mean(loss_result['neg_dist'])
-  tf.summary.scalar("mean_neg_dist",mean_neg_dist)
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
