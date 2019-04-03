@@ -119,8 +119,10 @@ def build_graph(input_triplets,
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
-  tf.summary.scalar("pos_dist",loss_result['pos_dist'])
-  tf.summary.scalar("pos_dist",loss_result['pos_dist'])
+  mean_pos_dist=tf.reduce_mean(loss_result['pos_dist'])
+  tf.summary.scalar("mean_pos_dist",mean_pos_dist)
+  mean_neg_dist=tf.reduce_mean(loss_result['neg_dist'])
+  tf.summary.scalar("mean_neg_dist",mean_neg_dist)
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
