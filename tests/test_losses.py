@@ -4,8 +4,7 @@ sys.path.append("..")
 import tensorflow as tf
 import numpy as np
 
-from imitation_data import gen_all_watched_guids
-from imitation_data import gen_features
+import inputs
 from losses import HingeLoss
 
 class test_losses():
@@ -21,7 +20,7 @@ class test_losses():
           self.output_triplets.shape,
           self.output_triplets[0])
     #run test
-    self.test_loss()
+    # self.test_loss()
     self.test_HingeLoss()
 
   def test_loss(self):
@@ -42,8 +41,14 @@ class test_losses():
     loss_fn = HingeLoss()
     loss = loss_fn.calculate_loss(self.output_triplets)
     with tf.Session() as sess:
-      loss_val = sess.run(loss)
-      print(loss_val, loss_val.shape)
+      loss_result = sess.run(loss)
+      print(loss_result['anchors'], loss_result['anchors'].shape)
+      print(loss_result['positives'], loss_result['positives'].shape)
+      print(loss_result['negatives'], loss_result['negatives'].shape)
+      print(loss_result['pos_dist'], loss_result['pos_dist'].shape)
+      print(loss_result['neg_dist'], loss_result['neg_dist'].shape)
+      print(loss_result['hinge_dist'], loss_result['hinge_dist'].shape)
+      print(loss_result['hinge_loss'], loss_result['hinge_loss'].shape)
       # assert loss_val.astype(str)=='6.6'
 
 

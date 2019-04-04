@@ -120,7 +120,7 @@ class MPTripletPipe(object):
           except Exception as e:
             logging.warning('subprocess:'+str(position)+str(e))
 
-  def get_batch(self, wait_times=100):
+  def get_batch(self, wait_times=30):
     '''get batch training data with format [arc, pos, neg]
     Retrun:
       3-D array of training triplets, dtype np.float32
