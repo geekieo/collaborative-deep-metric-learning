@@ -18,7 +18,7 @@ class BaseLoss(object):
     raise NotImplementedError()
 
 class HingeLoss(BaseLoss):
-  def calculate_loss(self, triplets, margin=0):
+  def calculate_loss(self, triplets, margin=0.1):
     """ 
     Args:
       triplets: 3-d tensor storing the triplets. The dimensions are
