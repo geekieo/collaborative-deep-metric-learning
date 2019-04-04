@@ -186,8 +186,6 @@ def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4)
   triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
   write_triplets(triplets, features, encode_map, decode_map, save_dir,split)
 
-# ==================== 仅根据观看历史（远程获取features）多进程生成训练数据 ====================
-
 
 if __name__ == "__main__":
   gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
