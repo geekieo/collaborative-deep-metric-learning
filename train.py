@@ -91,16 +91,12 @@ def build_graph(input_triplets,
     learning_rate_decay_examples,
     learning_rate_decay,
     staircase=True)
-  tf.summary.scalar('learning_rate', learning_rate)
+
   optimizer = optimizer_class(learning_rate)
 
   output_triplets = result["l2_norm"]
 
-  output_mean = tf.reduce_mean(output_triplets)
-  # 我们要学到可分性好的 embedding, 那么其方差应该是偏大的, 均值应该是变大的
-  tf.summary.scalar("output_mean", output_mean)
-
-  loss_result = loss_fn.calculate_loss(output_triplets)
+  loss_result = loss_fn.calculate_loss(output_triplets, margin=0.1)
   loss = loss_result['hinge_loss']
 
   reg_loss = tf.constant(0.0)
@@ -112,22 +108,30 @@ def build_graph(input_triplets,
   final_loss = regularization_penalty * reg_loss + loss
   gradients = optimizer.compute_gradients(final_loss,
               colocate_gradients_with_ops=False)
- 
-  tf.summary.scalar("loss", loss)
-  if regularization_penalty != 0:
-    tf.summary.scalar("reg_loss", reg_loss)
-  
+   
   if clip_gradient_norm > 0:
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
+
+  # 我们要学到可分性好的 embedding, 那么其方差应该是偏大的, 均值应该是变大的
+  output_mean, output_var = tf.nn.moments(output_triplets, axis=2)
+  # summary
+  with tf.name_scope('build_graph'):
+    tf.summary.scalar("output_mean", output_mean)
+    tf.summary.scalar("output_var", output_var)
+    tf.summary.scalar("loss", loss)
+    if regularization_penalty != 0:
+      tf.summary.scalar("reg_loss", reg_loss)
+    tf.summary.scalar('learning_rate', learning_rate)
+
+
   tf.add_to_collection("output_batch", output_triplets)  
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
-  
-#   #debug
+  #debug
   tf.add_to_collection("layer_1", result["layer_1"])
   tf.add_to_collection("layer_2", result["layer_2"])
   tf.add_to_collection("input_batch", input_triplets)
