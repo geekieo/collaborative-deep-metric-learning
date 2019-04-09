@@ -25,8 +25,14 @@ tqdm
 
 ### Evaluation
 
+* `get_guid_title.py`
+* `guid_knn.py`
 * `average_precision_calculator.py`
 * `mean_average_precision_calculator.py`
+
+### Prediction
+
+* `predict.py`
 
 ### Misc
 
