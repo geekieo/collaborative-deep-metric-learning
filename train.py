@@ -115,13 +115,8 @@ def build_graph(input_triplets,
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
 
-
-  # 我们要学到可分性好的 embedding, 那么其方差应该是偏大的, 均值应该是变大的
-  output_mean, output_var = tf.nn.moments(output_triplets, axis=2)
   # summary
   with tf.name_scope('build_graph'):
-    tf.summary.scalar("output_mean", output_mean)
-    tf.summary.scalar("output_var", output_var)
     tf.summary.scalar("loss", loss)
     if regularization_penalty != 0:
       tf.summary.scalar("reg_loss", reg_loss)
