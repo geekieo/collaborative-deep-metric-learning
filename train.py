@@ -52,6 +52,13 @@ def build_pipe_graph(triplets,
   guid_triplets = triplets_iter.get_next()
   tf.add_to_collection("guid_triplets", guid_triplets)
 
+
+def calc_var(triplets, name=None):
+  with tf.name_scope(name):
+    mean = tf.reduce_mean(triplets,axis=[0,1])
+    delta = triplets-mean
+    return tf.reduce_mean(delta**2)
+
 def build_graph(input_triplets,
                 model,
                 output_size=256,
@@ -114,13 +121,15 @@ def build_graph(input_triplets,
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
 
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
-
+  # 可分性好的 embeddings， 那么其方差应该是偏大的
+  variance = calc_var(output_triplets, "variance")
   # summary
   with tf.name_scope('build_graph'):
     tf.summary.scalar("loss", loss)
     if regularization_penalty != 0:
       tf.summary.scalar("reg_loss", reg_loss)
     tf.summary.scalar('learning_rate', learning_rate)
+    tf.summary.scalar("variance", variance)
 
 
   tf.add_to_collection("output_batch", output_triplets)  

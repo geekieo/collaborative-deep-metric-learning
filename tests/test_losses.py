@@ -15,7 +15,7 @@ class test_losses():
       [[1,1],[5,5],[2,2]],
       [[1,1],[2,2],[5,5]],
       [[1,1],[5,5],[2,2]],
-      [[1,1],[5,5],[2,2]]])
+      [[1,1],[5,5],[2,2]]],dtype=np.float32)
     print(type(self.output_triplets), 
           self.output_triplets.shape,
           self.output_triplets[0])
