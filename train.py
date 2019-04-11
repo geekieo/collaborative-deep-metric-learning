@@ -227,61 +227,61 @@ class Trainer():
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
-      summary_val=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
+      summary_np=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
       while True:
         try:
           fetch_start_time = time.time()
-          input_triplets_val = self.pipe.get_batch(self.wait_times)
-          if input_triplets_val is None:
+          input_triplets_np = self.pipe.get_batch(self.wait_times)
+          if input_triplets_np is None:
             # summary save model
-            train_writer.add_summary(summary_val, global_step_val)
-            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
+            train_writer.add_summary(summary_np, global_step_np)
+            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             break
-          if not input_triplets_val.shape == (self.batch_size,3,1500):
+          if not input_triplets_np.shape == (self.batch_size,3,1500):
             continue
-          # print('input_triplets_val.shape: ',input_triplets_val.shap)
+          # print('input_triplets_np.shape: ',input_triplets_np.shap)
           if self.debug:
-            logging.debug(type(input_triplets_val)+input_triplets_val.shape+input_triplets_val.dtype)
+            logging.debug(type(input_triplets_np)+input_triplets_np.shape+input_triplets_np.dtype)
           fetch_time = time.time() - fetch_start_time
 
           batch_start_time = time.time()
-          _, global_step_val, loss_val, summary_val= sess.run(
+          _, global_step_np, loss_np, summary_np= sess.run(
               [train_op, global_step, loss,summary_op],
-              feed_dict={input_triplets: input_triplets_val})
+              feed_dict={input_triplets: input_triplets_np})
 
-          # _, global_step_val, loss_val, summary_val, input_batch_val, layer_1_val, layer_2_val, output_batch_val, anchors_val, positives_val, negatives_val,pos_dist_val,neg_dist_val,hinge_dist_val,hinge_loss_val, final_loss_val= sess.run(
+          # _, global_step_np, loss_np, summary_np, input_batch_np, layer_1_np, layer_2_np, output_batch_np, anchors_np, positives_np, negatives_np,pos_dist_np,neg_dist_np,hinge_dist_np,hinge_loss_np, final_loss_np= sess.run(
           #     [train_op, global_step, loss, summary_op,input_batch, layer_1, layer_2, output_batch, anchors, positives, negatives,pos_dist,neg_dist,hinge_dist, hinge_loss, final_loss],
-          #     feed_dict={input_triplets: input_triplets_val})
-          # print('input_batch_val',input_batch_val.shape,input_batch_val,
-          #     'layer_1_val',layer_1_val.shape,layer_1_val,
-          #     'layer_2_val',layer_2_val.shape,layer_2_val,
-          #     'output_batch_val',output_batch_val.shape,output_batch_val, 
-          #     'anchors_val',anchors_val.shape,anchors_val, 
-          #     'positives_val',positives_val.shape, positives_val, 
-          #     'negatives_val',negatives_val.shape, negatives_val, 
-          #     'pos_dist_val',pos_dist_val.shape, pos_dist_val, 
-          #     'neg_dist_val',neg_dist_val.shape, neg_dist_val, 
-          #     'hinge_dist_val',hinge_dist_val.shape, hinge_dist_val, 
-          #     'hinge_loss_val',hinge_loss_val.shape, hinge_loss_val, 
-          #     'final_loss_val',final_loss_val.shape, final_loss_val,
+          #     feed_dict={input_triplets: input_triplets_np})
+          # print('input_batch_np',input_batch_np.shape,input_batch_np,
+          #     'layer_1_np',layer_1_np.shape,layer_1_np,
+          #     'layer_2_np',layer_2_np.shape,layer_2_np,
+          #     'output_batch_np',output_batch_np.shape,output_batch_np, 
+          #     'anchors_np',anchors_np.shape,anchors_np, 
+          #     'positives_np',positives_np.shape, positives_np, 
+          #     'negatives_np',negatives_np.shape, negatives_np, 
+          #     'pos_dist_np',pos_dist_np.shape, pos_dist_np, 
+          #     'neg_dist_np',neg_dist_np.shape, neg_dist_np, 
+          #     'hinge_dist_np',hinge_dist_np.shape, hinge_dist_np, 
+          #     'hinge_loss_np',hinge_loss_np.shape, hinge_loss_np, 
+          #     'final_loss_np',final_loss_np.shape, final_loss_np,
           #     sep='\n')
 
           trian_time = time.time() - batch_start_time
 
-          if global_step_val % 50 == 0:
-            logging.info("Step " + str(global_step_val) + " | Loss: " + ("%.8f" % loss_val) +
+          if global_step_np % 50 == 0:
+            logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_val % 250 == 0:
-            train_writer.add_summary(summary_val, global_step_val)
+          if global_step_np % 250 == 0:
+            train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_val % 2500 == 0:
-            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_val)
+          if global_step_np % 2500 == 0:
+            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
-          if global_step_val % 100000 == 0:
+          if global_step_np % 100000 == 0:
             # evaluate
-            # _, global_step_val, loss_val, output_val = sess.run(
+            # _, global_step_np, loss_np, output_np = sess.run(
             #  [train_op, global_step, loss, output_batch])
             # 计算 output_batch cowatch 余弦距离
             pass

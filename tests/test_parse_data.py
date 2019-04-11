@@ -220,8 +220,8 @@ def test_lookup():
                                     feature_file="visual_features.txt")
   guid_triplets = tf.constant(triplets)
   with tf.Session() as sess:
-    guid_triplets_val = sess.run(guid_triplets)
-  triplets = lookup(guid_triplets_val, features)
+    guid_triplets_np = sess.run(guid_triplets)
+  triplets = lookup(guid_triplets_np, features)
   print(triplets)
   print(triplets.shape)
 

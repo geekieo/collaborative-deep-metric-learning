@@ -27,8 +27,8 @@ def test_build_pipe_graph():
   
   guid_triplets = tf.get_collection("guid_triplets")[0]
   with tf.Session() as sess:
-    guid_triplets_val = sess.run(guid_triplets)
-    print(guid_triplets_val)
+    guid_triplets_np = sess.run(guid_triplets)
+    print(guid_triplets_np)
 
 
 def test_build_graph():
@@ -67,15 +67,15 @@ def test_build_graph():
   with tf.Session() as sess:
     sess.run(init_op)
     for i in range(3):
-      guid_triplets_val = sess.run(guid_triplets)
-      input_triplets_val = lookup(guid_triplets_val, features)
+      guid_triplets_np = sess.run(guid_triplets)
+      input_triplets_np = lookup(guid_triplets_np, features)
       
-      _, global_step_val, output_batch_val, loss_val = sess.run(
+      _, global_step_np, output_batch_np, loss_np = sess.run(
           [train_op, global_step, output_batch, loss],
-          feed_dict={input_triplets: input_triplets_val})
-      assert global_step_val == i+1
-      assert output_batch_val.shape==(batch_size, 3, 256)
-      print(i+1, loss_val)
+          feed_dict={input_triplets: input_triplets_np})
+      assert global_step_np == i+1
+      assert output_batch_np.shape==(batch_size, 3, 256)
+      print(i+1, loss_np)
 
 if __name__ == "__main__":
   test_build_graph()
