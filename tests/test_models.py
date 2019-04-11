@@ -37,10 +37,10 @@ class test_model():
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
       sess.run(init_op)
-      triplet_val = sess.run(triplet_embed)
-    print(triplet_val.shape, triplet_val[0][0][0])
+      triplet_np = sess.run(triplet_embed)
+    print(triplet_np.shape, triplet_np[0][0][0])
     print(self.output_shape)
-    assert triplet_val.shape == self.output_shape
+    assert triplet_np.shape == self.output_shape
 
 
 def test_VENet():

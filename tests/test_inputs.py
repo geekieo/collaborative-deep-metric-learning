@@ -25,12 +25,12 @@ def test_TripletPipe():
   init_op = tf.global_variables_initializer()
   with tf.Session() as sess:
     sess.run(init_op)
-    guid_triplets_val = sess.run(guid_triplets)
-    guid_triplets_val = sess.run(guid_triplets)
-    print(guid_triplets_val, guid_triplets_val.shape)
-    assert guid_triplets_val.shape == (batch_size, 3)
+    guid_triplets_np = sess.run(guid_triplets)
+    guid_triplets_np = sess.run(guid_triplets)
+    print(guid_triplets_np, guid_triplets_np.shape)
+    assert guid_triplets_np.shape == (batch_size, 3)
     # trans guid to feature
-    input_triplets = lookup(guid_triplets_val, features)
+    input_triplets = lookup(guid_triplets_np, features)
     print(input_triplets)
     print(input_triplets.shape)
     assert input_triplets.shape == (2, 3, 1500)

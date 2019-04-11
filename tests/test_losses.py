@@ -49,7 +49,7 @@ class test_losses():
       print(loss_result['neg_dist'], loss_result['neg_dist'].shape)
       print(loss_result['hinge_dist'], loss_result['hinge_dist'].shape)
       print(loss_result['hinge_loss'], loss_result['hinge_loss'].shape)
-      # assert loss_val.astype(str)=='6.6'
+      # assert loss_np.astype(str)=='6.6'
 
 
 if __name__ == "__main__":
