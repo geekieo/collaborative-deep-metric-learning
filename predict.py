@@ -56,7 +56,7 @@ class Prediction():
 
     output_np = np.asarray(output, np.float32)
     np.save(self.ckpt_dir+"output.npy", output_np)
-    print(output_np.shape, output_np[-1])
+    logging.debug(output_np.shape, output_np[-1])
     logging.info('Saved output.npy')
 
 
@@ -68,7 +68,7 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
   folders = []
   for file in files:
     path = os.path.join(checkpoints_dir, file)
-    # print(path, os.path.getctime(path))
+    # logging.debug(path, os.path.getctime(path))
     if os.path.isdir(path):
       folders.append(path)
   folders.sort(key=lambda folder: os.path.getmtime(folder))
