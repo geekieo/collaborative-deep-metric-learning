@@ -33,6 +33,6 @@ class VENet(BaseModel):
       layer_2 = slim.fully_connected(
           layer_1, output_size, activation_fn=tf.nn.tanh,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      l2_norm = tf.nn.l2_normalize(layer_2, axis=2)
+      l2_norm = tf.nn.l2_normalize(layer_2, axis=1)
       return {"layer_1":layer_1, "layer_2":layer_2,"l2_norm": l2_norm}
 
