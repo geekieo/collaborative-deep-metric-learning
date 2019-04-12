@@ -5,6 +5,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow import logging
 # from tensorflow.python.client import device_lib
+import numpy as np
 
 import losses
 import inputs
@@ -139,8 +140,7 @@ def build_graph(input_batch,
   #debug
   tf.add_to_collection("layer_1", result["layer_1"])
   tf.add_to_collection("layer_2", result["layer_2"])
-  tf.add_to_collection("input_batch", input_triplets)
-  tf.add_to_collection("gradients", gradients) 
+  # tf.add_to_collection("gradients", gradients) 
   tf.add_to_collection("anchors",loss_result["anchors"])
   tf.add_to_collection("positives",loss_result["positives"])
   tf.add_to_collection("negatives",loss_result["negatives"])
@@ -219,7 +219,7 @@ class Trainer():
     hinge_dist = tf.get_collection("hinge_dist")[0]
     hinge_loss = tf.get_collection("hinge_loss")[0]
     final_loss = tf.get_collection("final_loss")[0]
-    gradients = tf.get_collection("gradients")[0]
+    # gradients = tf.get_collection("gradients")[0]
     
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
