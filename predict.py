@@ -83,5 +83,5 @@ if __name__ == "__main__":
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth=True
 
-  predictor = Prediction(checkpoint, config, device_name=None)
-  predictor.run_features(train_dir, ckpt_dir, batch_size)
+  predictor = Prediction(ckpt_dir, config, device_name=None)
+  predictor.run_features(train_dir, batch_size)
