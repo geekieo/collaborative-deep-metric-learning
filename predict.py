@@ -60,9 +60,24 @@ class Prediction():
     logging.info('Saved output.npy')
 
 
+def get_latest_folder(checkpoints_dir, nst_latest=1):
+  """获取目录文件夹，根据创建时间排序，
+  返回第 nst_latest 新的文件夹路径
+  """
+  files = os.listdir(checkpoints_dir)
+  folders = []
+  for file in files:
+    path = os.path.join(checkpoints_dir, file)
+    # print(path, os.path.getctime(path))
+    if os.path.isdir(path):
+      folders.append(path)
+  folders.sort(key=lambda folder: os.path.getmtime(folder))
+  return folders[-nst_latest]
+
 if __name__ == "__main__":
   train_dir = "/data/wengjy1/train_dir/"
-  ckpt_dir = train_dir+"checkpoints/VENet_190412_173822/"
+  ckpts_dir = train_dir+"checkpoints/"
+  ckpt_dir = get_latest_folder(ckpts_dir,nst_latest=1)
   batch_size = 2000 
 
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
