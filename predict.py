@@ -55,7 +55,8 @@ class Prediction():
       output.extend(output_batch_list)
 
     output_np = np.asarray(output, np.float32)
-    np.save(self.ckpt_dir+"output.npy", output_np)
+    save_dir = os.path.join(self.ckpt_dir,"output.npy")
+    np.save(save_dir, output_np)
     logging.debug(output_np.shape, output_np[-1])
     logging.info('Saved output.npy')
 
@@ -78,7 +79,7 @@ if __name__ == "__main__":
   train_dir = "/data/wengjy1/train_dir/"
   ckpts_dir = train_dir+"checkpoints/"
   ckpt_dir = get_latest_folder(ckpts_dir,nst_latest=1)
-  batch_size = 2000 
+  batch_size = 100000 
 
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth=True
