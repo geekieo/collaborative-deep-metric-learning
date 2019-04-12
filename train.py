@@ -59,7 +59,7 @@ def calc_var(triplets, name=None):
     delta = triplets-mean
     return tf.reduce_mean(delta**2)
 
-def build_graph(input_triplets,
+def build_graph(input_batch,
                 model,
                 output_size=256,
                 loss_fn=losses.HingeLoss(),
@@ -78,7 +78,7 @@ def build_graph(input_triplets,
   Args:
     model: The core model (e.g. logistic or neural net). It should inherit
            from BaseModel.
-    input_triplets: tf.placehoder. tf.float32. shape(batch_size, 3,1500)
+    input_batch: tf.placehoder. tf.float32. shape(batch_size, 1500)
     loss_fn: What kind of loss to apply to the model. It should inherit
                 from BaseLoss.
     base_learning_rate: What learning rate to initialize the optimizer with.
@@ -89,7 +89,7 @@ def build_graph(input_triplets,
 
   """
   #create_model loss train_op add_to_collection
-  result = model.create_model(input_triplets, output_size)
+  result = model.create_model(input_batch, output_size)
   
   global_step = tf.train.get_or_create_global_step()
   learning_rate = tf.train.exponential_decay(
@@ -101,7 +101,8 @@ def build_graph(input_triplets,
 
   optimizer = optimizer_class(learning_rate)
 
-  output_triplets = result["l2_norm"]
+  output_batch = result["l2_norm"]  # shape: (-1,output_size)
+  output_triplets = tf.reshape(output_batch,(-1,3,output_size))
 
   loss_result = loss_fn.calculate_loss(output_triplets, margin=0.1)
   loss = loss_result['hinge_loss']
@@ -153,7 +154,7 @@ def build_graph(input_triplets,
 class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, wait_times, model, loss_fn, 
-               checkpoint_dir, optimizer_class, config,
+               checkpoints_dir, optimizer_class, config,
                last_step=None, debug=False):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
@@ -163,7 +164,7 @@ class Trainer():
     self.wait_times = wait_times
     self.model = model
     self.loss_fn = loss_fn
-    self.checkpoint_dir = os.path.join(checkpoint_dir, 
+    self.checkpoint_dir = os.path.join(checkpoints_dir, 
                           model.__class__.__name__+"_"+get_local_time())
     self.optimizer_class = optimizer_class
     self.config = config
@@ -178,9 +179,9 @@ class Trainer():
                      batch_size=self.batch_size,
                      num_epochs=self.num_epochs)
 
-  def build_model(self,input_triplets):
+  def build_model(self,input_batch):
     """Find the model and build the graph."""
-    build_graph(input_triplets=input_triplets,
+    build_graph(input_batch=input_batch,
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
@@ -197,8 +198,8 @@ class Trainer():
 
     # with tf.device('/cpu:0'):
     logging.info("Building model graph.")
-    input_triplets = tf.placeholder(tf.float32, shape=(None,3,1500), name="input_triplets")
-    self.build_model(input_triplets)
+    input_batch = tf.placeholder(tf.float32, shape=(None,1500), name="input_batch")
+    self.build_model(input_batch)
 
 
     global_step = tf.train.get_or_create_global_step()
@@ -208,7 +209,6 @@ class Trainer():
     init_op = tf.global_variables_initializer()
 
     # debug
-    input_batch = tf.get_collection("input_batch")[0]
     layer_1 = tf.get_collection("layer_1")[0]
     layer_2 = tf.get_collection("layer_2")[0]
     anchors = tf.get_collection("anchors")[0]
@@ -243,16 +243,17 @@ class Trainer():
           # print('input_triplets_np.shape: ',input_triplets_np.shap)
           if self.debug:
             logging.debug(type(input_triplets_np)+input_triplets_np.shape+input_triplets_np.dtype)
+          input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
           fetch_time = time.time() - fetch_start_time
 
           batch_start_time = time.time()
           _, global_step_np, loss_np, summary_np= sess.run(
               [train_op, global_step, loss,summary_op],
-              feed_dict={input_triplets: input_triplets_np})
+              feed_dict={input_batch: input_batch_np})
 
           # _, global_step_np, loss_np, summary_np, input_batch_np, layer_1_np, layer_2_np, output_batch_np, anchors_np, positives_np, negatives_np,pos_dist_np,neg_dist_np,hinge_dist_np,hinge_loss_np, final_loss_np= sess.run(
           #     [train_op, global_step, loss, summary_op,input_batch, layer_1, layer_2, output_batch, anchors, positives, negatives,pos_dist,neg_dist,hinge_dist, hinge_loss, final_loss],
-          #     feed_dict={input_triplets: input_triplets_np})
+          #     feed_dict={input_batch: input_batch_np})
           # print('input_batch_np',input_batch_np.shape,input_batch_np,
           #     'layer_1_np',layer_1_np.shape,layer_1_np,
           #     'layer_2_np',layer_2_np.shape,layer_2_np,
@@ -296,7 +297,7 @@ def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   train_dir = "/data/wengjy1/train_dir"  # NOTE 路径是 data
-  checkpoint_dir = train_dir+"/checkpoints/"
+  checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
                                 feature_file = train_dir + "/features.npy",
                                 debug=False)
@@ -311,7 +312,7 @@ def main(args):
                     wait_times=50,
                     model=model,
                     loss_fn=loss_fn,
-                    checkpoint_dir=checkpoint_dir,
+                    checkpoints_dir=checkpoints_dir,
                     optimizer_class=optimizer_class,
                     config=config,
                     last_step=None,
