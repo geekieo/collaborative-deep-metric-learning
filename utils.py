@@ -1,4 +1,6 @@
 import time
+import os
+
 
 def exe_time(func):
     """Record function running time. A decorator."""
