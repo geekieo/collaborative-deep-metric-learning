@@ -22,3 +22,16 @@ def get_local_time():
   return time.strftime("%y%m%d_%H%M%S", time.localtime())
 
 
+def get_latest_folder(checkpoints_dir, nst_latest=1):
+  """获取目录文件夹，根据创建时间排序，
+  返回第 nst_latest 新的文件夹路径
+  """
+  files = os.listdir(checkpoints_dir)
+  folders = []
+  for file in files:
+    path = os.path.join(checkpoints_dir, file)
+    # logging.debug(path, os.path.getctime(path))
+    if os.path.isdir(path):
+      folders.append(path)
+  folders.sort(key=lambda folder: os.path.getmtime(folder))
+  return folders[-nst_latest]
