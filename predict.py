@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import logging
 from online_data import read_features_npy
+from utils import get_latest_folder
 
 logging.set_verbosity(tf.logging.INFO)
 
@@ -60,20 +61,6 @@ class Prediction():
     logging.debug(output_np.shape, output_np[-1])
     logging.info('Saved output.npy')
 
-
-def get_latest_folder(checkpoints_dir, nst_latest=1):
-  """获取目录文件夹，根据创建时间排序，
-  返回第 nst_latest 新的文件夹路径
-  """
-  files = os.listdir(checkpoints_dir)
-  folders = []
-  for file in files:
-    path = os.path.join(checkpoints_dir, file)
-    # logging.debug(path, os.path.getctime(path))
-    if os.path.isdir(path):
-      folders.append(path)
-  folders.sort(key=lambda folder: os.path.getmtime(folder))
-  return folders[-nst_latest]
 
 if __name__ == "__main__":
   train_dir = "/data/wengjy1/train_dir/"

@@ -309,7 +309,7 @@ def main(args):
   trainer = Trainer(pipe=pipe,
                     num_epochs=10,
                     batch_size=1000,
-                    wait_times=50,
+                    wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
                     checkpoints_dir=checkpoints_dir,
@@ -318,6 +318,10 @@ def main(args):
                     last_step=None,
                     debug=False)
   trainer.run()
+  # 训练结束，把所有特征走一遍模型，输出最终embedding
+  checkpoint_dir = trainer.checkpoint_dir
+  predictor = Prediction(checkpoint_dir, config, device_name=None)
+  predictor.run_features(train_dir, batch_size=100000)
 
 
 if __name__ == "__main__":
