@@ -58,7 +58,7 @@ class Prediction():
     output_np = np.asarray(output, np.float32)
     save_dir = os.path.join(self.ckpt_dir,"output.npy")
     np.save(save_dir, output_np)
-    logging.debug(output_np.shape, output_np[-1])
+    print(output_np.shape, output_np[-1])
     logging.info('Saved output.npy')
 
 
