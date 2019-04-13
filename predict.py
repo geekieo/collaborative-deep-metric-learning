@@ -15,7 +15,7 @@ logging.set_verbosity(tf.logging.INFO)
 class Prediction():
   def __init__(self, ckpt_dir, config, device_name=None):
     self.ckpt_dir = ckpt_dir
-    
+    logging.info(str(self.ckpt_dir))
     checkpoint = tf.train.latest_checkpoint(ckpt_dir)
     if not checkpoint:
       logging.error("Load checkpoint failed: "+str(ckpt_dir))
