@@ -10,6 +10,7 @@ import numpy as np
 import losses
 import inputs
 import models
+from predict import Prediction
 from utils import find_class_by_name
 from utils import get_local_time
 
