@@ -102,6 +102,12 @@ def build_graph(input_batch,
     staircase=True)
 
   optimizer = optimizer_class(learning_rate)
+  try:
+    # In adagrad and gradient descent learning_rate is self._learning_rate.
+    final_learning_rate = optimizer._learning_rate
+  except:
+    # In adam learning_rate is self._lr
+    final_learning_rate = optimizer._lr
 
   output_batch = result["l2_norm"]  # shape: (-1,output_size)
   output_triplets = tf.reshape(output_batch,(-1,3,output_size))
@@ -131,8 +137,8 @@ def build_graph(input_batch,
     tf.summary.scalar("loss", loss)
     if regularization_penalty != 0:
       tf.summary.scalar("reg_loss", reg_loss)
-    tf.summary.scalar('learning_rate', learning_rate)
     tf.summary.scalar("variance", variance)
+    tf.summary.scalar('final_learning_rate', final_learning_rate)
 
 
   tf.add_to_collection("output_batch", output_triplets)  
