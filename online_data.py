@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 """Parses the online data (stroed locally) into trainable data.
 Features are dict. Guids are list.
 """
@@ -94,14 +95,14 @@ def read_watched_guids(filename):
     return all_watched_guids
 
 
-def get_triplets(watch_file, feature_file, threshold=3):
+def get_cowatches(watch_file, feature_file, threshold=3):
   """
   Args:
     watch_file: str. file path of watched guid file.
     feature_file: str. file path of video feature.
     threshold:int. a threshold of cowatch number use to select cowatch pair
   Return:
-    return: list of guid_triplets
+    cowatches: list of guid cowatches
     features: dict of features
   """
   # read file
@@ -133,47 +134,67 @@ def get_triplets(watch_file, feature_file, threshold=3):
   
   # select co_watch
   graph = exe_time(get_cowatch_graph)(all_cowatch)
-  all_cowatch = exe_time(select_cowatch)(graph, threshold)
-  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
+  cowatches = exe_time(select_cowatch)(graph, threshold)
+  logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
+
+  return cowatches, features, encode_map, decode_map
+
+
+
+@DeprecationWarning
+def get_triplets(watch_file, feature_file, threshold=3):
+  """
+  Args:
+    watch_file: str. file path of watched guid file.
+    feature_file: str. file path of video feature.
+    threshold:int. a threshold of cowatch number use to select cowatch pair
+  Return:
+    return: list of guid_triplets
+    features: dict of features
+  """
+  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
 
   # mine triplets
-  triplets = exe_time(mine_triplets)(all_cowatch, features)
+  triplets = exe_time(mine_triplets)(cowatches, features)
   logging.info("triplets size:"+str(sys.getsizeof(triplets))+"\tnum:"+str(len(triplets)))
   
   return triplets, features, encode_map, decode_map
-  
 
-def write_triplets(triplets, features, encode_map=None, decode_map=None, save_dir='',split=4):
-  """
-  args:
-    triplets: list of str
-    features: ndarray of 1500 np.float32 elements
-    encode_map: dict
-    decode_map: dict
-  """
+
+def write_features(features, encode_map=None, decode_map=None, save_dir=''):
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
-
-  triplets_path = os.path.join(save_dir,'triplets.txt')
   features_path = os.path.join(save_dir,'features.npy')
   encode_map_path = os.path.join(save_dir,'encode_map.json')
   decode_map_path = os.path.join(save_dir,'decode_map.json')
 
+  try:
+    np.save(features_path, features)
+    if encode_map is not None:
+      with open(encode_map_path, 'w') as file:
+        json.dump(encode_map,file, ensure_ascii=False)
+    if encode_map is not None:
+      with open(decode_map_path, 'w') as file:
+        json.dump(decode_map, file, ensure_ascii=False)
+    return True
+  except Exception as e:
+    logging.warning(str(e))
+    return False
+
+def write_triplets(triplets, save_dir='',split=4, ):
+  """
+  args:
+    triplets: list of str
+  """
+  if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+  triplets_path = os.path.join(save_dir,'triplets.txt')
   with open(triplets_path, 'w') as file:
     for triplet in triplets:
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
-
-  np.save(features_path, features)
-
-  if encode_map is not None:
-    with open(encode_map_path, 'w') as file:
-      json.dump(encode_map,file, ensure_ascii=False)
-
-  if encode_map is not None:
-    with open(decode_map_path, 'w') as file:
-      json.dump(decode_map, file, ensure_ascii=False)
-  if split > 0:
+  try:
+    split = 1 if split<1 else int(split)  
     row_num = len(triplets)
     row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
     cwd = os.getcwd()
@@ -181,10 +202,50 @@ def write_triplets(triplets, features, encode_map=None, decode_map=None, save_di
     command = "split -l %d triplets.txt --additional-suffix=.triplet" % (row_cnt) 
     os.system(command)
     os.chdir(cwd)
+    return True
+  except Exception as e:
+    logging.warning(str(e))
+    return False
+
+def write_cowatches(cowatches, save_dir='',split=4):
+  if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+  cowatches_path = os.path.join(save_dir,'cowatches.txt')
+  try:
+    logging.info("writing cowatches...")
+    with open(cowatches_path, 'w') as file:
+      for cowatch in cowatches:
+        cowatch = ','.join(list(map(str,cowatch)))
+        file.write(cowatch+'\n')
+    split = 1 if split<1 else int(split)  
+    row_num = len(cowatches)
+    row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
+    cwd = os.getcwd()
+    os.chdir(save_dir)
+    command = "split -l %d cowatches.txt --additional-suffix=.cowatch" % (row_cnt)
+    os.system(command)
+    os.system("rm -f cowatches.txt")
+    os.chdir(cwd)
+    return True
+  except Exception as e:
+    logging.warning(str(e))
+    return False
+
+
+def write_training_data(cowatches=None, features=None, encode_map=None, decode_map=None, save_dir='',split=4):
+  res1 = write_features(features, encode_map, decode_map, save_dir)
+  res2 = write_cowatches(cowatches, save_dir,split)
+  if res1 and res2:
+    logging.info("All training data are written.")
+
 
 def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
-  triplets, features, encode_map, decode_map = get_triplets(watch_file, feature_file,threshold)
-  write_triplets(triplets, features, encode_map, decode_map, save_dir,split)
+  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
+  write_training_data(cowatches, features, encode_map, decode_map, save_dir,split)
+
+
+# ======================== get training data base on watch history ============================
+
 
 
 if __name__ == "__main__":

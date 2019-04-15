@@ -81,10 +81,10 @@ def test_read_features_npy():
 
 
 if __name__ == "__main__":
-  test_read_features_txt()
+  # test_read_features_txt()
   # test_read_watched_guids()
   # test_get_triplets()
-  # test_read_features_txt_real()
+
   # test_get_triplets_real()
   test_gen_training_data()
-  test_read_features_npy()
+  # test_read_features_npy()
