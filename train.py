@@ -327,8 +327,8 @@ def main(args):
   trainer.run()
   # 训练结束，把所有特征走一遍模型，输出最终embedding
   checkpoint_dir = trainer.checkpoint_dir
-  predictor = Prediction(checkpoint_dir, config, device_name=None)
-  predictor.run_features(train_dir, batch_size=100000)
+  predictor = Prediction(ckpt_dir=checkpoint_dir, config=config, device_name=None)
+  predictor.run_features(input_dir=train_dir, output_dir=checkpoint_dir, batch_size=100000)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 """Provides input pipe, which can get input data tensors for models."""
 import os
 import time
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager, Value
 import numpy as np
 import tensorflow as tf
 from tensorflow import logging
@@ -10,6 +10,9 @@ from online_data import read_features_npy
 
 logging.set_verbosity(logging.DEBUG)
 FEATURES={}
+ALL_FILES_NUM = 0
+FINISHED_NUM = Value("i", 0)
+
 
 class BasePipe(object):
   """Inherit from this class when implementing new readers."""
@@ -56,14 +59,14 @@ class MPTripletPipe(object):
       triplet_file_patten: filename patten
       feature_file: filename
     """
-    global FEATURES
+    global FEATURES, ALL_FILES_NUM
     FEATURES = read_features_npy(feature_file)
     
     self.triplet_files = tf.gfile.Glob(triplet_file_patten)
+    ALL_FILES_NUM = len(self.triplet_files)
     logging.info('MPTripletPipe __init__ triplet_files: '+str(self.triplet_files))
-    self.debug = debug
-    if self.debug:
-      logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
+
+    logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
     """多进程读取多个 guid_triplets 文件，在子进程中将 guid 映射成 feature
@@ -78,14 +81,13 @@ class MPTripletPipe(object):
     for index, triplet_file in enumerate(self.triplet_files):
       self.pool.apply_async(self.subprocess, args=(triplet_file, str(index),
                             self.triplet_queue, self.mq, self.num_epochs,
-                            self.batch_size, self.debug))
+                            self.batch_size))
 
   @staticmethod
-  def subprocess(triplet_file, thread_index, triplet_queue, mq, num_epochs, batch_size, debug=False):
+  def subprocess(triplet_file, thread_index, triplet_queue, mq, num_epochs, batch_size):
     """子进程为静态函数。不能用类变量，所以需要传入所需变量。"""
     global FEATURES
-    if debug:
-      logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
+    logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
     with open(triplet_file, 'r') as file:
       runtimes = 0
       triplets = []
@@ -95,10 +97,20 @@ class MPTripletPipe(object):
           for i in range(batch_size):
             line = file.readline()
             if not line:
-              if debug:
-                logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
+              logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
               runtimes += 1
               if runtimes < num_epochs:
+                global FINISHED_NUM
+                added = False
+                while True:
+                  with FINISHED_NUM.get_lock():
+                    if added == False:
+                      added = True
+                      FINISHED_NUM.value += 1
+                    if FINISHED_NUM.value == ALL_FILES_NUM * runtimes:
+                      break
+                  logging.debug('thread_index: ' + str(thread_index) + ' waiting partners...')
+                  time.sleep(2)
                 file.seek(0)
                 line = file.readline()
               else:
@@ -141,7 +153,10 @@ class MPTripletPipe(object):
           logging.info('queue is empty, i do not wanna to wait any more!!!')
           exitFlag = True
         time.sleep(1)
-
+    if wait_num >= wait_times:
+      return None
+    return triplets
+    
   def __del__(self):
     self.pool.close()
     self.pool.join()
