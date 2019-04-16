@@ -239,6 +239,7 @@ class Trainer():
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       summary_np=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
+      evaluator = Prediction(sess=sess, device_name=None)
       while True:
         try:
           fetch_start_time = time.time()
@@ -247,6 +248,8 @@ class Trainer():
             # summary save model
             train_writer.add_summary(summary_np, global_step_np)
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+            evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
+                                   batch_size=50000, suffix=str(global_step_np))
             logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             break
           if not input_triplets_np.shape == (self.batch_size,3,1500):
@@ -288,13 +291,13 @@ class Trainer():
           if global_step_np % 250 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 2500 == 0:
+          if global_step_np % 5800 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
-          if global_step_np % 5800 == 0:
+          # if global_step_np % 5800 == 0:
             # evaluate
-            predictor = Prediction(sess=sess, device_name=None)
-            predictor.run_features(input_dir=train_dir, output_dir=self.checkpoint_dir, batch_size=100000)
+            evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
+                                   batch_size=50000, suffix=str(global_step_np))
             pass
 
         except Exception as e:
@@ -328,11 +331,6 @@ def main(args):
                     last_step=None,
                     debug=False)
   trainer.run()
-  # 训练结束，把所有特征走一遍模型，输出最终embedding
-  checkpoint_dir = trainer.checkpoint_dir
-  predictor = Prediction(ckpt_dir=checkpoint_dir, config=config, device_name=None)
-  predictor.run_features(input_dir=train_dir, output_dir=checkpoint_dir, batch_size=100000)
-
 
 if __name__ == "__main__":
   import os

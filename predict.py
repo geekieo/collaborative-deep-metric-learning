@@ -18,7 +18,6 @@ class Prediction():
     self.ckpt_dir = ckpt_dir
     self.config = config
     self.device_name = device_name
-
     if not sess:
       # 如果没有传入 session，根据 ckpt_dir 和 config 载入 session
       logging.info(str(self.ckpt_dir))
@@ -32,23 +31,20 @@ class Prediction():
         loader = tf.train.import_meta_graph(meta_graph, clear_devices=True)
       self.sess = tf.Session(config=config)
       self.sess.graph.finalize()
-      graph = tf.get_default_graph()
       loader.restore(self.sess, checkpoint)
-
+    
     # Get the tensors by their variable name
+    graph = tf.get_default_graph()
     self.input_batch = graph.get_operation_by_name('input_batch').outputs[0]
     self.output_batch = graph.get_operation_by_name('VENet/l2_normalize').outputs[0]
-    
     logging.info('Prediction __init__ Load predictor!')
 
   def predict(self, input_batch_np):
     output_batch_np = self.sess.run(self.output_batch, feed_dict={self.input_batch: input_batch_np})
     return output_batch_np
 
-  def run_features(self, input_dir, output_dir, batch_size):
-    logging.info('Runing features...')
-    feature_file = os.path.join(input_dir,"features.npy")
-    features = read_features_npy(feature_file)
+  def run_features(self, features, output_dir, batch_size,suffix=''):
+    logging.info('Predicting features...')
 
     steps = int(features.shape[0]/batch_size)
     tail_size = features.shape[0] - batch_size * steps
@@ -63,10 +59,10 @@ class Prediction():
       output.extend(output_batch_list)
 
     output_np = np.asarray(output, np.float32)
-    save_dir = os.path.join(output_dir,"output.npy")
+    save_dir = os.path.join(output_dir,"output"+suffix+".npy")
     np.save(save_dir, output_np)
     print(output_np.shape, output_np[-1])
-    logging.info('Saved output.npy')
+    logging.info('Saved'+save_dir)
 
 
 if __name__ == "__main__":
@@ -79,4 +75,5 @@ if __name__ == "__main__":
   config.gpu_options.allow_growth=True
 
   predictor = Prediction(ckpt_dir=ckpt_dir, config=config, device_name=None)
-  predictor.run_features(input_dir=train_dir, output_dir=ckpt_dir, batch_size=batch_size)
+  features = read_features_npy(os.path.join(train_dir,"features.npy"))
+  predictor.run_features(features=features, output_dir=ckpt_dir, batch_size=batch_size)
