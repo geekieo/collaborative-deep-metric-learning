@@ -67,7 +67,7 @@ def build_graph(input_batch,
                 loss_fn=losses.HingeLoss(),
                 base_learning_rate=0.01,
                 learning_rate_decay_examples=100000,
-                learning_rate_decay=0.95,
+                learning_rate_decay=0.96,
                 optimizer_class=tf.train.AdamOptimizer,
                 clip_gradient_norm=1.0,
                 regularization_penalty=1):
@@ -101,7 +101,11 @@ def build_graph(input_batch,
     learning_rate_decay,
     staircase=True)
 
-  optimizer = optimizer_class(learning_rate)
+  if optimizer_class.__name__=="MomentumOptimizer":
+    optimizer = optimizer_class(learning_rate,momentum=0.9,name='Momentum',use_nesterov=True)
+  else:
+    optimizer = optimizer_class(learning_rate)
+
   try:
     # In adagrad and gradient descent learning_rate is self._learning_rate.
     final_learning_rate = optimizer._learning_rate
@@ -192,9 +196,9 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                base_learning_rate=0.01,
+                base_learning_rate=10.0,
                 learning_rate_decay_examples=100000,
-                learning_rate_decay=0.95,
+                learning_rate_decay=0.96,
                 optimizer_class=self.optimizer_class,
                 clip_gradient_norm=0,
                 regularization_penalty=0)
@@ -287,11 +291,10 @@ class Trainer():
           if global_step_np % 2500 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
-          if global_step_np % 100000 == 0:
+          if global_step_np % 5800 == 0:
             # evaluate
-            # _, global_step_np, loss_np, output_np = sess.run(
-            #  [train_op, global_step, loss, output_batch])
-            # 计算 output_batch cowatch 余弦距离
+            predictor = Prediction(sess=sess, device_name=None)
+            predictor.run_features(input_dir=train_dir, output_dir=self.checkpoint_dir, batch_size=100000)
             pass
 
         except Exception as e:
@@ -310,11 +313,11 @@ def main(args):
                                 debug=False)
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  optimizer_class = find_class_by_name("MomentumOptimizer", [tf.train])
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
-                    num_epochs=10,
+                    num_epochs=8,
                     batch_size=1000,
                     wait_times=20,
                     model=model,

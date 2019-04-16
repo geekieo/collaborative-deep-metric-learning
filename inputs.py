@@ -76,7 +76,6 @@ class MPTripletPipe(object):
     manager = Manager()
     self.triplet_queue = manager.Queue(maxsize=queue_length)
     self.mq = manager.Queue(maxsize=10)
-    # self.features = manager.dict(FEATURES)
     self.pool = Pool(len(self.triplet_files))
     for index, triplet_file in enumerate(self.triplet_files):
       self.pool.apply_async(self.subprocess, args=(triplet_file, str(index),
@@ -86,8 +85,8 @@ class MPTripletPipe(object):
   @staticmethod
   def subprocess(triplet_file, thread_index, triplet_queue, mq, num_epochs, batch_size):
     """子进程为静态函数。不能用类变量，所以需要传入所需变量。"""
-    global FEATURES
-    logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
+    # global FEATURES
+    # logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
     with open(triplet_file, 'r') as file:
       runtimes = 0
       triplets = []
