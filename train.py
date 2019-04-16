@@ -291,14 +291,10 @@ class Trainer():
           if global_step_np % 250 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 5800 == 0:
+          if global_step_np % 5800 == 0 and global_step_np != 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-            logging.info("save checkpoint")
-          # if global_step_np % 5800 == 0:
-            # evaluate
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
                                    batch_size=50000, suffix=str(global_step_np))
-            pass
 
         except Exception as e:
           logging.error(str(e)) 
@@ -312,8 +308,7 @@ def main(args):
   train_dir = "/data/wengjy1/train_dir"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
-                                feature_file = train_dir + "/features.npy",
-                                debug=False)
+                                feature_file = train_dir + "/features.npy")
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("MomentumOptimizer", [tf.train])
