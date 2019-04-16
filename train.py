@@ -284,17 +284,19 @@ class Trainer():
 
           trian_time = time.time() - batch_start_time
 
-          if global_step_np % 50 == 0:
+          if global_step_np % 200 == 0:
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 250 == 0:
+          if global_step_np % 1000 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 5800 == 0 and global_step_np != 0:
+          if global_step_np % 150000 == 0 and global_step_np != 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+            logging.info("save checkpoint")
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
                                    batch_size=50000, suffix=str(global_step_np))
+            pass
 
         except Exception as e:
           logging.error(str(e)) 
@@ -305,7 +307,7 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/train_dir"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
                                 feature_file = train_dir + "/features.npy")
@@ -315,7 +317,7 @@ def main(args):
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
-                    num_epochs=8,
+                    num_epochs=5,
                     batch_size=1000,
                     wait_times=20,
                     model=model,
