@@ -53,7 +53,7 @@ class TripletPipe(BasePipe):
 
 
 class MPTripletPipe(object):
-  def __init__(self, triplet_file_patten, feature_file=None, debug=False):
+  def __init__(self, triplet_file_patten, feature_file=None):
     """
     Arg:
       triplet_file_patten: filename patten
@@ -99,17 +99,17 @@ class MPTripletPipe(object):
               logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
               runtimes += 1
               if runtimes < num_epochs:
-                global FINISHED_NUM
-                added = False
-                while True:
-                  with FINISHED_NUM.get_lock():
-                    if added == False:
-                      added = True
-                      FINISHED_NUM.value += 1
-                    if FINISHED_NUM.value == ALL_FILES_NUM * runtimes:
-                      break
-                  logging.debug('thread_index: ' + str(thread_index) + ' waiting partners...')
-                  time.sleep(2)
+                # global FINISHED_NUM
+                # added = False
+                # while True:
+                #   with FINISHED_NUM.get_lock():
+                #     if added == False:
+                #       added = True
+                #       FINISHED_NUM.value += 1
+                #     if FINISHED_NUM.value == ALL_FILES_NUM * runtimes:
+                #       break
+                #   logging.debug('thread_index: ' + str(thread_index) + ' waiting partners...')
+                #   time.sleep(2)
                 file.seek(0)
                 line = file.readline()
               else:
@@ -152,9 +152,7 @@ class MPTripletPipe(object):
           logging.info('queue is empty, i do not wanna to wait any more!!!')
           exitFlag = True
         time.sleep(1)
-    if wait_num >= wait_times:
-      return None
-    return triplets
+    return
     
   def __del__(self):
     self.pool.close()
@@ -164,8 +162,7 @@ class MPTripletPipe(object):
 if __name__ == '__main__':
   # test
   pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
-                       feature_file="/data/wengjy1/cdml/features.txt",
-                       debug=True)
+                       feature_file="/data/wengjy1/cdml/features.txt")
   pipe.create_pipe(num_epochs=2,batch_size=50)
   # 单例
   triplet = pipe.get_batch(wait_times=10)
