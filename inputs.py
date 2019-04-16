@@ -2,7 +2,9 @@
 """Provides input pipe, which can get input data tensors for models."""
 import os
 import time
-from multiprocessing import Pool, Manager, Value
+from multiprocessing import Pool
+from multiprocessing import Manager
+# from multiprocessing import Value
 import numpy as np
 import tensorflow as tf
 from tensorflow import logging
@@ -10,8 +12,8 @@ from online_data import read_features_npy
 
 logging.set_verbosity(logging.DEBUG)
 FEATURES={}
-ALL_FILES_NUM = 0
-FINISHED_NUM = Value("i", 0)
+# ALL_FILES_NUM = 0
+# FINISHED_NUM = Value("i", 0) #
 
 
 class BasePipe(object):
@@ -59,11 +61,12 @@ class MPTripletPipe(object):
       triplet_file_patten: filename patten
       feature_file: filename
     """
-    global FEATURES, ALL_FILES_NUM
+    global FEATURES
+    # global ALL_FILES_NUM
     FEATURES = read_features_npy(feature_file)
     
     self.triplet_files = tf.gfile.Glob(triplet_file_patten)
-    ALL_FILES_NUM = len(self.triplet_files)
+    # ALL_FILES_NUM = len(self.triplet_files)
     logging.info('MPTripletPipe __init__ triplet_files: '+str(self.triplet_files))
 
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
