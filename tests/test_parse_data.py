@@ -25,7 +25,7 @@ from parse_data import encode_all_watched_guids
 from parse_data import get_one_list_of_cowatch
 from parse_data import get_all_cowatch
 from parse_data import yield_all_cowatch
-from parse_data import yield_negative_guid
+from parse_data import yield_negative_index
 from parse_data import mine_triplets
 from parse_data import get_cowatch_graph
 from parse_data import select_cowatch
@@ -174,14 +174,13 @@ def test_yield_all_cowatch():
   print(cowatch.__next__())
 
 
-def test_yield_negative_guid():
-  guids = [1,2]
-  negative_iter = yield_negative_guid(guids)
+def test_yield_negative_index():
+  negative_iter = yield_negative_index(2)
   neg1 = negative_iter.__next__()
   neg2 = negative_iter.__next__()
   neg3 = negative_iter.__next__()
   print(neg1, neg2, neg3)
-  assert neg3 == 2 or neg3 == 1
+  assert neg3 == 0 or neg3 == 1
 
 
 def test_mine_triplets():
@@ -237,6 +236,6 @@ if __name__ == "__main__":
   # test_get_cowatch_graph()
   # test_selest_cowatch()
   # test_yield_all_cowatch()
-  # test_yield_negative_guid()
+  # test_yield_negative_index()
   test_mine_triplets()
   # test_lookup()
