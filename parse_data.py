@@ -227,20 +227,25 @@ def select_cowatch(cowatch_graph, threshold):
 
   
 # ========================= triplet mining =========================
-def yield_negative_guid(guids):
-  """循环输出随机采样样本，作为负样本
-  NOTE：本方法会影响源 guids 的排序
+def yield_negative_index(size, putback=False):
+  """生成 [0,size-1] 的随机整数
+  putback:有放回的抽取
   """
-  np.random.shuffle(guids)
-  for neg_guid in cycle(guids):
-    yield neg_guid
+  if putback:
+    while True:
+      yield random.randint(0,size-1)
+  else:
+    guids = list(range(size))
+    np.random.shuffle(guids)
+    for neg_guid in cycle(guids):
+      yield neg_guid
 
 
 def combine_cowatch_neg(cowatch, neg_iter):
   """为 cowatch 挑选 negative, 返回 triplet
   Args:
-    cowatch: list of two guid
-    neg_iter: iterator of random guids which is from the keys of features
+    cowatch: list of two guid index
+    neg_iter: iterator of random guid index
   Retrun:
     triplet: the triplet is list of guids, the shape is (3, guid_size)
   """
@@ -271,8 +276,7 @@ def mine_triplets(all_cowatch, features):
     logging.error("Invalid arguments. Type should be list, dict instead of"+
       str(type(all_cowatch))+str(type(features)))
     return None
-  indexes = list(range(len(features)))
-  neg_iter = yield_negative_guid(indexes)
+  neg_iter = yield_negative_index(len(features), putback=True)
   # 初始化
   triplets = []
   # TODO 这里可以用多线程
