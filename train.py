@@ -288,10 +288,10 @@ class Trainer():
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 1000 == 0:
+          if global_step_np % 2000 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 150000 == 0 and global_step_np != 0:
+          if global_step_np % 155000 == 0 and global_step_np != 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
