@@ -289,14 +289,14 @@ class Trainer():
 
           trian_time = time.time() - batch_start_time
 
-          if global_step_np % 200 == 0:
+          if global_step_np % 400 == 0:
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 2000 == 0:
+          if global_step_np % 4000 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 20000 == 0:
+          if global_step_np % 100000 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
