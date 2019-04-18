@@ -235,17 +235,15 @@ def write_cowatches(cowatches, save_dir='',split=4):
     os.chdir(cwd)
     return True
   except Exception as e:
-    logging.warning(str(e))
+    logging.ERROR(str(e)+' write_cowatches Failed.')
     return False
 
 
 def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
   cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
-
   res1 = write_features(features, encode_map, decode_map, save_dir)
   res2 = write_cowatches(cowatches, save_dir,split)
-  if res1 and res2:
-    logging.info("All training data are written.")
+
 
 # ======================== get training data base on watch history ============================
  
