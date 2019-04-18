@@ -82,7 +82,9 @@ def read_watched_guids(filename):
       try:
         guids = guids[1:]       # 删除第一个元素 uid
         watched_guids = []
-        for guid in guids:
+        for i,guid in enumerate(guids):
+          if i>0 and guids[i]==guids[i-1]:
+            continue            # 过滤相邻重复元素
           if guid[:6]=='video_':
             guid = guid[6:]     # 删除每个 guid 前缀"video_"
           else:
@@ -133,9 +135,11 @@ def get_cowatches(watch_file, feature_file, threshold=3):
   logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
   
   # select co_watch
-  graph = exe_time(get_cowatch_graph)(all_cowatch)
-  cowatches = exe_time(select_cowatch)(graph, threshold)
+  graph, cowatches = exe_time(get_cowatch_graph)(all_cowatch)
+  # cowatches = exe_time(select_cowatch)(graph, threshold)
   logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
+  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
+  logging.info("unique_watched_guids:"+str(len(unique_watched_guids)))
 
   return cowatches, features, encode_map, decode_map
 
@@ -181,6 +185,8 @@ def write_features(features, encode_map=None, decode_map=None, save_dir=''):
     logging.warning(str(e))
     return False
 
+
+@DeprecationWarning
 def write_triplets(triplets, save_dir='',split=4, ):
   """
   args:
@@ -232,20 +238,17 @@ def write_cowatches(cowatches, save_dir='',split=4):
     return False
 
 
-def write_training_data(cowatches=None, features=None, encode_map=None, decode_map=None, save_dir='',split=4):
+def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
+  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
+
   res1 = write_features(features, encode_map, decode_map, save_dir)
   res2 = write_cowatches(cowatches, save_dir,split)
   if res1 and res2:
     logging.info("All training data are written.")
 
 
-def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
-  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
-  write_training_data(cowatches, features, encode_map, decode_map, save_dir,split)
-
-
 # ======================== get training data base on watch history ============================
-
+ 
 
 
 if __name__ == "__main__":
