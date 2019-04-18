@@ -102,7 +102,7 @@ def build_graph(input_batch,
     staircase=True)
 
   if optimizer_class.__name__=="MomentumOptimizer":
-    optimizer = optimizer_class(learning_rate,momentum=0.9,name='Momentum',use_nesterov=True)
+    optimizer = optimizer_class(learning_rate, momentum=0.9,name='Momentum',use_nesterov=True)
   else:
     optimizer = optimizer_class(learning_rate)
 
@@ -314,7 +314,7 @@ def main(args):
   logging.info("Tensorflow version: %s.",tf.__version__)
   train_dir = "/data/wengjy1/cdml"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
-  pipe = inputs.MPTripletPipe(triplet_file_patten = train_dir + "/*.triplet",
+  pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.cowatch",
                                 feature_file = train_dir + "/features.npy")
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
