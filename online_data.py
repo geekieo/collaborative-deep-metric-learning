@@ -249,8 +249,8 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
     if not os.path.exists(save_dir):
       logging.error('Can not make dir:'+str(save_dir))
   cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold,unique)
-  res1 = write_features(features, encode_map, decode_map, save_dir)
-  res2 = write_cowatches(cowatches, save_dir,split)
+  res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir)
+  res2 = exe_time(write_cowatches)(cowatches, save_dir,split)
   logging.info("Training data have saved to: "+save_dir)
 
 # ======================== get training data base on watch history ============================
@@ -260,7 +260,7 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
 if __name__ == "__main__":
   gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                     feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-                    threshold = 1,
+                    threshold = 2,
                     base_save_dir='/data/wengjy1/',
                     split=8,
                     unique=False)
