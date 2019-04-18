@@ -244,6 +244,10 @@ def write_cowatches(cowatches, save_dir='',split=4):
 
 def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='',split=4, unique=False):
   save_dir = os.path.join(base_save_dir,'/cdml_'+str(threshold)+('_unique' if unique else ''))
+  if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+    if not os.path.exists(save_dir):
+      logging.error('Can not make dir:'+str(save_dir))
   cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold,unique)
   res1 = write_features(features, encode_map, decode_map, save_dir)
   res2 = write_cowatches(cowatches, save_dir,split)
