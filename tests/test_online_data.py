@@ -3,7 +3,7 @@
 import sys
 sys.path.append("..")
 import copy
-import sys
+import os
 
 from online_data import read_features_txt
 from online_data import read_features_npy
@@ -69,7 +69,7 @@ def test_gen_training_data():
   gen_training_data(watch_file="watched_guids.txt",
                     feature_file="visual_features.txt",
                     threshold=1,
-                    base_save_dir = '',
+                    base_save_dir = os.getcwd(),
                     split=2,
                     unique=False)
 
