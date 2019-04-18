@@ -312,7 +312,7 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.cowatch",
                                 feature_file = train_dir + "/features.npy")
@@ -322,8 +322,8 @@ def main(args):
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
-                    num_epochs=3,
-                    batch_size=1000,
+                    num_epochs=6,
+                    batch_size=1024,
                     wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
