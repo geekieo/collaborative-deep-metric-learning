@@ -69,8 +69,9 @@ def test_gen_training_data():
   gen_training_data(watch_file="watched_guids.txt",
                     feature_file="visual_features.txt",
                     threshold=1,
-                    save_dir = 'train_dir',
-                    split=2)
+                    base_save_dir = '',
+                    split=2,
+                    unique=False)
 
 
 def test_read_features_npy():
