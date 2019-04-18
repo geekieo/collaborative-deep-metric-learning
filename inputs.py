@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import logging
 from online_data import read_features_npy
+from parse_data import yield_negative_index
 
 logging.set_verbosity(logging.DEBUG)
 FEATURES={}
@@ -55,20 +56,19 @@ class TripletPipe(BasePipe):
 
 
 class MPTripletPipe(object):
-  def __init__(self, triplet_file_patten, feature_file=None):
+  def __init__(self, cowatch_file_patten, feature_file=None):
     """
     Arg:
-      triplet_file_patten: filename patten
+      cowatch_file_patten: filename patten
       feature_file: filename
     """
     global FEATURES
     # global ALL_FILES_NUM
     FEATURES = read_features_npy(feature_file)
     
-    self.triplet_files = tf.gfile.Glob(triplet_file_patten)
-    # ALL_FILES_NUM = len(self.triplet_files)
-    logging.info('MPTripletPipe __init__ triplet_files: '+str(self.triplet_files))
-
+    self.cowatch_files = tf.gfile.Glob(cowatch_file_patten)
+    # ALL_FILES_NUM = len(self.cowatch_files)
+    logging.info('MPTripletPipe __init__ cowatch_files: '+str(self.cowatch_files))
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
@@ -79,18 +79,17 @@ class MPTripletPipe(object):
     manager = Manager()
     self.triplet_queue = manager.Queue(maxsize=queue_length)
     self.mq = manager.Queue(maxsize=10)
-    self.pool = Pool(len(self.triplet_files))
-    for index, triplet_file in enumerate(self.triplet_files):
-      self.pool.apply_async(self.subprocess, args=(triplet_file, str(index),
-                            self.triplet_queue, self.mq, self.num_epochs,
-                            self.batch_size))
+    self.pool = Pool(len(self.cowatch_files))
+    for index, cowatch_file in enumerate(self.cowatch_files):
+      self.pool.apply_async(self.subprocess, args=(cowatch_file, str(index),
+                                                   self.triplet_queue, self.mq,
+                                                   self.num_epochs, self.batch_size))
 
   @staticmethod
-  def subprocess(triplet_file, thread_index, triplet_queue, mq, num_epochs, batch_size):
-    """子进程为静态函数。不能用类变量，所以需要传入所需变量。"""
-    # global FEATURES
-    # logging.debug('thread_index: '+str(thread_index)+'; subprocess features id: '+str(id(FEATURES)))
-    with open(triplet_file, 'r') as file:
+  def subprocess(cowatch_file, thread_index, triplet_queue, mq, num_epochs, batch_size):
+    """子进程为静态函数。不能用类变量，所以需要传入所需变量。"""    
+    neg_iter = yield_negative_index(len(FEATURES), putback=True)
+    with open(cowatch_file, 'r') as file:
       runtimes = 0
       triplets = []
       position = 0
@@ -118,8 +117,13 @@ class MPTripletPipe(object):
               else:
                 logging.info('thread_index: '+str(thread_index)+' subprocess end')
                 return
-            arc, pos, neg = line.strip().split(',')
-            triplets.append([int(arc), int(pos), int(neg)])
+            arc, pos = line.strip().split(',')
+            triplet = [int(arc), int(pos)]
+            neg = neg_iter.__next__()
+            while neg in triplet:
+              neg = neg_iter.__next__()
+            triplet.append(neg)
+            triplets.append(triplet)
           triplet_queue.put(triplets)
           triplets.clear()
         except Exception as e:
@@ -164,7 +168,7 @@ class MPTripletPipe(object):
 
 if __name__ == '__main__':
   # test
-  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.triplet',
+  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.cowatch',
                        feature_file="/data/wengjy1/cdml/features.txt")
   pipe.create_pipe(num_epochs=2,batch_size=50)
   # 单例
