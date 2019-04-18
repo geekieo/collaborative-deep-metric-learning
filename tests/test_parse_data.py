@@ -175,13 +175,18 @@ def test_yield_all_cowatch():
 
 
 def test_yield_negative_index():
-  negative_iter = yield_negative_index(2)
+  negative_iter = yield_negative_index(2,putback=False)
   neg1 = negative_iter.__next__()
   neg2 = negative_iter.__next__()
   neg3 = negative_iter.__next__()
   print(neg1, neg2, neg3)
-  assert neg3 == 0 or neg3 == 1
-
+  # assert neg3 == 0 or neg3 == 1
+  negative_iter = yield_negative_index(2,putback=True)
+  neg1 = negative_iter.__next__()
+  neg2 = negative_iter.__next__()
+  neg3 = negative_iter.__next__()
+  print(neg1, neg2, neg3)
+  # assert neg3 == 0 or neg3 == 1
 
 def test_mine_triplets():
   guids = gen_unique_id_array(low=0, high=num_guid, size=num_guid, dtype=np.int)
@@ -236,6 +241,6 @@ if __name__ == "__main__":
   # test_get_cowatch_graph()
   # test_selest_cowatch()
   # test_yield_all_cowatch()
-  # test_yield_negative_index()
-  test_mine_triplets()
+  test_yield_negative_index()
+  # test_mine_triplets()
   # test_lookup()

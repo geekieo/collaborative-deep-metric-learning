@@ -250,10 +250,10 @@ def yield_negative_index(size, putback=False):
     while True:
       yield random.randint(0,size-1)
   else:
-    guids = list(range(size))
-    np.random.shuffle(guids)
-    for neg_guid in cycle(guids):
-      yield neg_guid
+    indexes = list(range(size))
+    np.random.shuffle(indexes)
+    for neg_index in cycle(indexes):
+      yield neg_index
 
 
 def combine_cowatch_neg(cowatch, neg_iter):
