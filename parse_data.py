@@ -209,7 +209,7 @@ def get_cowatch_graph(all_cowatch):
   print('get_cowatch_graph: drop self pair: ', str(drop_count))
   return graph
 
-def select_cowatch(cowatch_graph, threshold, cowatches=None):
+def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
   """ 使用 cowatch_graph 筛选高于 threshold 的 cowatched pair
   Args:
     cowatch_graph
@@ -218,8 +218,8 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None):
     cowatches
   """
   threshold = int(threshold)
-  if cowatches is None:
-    # 返回 cowatch 不重复的 cowatches
+  if unique:
+    # 返回 cowatch 不重复的 cowatche
     cowatches=[]
     for edge in cowatch_graph:
       if cowatch_graph[edge]>=threshold:
@@ -227,6 +227,9 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None):
         random.shuffle(cowatch)
         cowatches.append(cowatch)
   else:
+    if cowatches is None:
+      logging.error('cowatches is None')
+      return cowatches
     if threshold <= 1:
       return cowatches
     # 返回存在重复 cowatch 的 cowatches

@@ -98,7 +98,7 @@ def read_watched_guids(filename):
     return all_watched_guids
 
 
-def get_cowatches(watch_file, feature_file, threshold=3):
+def get_cowatches(watch_file, feature_file, threshold=3,unique=False):
   """
   Args:
     watch_file: str. file path of watched guid file.
@@ -137,7 +137,7 @@ def get_cowatches(watch_file, feature_file, threshold=3):
   
   # select co_watch
   graph = exe_time(get_cowatch_graph)(all_cowatch)
-  cowatches = exe_time(select_cowatch)(graph, threshold,all_cowatch)
+  cowatches = exe_time(select_cowatch)(graph, threshold,all_cowatch, unique=unique)
   logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
   unique_guids = get_unique_watched_guids(cowatches)
   logging.info("unique_guids in cowatches:"+str(len(unique_guids)))
@@ -147,7 +147,7 @@ def get_cowatches(watch_file, feature_file, threshold=3):
 
 
 @DeprecationWarning
-def get_triplets(watch_file, feature_file, threshold=3):
+def get_triplets(watch_file, feature_file, threshold=3,unique=False):
   """
   Args:
     watch_file: str. file path of watched guid file.
@@ -157,7 +157,7 @@ def get_triplets(watch_file, feature_file, threshold=3):
     return: list of guid_triplets
     features: dict of features
   """
-  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
+  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold, unique=unique)
 
   # mine triplets
   triplets = exe_time(mine_triplets)(cowatches, features)
@@ -175,12 +175,15 @@ def write_features(features, encode_map=None, decode_map=None, save_dir=''):
 
   try:
     np.save(features_path, features)
+    logging.info("Write features success!")
     if encode_map is not None:
       with open(encode_map_path, 'w') as file:
         json.dump(encode_map,file, ensure_ascii=False)
+        logging.info("Write encode_map success!")
     if encode_map is not None:
       with open(decode_map_path, 'w') as file:
         json.dump(decode_map, file, ensure_ascii=False)
+      logging.info("Write decode_map success!")
     return True
   except Exception as e:
     logging.warning(str(e))
@@ -219,7 +222,6 @@ def write_cowatches(cowatches, save_dir='',split=4):
     os.mkdir(save_dir)
   cowatches_path = os.path.join(save_dir,'cowatches.txt')
   try:
-    logging.info("writing cowatches...")
     with open(cowatches_path, 'w') as file:
       for cowatch in cowatches:
         cowatch = ','.join(list(map(str,cowatch)))
@@ -233,17 +235,20 @@ def write_cowatches(cowatches, save_dir='',split=4):
     os.system(command)
     os.system("rm -f cowatches.txt")
     os.chdir(cwd)
+    logging.info("Write cowatches success")
     return True
   except Exception as e:
-    logging.ERROR(str(e)+' write_cowatches Failed.')
+    logging.error(str(e)+' write cowatches failed.')
     return False
 
 
-def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4):
-  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold)
+def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='',split=4, unique=False):
+  save_dir = base_save_dir+'/cdml_'+str(threshold)+('_unique' if unique else '')
+  
+  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold,unique)
   res1 = write_features(features, encode_map, decode_map, save_dir)
   res2 = write_cowatches(cowatches, save_dir,split)
-
+  logging.info("Training data have saved to: "+save_dir)
 
 # ======================== get training data base on watch history ============================
  
@@ -252,7 +257,8 @@ def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4)
 if __name__ == "__main__":
   gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                     feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-                    threshold = 3,
-                    save_dir='/data/wengjy1/train_dir',
-                    split=8)
+                    threshold = 1,
+                    base_save_dir='/data/wengjy1/',
+                    split=8,
+                    unique=False)
 
