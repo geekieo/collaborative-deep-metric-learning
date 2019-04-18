@@ -10,6 +10,7 @@ from tensorflow import logging
 import collections
 
 from utils import exe_time
+from parse_data import get_unique_watched_guids
 from parse_data import filter_features
 from parse_data import filter_watched_guids
 from parse_data import encode_base_features
@@ -135,11 +136,11 @@ def get_cowatches(watch_file, feature_file, threshold=3):
   logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
   
   # select co_watch
-  graph, cowatches = exe_time(get_cowatch_graph)(all_cowatch)
-  # cowatches = exe_time(select_cowatch)(graph, threshold)
+  graph = exe_time(get_cowatch_graph)(all_cowatch)
+  cowatches = exe_time(select_cowatch)(graph, threshold,all_cowatch)
   logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
-  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
-  logging.info("unique_watched_guids:"+str(len(unique_watched_guids)))
+  unique_guids = get_unique_watched_guids(cowatches)
+  logging.info("unique_guids in cowatches:"+str(len(unique_guids)))
 
   return cowatches, features, encode_map, decode_map
 
@@ -245,7 +246,6 @@ def gen_training_data(watch_file, feature_file,threshold=3, save_dir='',split=4)
   res2 = write_cowatches(cowatches, save_dir,split)
   if res1 and res2:
     logging.info("All training data are written.")
-
 
 # ======================== get training data base on watch history ============================
  
