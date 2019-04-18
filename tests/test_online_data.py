@@ -31,6 +31,7 @@ def test_read_watched_guids():
     '7e6840f6-569b-44ac-94bb-f685f7cde23f',
     'b8d18517-b61b-4b1a-b321-d999cc66c7af',
     'bcbc6cfd-4407-40be-bf04-d724d1da26b3']
+  assert len(all_watched_guids[12])==38
 
 
 def test_get_triplets():
