@@ -116,7 +116,7 @@ def build_graph(input_batch,
   output_batch = result["l2_norm"]  # shape: (-1,output_size)
   output_triplets = tf.reshape(output_batch,(-1,3,output_size))
 
-  loss_result = loss_fn.calculate_loss(output_triplets, margin=0.1)
+  loss_result = loss_fn.calculate_loss(output_triplets, margin=0.8)
   loss = loss_result['hinge_loss']
 
   reg_loss = tf.constant(0.0)
@@ -136,13 +136,18 @@ def build_graph(input_batch,
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
   # 可分性好的 embeddings， 那么其方差应该是偏大的
   variance = calc_var(output_triplets, "variance")
+
   # summary
   with tf.name_scope('build_graph'):
+    # 模型输出
     tf.summary.scalar("loss", loss)
     if regularization_penalty != 0:
       tf.summary.scalar("reg_loss", reg_loss)
     tf.summary.scalar("variance", variance)
     tf.summary.scalar('final_learning_rate', final_learning_rate)
+  # # 模型权重
+  # for variable in slim.get_model_variables():
+  #   tf.summary.histogram(variable.op.name, variable)
 
 
   tf.add_to_collection("output_batch", output_triplets)  
@@ -196,7 +201,7 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                base_learning_rate=10.0,
+                base_learning_rate=1.0,
                 learning_rate_decay_examples=100000,
                 learning_rate_decay=0.96,
                 optimizer_class=self.optimizer_class,
@@ -254,7 +259,7 @@ class Trainer():
             break
           if not input_triplets_np.shape == (self.batch_size,3,1500):
             continue
-          # print('input_triplets_np.shape: ',input_triplets_np.shap)
+          # print('input_triplets_np.shape: ',input_triplets_np.shape)
           if self.debug:
             logging.debug(type(input_triplets_np)+input_triplets_np.shape+input_triplets_np.dtype)
           input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
@@ -291,7 +296,7 @@ class Trainer():
           if global_step_np % 2000 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 155000 == 0 and global_step_np != 0:
+          if global_step_np % 20000 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
@@ -313,11 +318,11 @@ def main(args):
                                 feature_file = train_dir + "/features.npy")
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("MomentumOptimizer", [tf.train])
+  optimizer_class = find_class_by_name("AdagradOptimizer", [tf.train])
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
-                    num_epochs=5,
+                    num_epochs=3,
                     batch_size=1000,
                     wait_times=20,
                     model=model,

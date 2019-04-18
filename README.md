@@ -3,8 +3,9 @@
 ## requirement
 
 tensorflow-gpu    1.12
-
 tqdm
+opencv-python     4.1
+matplotlib        1.11
   
 ## Overview of Files
 

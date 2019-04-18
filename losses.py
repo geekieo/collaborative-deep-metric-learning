@@ -34,7 +34,7 @@ class HingeLoss(BaseLoss):
       anchors, positives, negatives = tf.split(triplets, 3, axis=1)
       pos_dist = tf.reduce_sum(tf.square((anchors - positives)), axis=2, name="pos_dist")
       neg_dist = tf.reduce_sum(tf.square((anchors - negatives)), axis=2, name="neg_dist")
-      hinge_dist = tf.maximum(pos_dist - neg_dist + margin, 0.0, name="hinge_dist")
+      hinge_dist = tf.maximum(pos_dist - neg_dist + margin, 1e-8, name="hinge_dist")
       hinge_loss = tf.reduce_mean(hinge_dist, name="hinge_loss")
 
       tf.summary.scalar("mean_pos_dist",tf.reduce_mean(pos_dist))
