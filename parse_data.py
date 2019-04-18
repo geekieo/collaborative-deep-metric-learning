@@ -209,21 +209,36 @@ def get_cowatch_graph(all_cowatch):
   print('get_cowatch_graph: drop self pair: ', str(drop_count))
   return graph
 
-def select_cowatch(cowatch_graph, threshold):
+def select_cowatch(cowatch_graph, threshold, cowatches=None):
   """ 使用 cowatch_graph 筛选高于 threshold 的 cowatched pair
   Args:
     cowatch_graph
     threshold
   Return:
-    all_cowatch
+    cowatches
   """
-  all_cowatch = []
-  for edge in cowatch_graph:
-    if cowatch_graph[edge]>=threshold:
-      cowatch = list(map(int, edge.split(',')))
-      random.shuffle(cowatch)
-      all_cowatch.append(cowatch)
-  return all_cowatch
+  threshold = int(threshold)
+  if cowatches is None:
+    # 返回 cowatch 不重复的 cowatches
+    cowatches=[]
+    for edge in cowatch_graph:
+      if cowatch_graph[edge]>=threshold:
+        cowatch = list(map(int, edge.split(',')))
+        random.shuffle(cowatch)
+        cowatches.append(cowatch)
+  else:
+    if threshold <= 1:
+      return cowatches
+    # 返回存在重复 cowatch 的 cowatches
+    for cowatch in cowatches[:]:#使用 cowatches 拷贝
+      edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
+      try:
+        if cowatch_graph[edge] < threshold:
+          cowatches.remove(cowatch)
+      except:
+        logging.warning('parse_data select_cowatch. {} is not in cowatch_graph, checkout. Still remove it'.format(str(edge)))
+        cowatches.remove(cowatch)
+  return cowatches
 
   
 # ========================= triplet mining =========================
