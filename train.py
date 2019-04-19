@@ -293,10 +293,10 @@ class Trainer():
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 4000 == 0:
+          if global_step_np % 40000 == 0:
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
-          if global_step_np % 100000 == 0:
+          if global_step_np % 400000 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
             evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
@@ -323,7 +323,7 @@ def main(args):
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
                     num_epochs=6,
-                    batch_size=1024,
+                    batch_size=32,
                     wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
