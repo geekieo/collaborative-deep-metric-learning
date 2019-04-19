@@ -179,7 +179,7 @@ def yield_all_cowatch(all_watched_guids):
 
 
 # ========================= select cowatch =========================
-def get_cowatch_graph(all_cowatch):
+def get_cowatch_graph(cowatches):
   """统计所有观看历史，返回 co-watch 无向图，丢弃自己与自己组成的 pair
   NOTE 所有 co-watch 中的 guid 必须是 index.
   Args:
@@ -189,9 +189,11 @@ def get_cowatch_graph(all_cowatch):
   """
   graph = {}
   drop_count=0
-  for cowatch in all_cowatch:
+  for i in range(len(cowatches) - 1, -1, -1): #倒序
+    cowatch = cowatches[i]
     if not(isinstance(cowatch[0],int) and isinstance(cowatch[0],int)):
       rint('get_cowatch_graph: cowatch is not int',str(cowatch))
+      cowatches.pop(i)
       continue
     # 有向转无向，并丢弃自己与自己组成的 co-watch pair
     if cowatch[0] < cowatch[1]:
@@ -200,6 +202,7 @@ def get_cowatch_graph(all_cowatch):
       edge = str(cowatch[1])+','+str(cowatch[0])
     else:
       drop_count += 1
+      cowatches.pop(i)
       continue
     # 统计边长
     if edge in graph:
@@ -207,7 +210,7 @@ def get_cowatch_graph(all_cowatch):
     else:
       graph[edge] = 1
   print('get_cowatch_graph: drop self pair: ', str(drop_count))
-  return graph
+  return graph, cowatches
 
 def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
   """ 使用 cowatch_graph 筛选高于 threshold 的 cowatched pair
@@ -233,16 +236,15 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
     if threshold <= 1:
       return cowatches
     # 返回存在重复 cowatch 的 cowatches
-    for cowatch in cowatches[:]:#使用 cowatches 拷贝
+    for i in range(len(cowatches) - 1, -1, -1): #倒序删除
+      cowatch = cowatches[i]
       edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
       try:
-        if cowatch_graph[edge] < threshold:
-          cowatches.remove(cowatch)
-      except:
-        logging.warning('parse_data select_cowatch. {} is not in cowatch_graph, checkout. Still remove it'.format(str(edge)))
-        cowatches.remove(cowatch)
+        if cowatch_graph[edge] < threshold or edge not in cowatch_graph:
+          cowatches.pop(i)
+      except Exception as e:
+        logging.warning('parse_data select_cowatch '+str(e))
   return cowatches
-
   
 # ========================= triplet mining =========================
 def yield_negative_index(size, putback=False):

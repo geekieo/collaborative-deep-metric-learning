@@ -98,7 +98,7 @@ def read_watched_guids(filename):
     return all_watched_guids
 
 
-def get_cowatches(watch_file, feature_file, threshold=3,unique=False):
+def get_cowatches(watch_file, feature_file):
   """
   Args:
     watch_file: str. file path of watched guid file.
@@ -135,16 +135,17 @@ def get_cowatches(watch_file, feature_file, threshold=3,unique=False):
   all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)
   logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
   
-  # select co_watch
-  graph = exe_time(get_cowatch_graph)(all_cowatch)
-  cowatches = exe_time(select_cowatch)(graph, threshold,all_cowatch, unique=unique)
+  # get cowatch graph, delete self pair
+  graph, cowatches = exe_time(get_cowatch_graph)(all_cowatch)
+
+  return cowatches, features, encode_map, decode_map, graph
+
+
+def select_cowatches(cowatches, graph,threshold=3, unique=False):
+  cowatches = exe_time(select_cowatch)(graph, threshold, cowatches, unique=unique)
   logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
-  unique_guids = get_unique_watched_guids(cowatches)
-  logging.info("unique_guids in cowatches:"+str(len(unique_guids)))
-
-  return cowatches, features, encode_map, decode_map
-
-
+  logging.debug("unique_guids in cowatches:"+str(len(exe_time(get_unique_watched_guids)(cowatches))))
+  return cowatches
 
 @DeprecationWarning
 def get_triplets(watch_file, feature_file, threshold=3,unique=False):
@@ -157,8 +158,8 @@ def get_triplets(watch_file, feature_file, threshold=3,unique=False):
     return: list of guid_triplets
     features: dict of features
   """
-  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold, unique=unique)
-
+  cowatches, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
+  cowatches = select_cowatches(cowatches, graph, threshold, unique=unique)
   # mine triplets
   triplets = exe_time(mine_triplets)(cowatches, features)
   logging.info("triplets size:"+str(sys.getsizeof(triplets))+"\tnum:"+str(len(triplets)))
@@ -243,15 +244,19 @@ def write_cowatches(cowatches, save_dir='',split=4):
 
 
 def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
-  save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
-  if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-    if not os.path.exists(save_dir):
-      logging.error('Can not make dir:'+str(save_dir))
-  cowatches, features, encode_map, decode_map = get_cowatches(watch_file, feature_file, threshold,unique)
-  res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir)
-  res2 = exe_time(write_cowatches)(cowatches, save_dir,split)
-  logging.info("Training data have saved to: "+save_dir)
+  all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
+  for threshold in range(1,threshold):
+    for unique in [True, False]:
+      save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
+      if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+        if not os.path.exists(save_dir):
+          logging.error('Can not make dir:'+str(save_dir))
+      res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir)
+      cowatches = select_cowatches(all_cowatch, graph, threshold, unique)
+      res2 = exe_time(write_cowatches)(cowatches, save_dir,split)
+      if res1 and res2:
+        logging.info("Training data have saved to: "+save_dir)
 
 # ======================== get training data base on watch history ============================
  

@@ -204,19 +204,31 @@ def test_get_cowatch_graph():
                    [2, 1, 7, 3], [3, 2, 5, 1, 4, 0, 1, 7, 7, 0, 2, 8, 1]]
   all_cowatch = get_all_cowatch(watched_guids)
   print(all_cowatch)
-  graph = get_cowatch_graph(all_cowatch)
-  print(graph)
+  graph, cowathes = get_cowatch_graph(all_cowatch)
+  print(graph,cowathes)
 
 
 def test_selest_cowatch():
   watched_guids = [[0],[], [3, 8, 2, 2, 8], [0, 4, 5, 1, 7, 1], [1, 0, 7, 3, 8, 5], [5, 5, 8, 6],
                    [2, 1, 7, 3], [3, 2, 5, 1, 4, 0, 1, 7, 7, 0, 2, 8, 1]]
   all_cowatch = get_all_cowatch(watched_guids)
-  graph = get_cowatch_graph(all_cowatch)
-  new_all_cowatch = select_cowatch(graph, threshold=3)
+  print('all_cowatch',all_cowatch)
+  graph, all_cowatch = get_cowatch_graph(all_cowatch)
   print('graph', graph)
   print('all_cowatch',all_cowatch)
-  print('new_all_cowatch',new_all_cowatch)
+  cowatches = select_cowatch(graph, threshold=1, cowatches=all_cowatch, unique=True)
+  print('cowatches',cowatches)
+  cowatches = select_cowatch(graph, threshold=1, cowatches=all_cowatch, unique=False)
+  print('cowatches',cowatches)
+  cowatches = select_cowatch(graph, threshold=2, cowatches=all_cowatch, unique=True)
+  print('cowatches',cowatches)
+  cowatches = select_cowatch(graph, threshold=2, cowatches=all_cowatch, unique=False)
+  print('cowatches',cowatches)
+  cowatches = select_cowatch(graph, threshold=3, cowatches=all_cowatch, unique=True)
+  print('cowatches',cowatches)
+  cowatches = select_cowatch(graph, threshold=3, cowatches=all_cowatch, unique=False)
+  print('cowatches',cowatches)
+
 
 @DeprecationWarning
 def test_lookup():
@@ -239,8 +251,8 @@ if __name__ == "__main__":
   # test_encode_all_watched_guids()
   # test_get_one_list_of_cowatch()
   # test_get_cowatch_graph()
-  # test_selest_cowatch()
+  test_selest_cowatch()
   # test_yield_all_cowatch()
-  test_yield_negative_index()
+  # test_yield_negative_index()
   # test_mine_triplets()
   # test_lookup()
