@@ -240,7 +240,7 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
       cowatch = cowatches[i]
       edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
       try:
-        if cowatch_graph[edge] < threshold or edge not in cowatch_graph:
+        if cowatch_graph[edge] < threshold:
           cowatches.pop(i)
       except Exception as e:
         logging.warning('parse_data select_cowatch '+str(e))
