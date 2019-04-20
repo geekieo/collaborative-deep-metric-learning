@@ -126,14 +126,16 @@ def build_graph(input_batch,
 
   # Incorporate the L2 weight penalties etc.
   final_loss = regularization_penalty * reg_loss + loss
+
   gradients = optimizer.compute_gradients(final_loss,
               colocate_gradients_with_ops=False)
-   
   if clip_gradient_norm > 0:
     with tf.name_scope('clip_grads'):
       gradients = clip_gradient_norms(gradients, clip_gradient_norm)
-
   train_op = optimizer.apply_gradients(gradients, global_step=global_step)
+  
+  # train_op = optimizer.minimize(final_loss, global_step=global_step)
+
   # 可分性好的 embeddings， 那么其方差应该是偏大的
   variance = calc_var(output_triplets, "variance")
 

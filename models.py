@@ -27,6 +27,7 @@ class VENet(BaseModel):
       [batch_size, output_size]."""
     with tf.name_scope("VENet"):
       # model_input = tf.cast(model_input, tf.float32)
+      model_input = tf.nn.l2_normalize(model_input, axis=-1)
       layer_1 = slim.fully_connected(
           model_input, 4000, activation_fn=tf.nn.leaky_relu,
           weights_initializer = tf.truncated_normal_initializer(stddev=0.01),
