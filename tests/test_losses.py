@@ -28,9 +28,8 @@ class test_losses():
     anchors, positives, negatives = tf.split(output_triplets,3,axis=1)
     pos_dist = tf.reduce_sum(tf.square((anchors - positives)), axis=2, name="pos_dist")
     neg_dist = tf.reduce_sum(tf.square((anchors - negatives)), axis=2, name="neg_dist")
-    hinge_dist = tf.maximum(pos_dist - neg_dist , 0.0)
-    # hinge_dist = tf.reduce_sum(hinge_dist, 2)
-    hinge_loss = tf.reduce_mean(hinge_dist)
+    hinge_dist = tf.maximum(pos_dist - neg_dist + 0.8, 0.0)
+    hinge_dist = tf.reduce_mean(hinge_dist, 2)
     with tf.Session() as sess:
       results = sess.run((pos_dist, neg_dist, hinge_dist, hinge_loss))
       for i,result in enumerate(results):
