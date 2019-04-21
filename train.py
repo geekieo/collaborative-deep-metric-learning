@@ -253,11 +253,14 @@ class Trainer():
           input_triplets_np = self.pipe.get_batch(self.wait_times)
           if input_triplets_np is None:
             # summary save model
-            train_writer.add_summary(summary_np, global_step_np)
-            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-            evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
-                                   batch_size=50000, suffix=str(global_step_np))
-            logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
+            try:
+              train_writer.add_summary(summary_np, global_step_np)
+              saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+              evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
+                                    batch_size=50000, suffix=str(global_step_np))
+              logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
+            except Exception as e:
+              logging.error(str(e))
             break
           if not input_triplets_np.shape == (self.batch_size,3,1500):
             continue
@@ -314,18 +317,18 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.cowatch",
                                 feature_file = train_dir + "/features.npy")
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("MomentumOptimizer", [tf.train])
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
                     num_epochs=6,
-                    batch_size=32,
+                    batch_size=10,
                     wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
