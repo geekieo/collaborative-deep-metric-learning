@@ -98,7 +98,7 @@ class MPTripletPipe(object):
           for i in range(batch_size):
             line = file.readline()
             if not line:
-              logging.debug('thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
+              logging.debug('subprocess readline fail. thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
               runtimes += 1
               if runtimes < num_epochs:
                 # global FINISHED_NUM
