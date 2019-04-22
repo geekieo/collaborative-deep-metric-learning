@@ -11,8 +11,8 @@ INDEX2GUID = {}
 EMBEDDINGS = None
 nearestN=5
 
-embedding_file='D:/Downloads/features.npy'
-decode_map_file='C:/Users/wengjy1/Desktop/decode_map.json'
+embedding_file='/data/wengjy1/cdml_1/features.npy'
+decode_map_file='/data/wengjy1/cdml_1/decode_map.json'
 
 
 def load_embeddings(filename):
