@@ -27,7 +27,7 @@ class VENet(BaseModel):
       [batch_size, output_size]."""
     with tf.name_scope("VENet"):
       # model_input = tf.cast(model_input, tf.float32)
-      model_input = tf.nn.l2_normalize(model_input, axis=-1)
+      model_input = tf.nn.l2_normalize(model_input, axis=-1,name='model_input')
       layer_1 = slim.fully_connected(
           model_input, 4000, activation_fn=tf.nn.leaky_relu,
           weights_initializer = tf.truncated_normal_initializer(stddev=0.01),
@@ -38,6 +38,6 @@ class VENet(BaseModel):
           weights_initializer = tf.truncated_normal_initializer(stddev=0.01),
           weights_regularizer=slim.l2_regularizer(l2_penalty),
           biases_initializer = tf.constant_initializer(0.1))
-      l2_norm = tf.nn.l2_normalize(layer_2, axis=-1)
+      l2_norm = tf.nn.l2_normalize(layer_2, axis=-1,name='model_output')
       return {"layer_1":layer_1, "layer_2":layer_2,"l2_norm": l2_norm}
 
