@@ -125,7 +125,7 @@ def get_cowatches(watch_file, feature_file):
 
   # encode guid to sequential integer, to save memory and speed up processing
   encode_map, decode_map = exe_time(encode_base_features)(features) #1.134s
-  features = exe_time(encode_features)(features, decode_map)  #422.296s
+  features = exe_time(encode_features)(features, decode_map)  #422.296s #TODO
   logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
   
   all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map) #146.209s
