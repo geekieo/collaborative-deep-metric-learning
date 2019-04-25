@@ -168,7 +168,7 @@ class MPTripletPipe(object):
 
 if __name__ == '__main__':
   # test
-  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.cowatch',
+  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml/*.train',
                        feature_file="/data/wengjy1/cdml/features.txt")
   pipe.create_pipe(num_epochs=2,batch_size=50)
   # 单例
