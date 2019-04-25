@@ -11,8 +11,8 @@ INDEX2GUID = {}
 EMBEDDINGS = None
 nearestN=5
 
-embedding_file='/data/wengjy1/cdml_1/features.npy'
-decode_map_file='/data/wengjy1/cdml_1/decode_map.json'
+embedding_file='C:/Users/wengjy1/Desktop/VENet_190422_142926/output.npy'
+decode_map_file='C:/Users/wengjy1/Desktop/decode_map.json'
 
 
 def load_embeddings(filename):
@@ -40,8 +40,8 @@ def calc_nn_user(userList, user_embedding):
       nearest_guids.append(INDEX2GUID[closest_doc[i][0]])
       strp += INDEX2GUID[closest_doc[i][0]] + ":" + str(
         user_embedding[closest_doc[i][0]].dot(user_embedding[rand_doc])) + ","
-    print(EMBEDDINGS[closest_doc[0][0]])
-    print(np.sum(EMBEDDINGS[closest_doc[0][0]]-EMBEDDINGS[closest_doc[1][0]]))
+    # print(EMBEDDINGS[closest_doc[0][0]])
+    # print(np.sum(EMBEDDINGS[closest_doc[0][0]]-EMBEDDINGS[closest_doc[1][0]]))
     result_file.write(strp)
     result_file.write("\nfarthest i guid:---" + INDEX2GUID[furthest_doc[0]] + "--------{}".format(dist[furthest_doc][0][0]))
   return nearest_guids
@@ -88,9 +88,6 @@ print((EMBEDDINGS.shape[0]-uni_EMBEDDINGS.shape[0])/EMBEDDINGS.shape[0])  # Repe
 
 rand_doc = np.random.randint(0, EMBEDDINGS.shape[0], size=3)
 for doc in rand_doc:
-    # doc = 38418
-    # doc = 547770
-    # doc = 523234
     guids = calc_nn_user([doc], EMBEDDINGS)
     ## show results in image
     result_img = build_result([INDEX2GUID[doc]] + guids)

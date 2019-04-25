@@ -13,25 +13,22 @@ logging.set_verbosity(tf.logging.INFO)
 
 
 class Prediction():
-  def __init__(self, sess=None, ckpt_dir=None, config=None, device_name=None):
+  def __init__(self, sess=None, ckpt=None, config=None, device_name=None):
     self.sess = sess
-    self.ckpt_dir = ckpt_dir
+    self.ckpt = ckpt
     self.config = config
     self.device_name = device_name
     if not sess:
-      # 如果没有传入 session，根据 ckpt_dir 和 config 载入 session
-      logging.info(str(self.ckpt_dir))
-      checkpoint = tf.train.latest_checkpoint(ckpt_dir)
-      if not checkpoint:
-        logging.error("Prediction __init__. Load checkpoint failed: "+str(ckpt_dir))
-      meta_graph = checkpoint + ".meta"
+      # 如果没有传入 session，根据 ckpt 和 config 载入 session
+      logging.info(str(self.ckpt))
+      meta_graph = self.ckpt + ".meta"
       if not os.path.exists(meta_graph):
-        raise IOError("Prediction __init__ Cannot find %s." % checkpoint)
+        raise IOError("Prediction __init__ Cannot find %s" % self.ckpt)
       with tf.device(device_name):
         loader = tf.train.import_meta_graph(meta_graph, clear_devices=True)
-      self.sess = tf.Session(config=config)
+      self.sess = tf.Session()
       self.sess.graph.finalize()
-      loader.restore(self.sess, checkpoint)
+      loader.restore(self.sess, self.ckpt)
     
     # Get the tensors by their variable name
     graph = tf.get_default_graph()
@@ -43,14 +40,14 @@ class Prediction():
     output_batch_np = self.sess.run(self.output_batch, feed_dict={self.input_batch: input_batch_np})
     return output_batch_np
 
-  def run_features(self, features, output_dir, batch_size,suffix=''):
+  def run_features(self, features, batch_size, output_dir='', suffix=''):
     logging.info('Predicting features...')
 
     steps = int(features.shape[0]/batch_size)
     tail_size = features.shape[0] - batch_size * steps
     output = []
     for step in range(steps):
-      output_batch_np = self.predict(features[step:step+batch_size])
+      output_batch_np = self.predict(features[step*batch_size:step*batch_size+batch_size])
       output_batch_list = output_batch_np.tolist()
       output.extend(output_batch_list)
     if tail_size:
@@ -59,21 +56,35 @@ class Prediction():
       output.extend(output_batch_list)
 
     output_np = np.asarray(output, np.float32)
-    save_dir = os.path.join(output_dir,"output"+suffix+".npy")
-    np.save(save_dir, output_np)
-    print(output_np.shape, output_np[-1])
-    logging.info('Saved'+save_dir)
+    logging.info('Predict done.')
+    if output_dir:
+      try:
+        save_dir = os.path.join(output_dir,"output"+suffix+".npy")
+        np.save(save_dir, output_np)
+        print(output_np.shape, output_np[-1])
+        logging.info('Saved to '+save_dir)
+      except Exception as e:
+        logging.error('Prediction.run_features save error'+str(e))
+    else:
+      logging.info('No save.')
+    return output_np
 
 
 if __name__ == "__main__":
-  train_dir = "/data/wengjy1/train_dir/"
-  ckpts_dir = train_dir+"checkpoints/"
-  ckpt_dir = get_latest_folder(ckpts_dir,nst_latest=1)
-  batch_size = 100000 
+  # ckpt_dir = "/data/wengjy1/cdml_1_unique/checkpoints/VENet_190422_142926"
+  # ckpt_dir = get_latest_folder(ckpts_dir,nst_latest=1)
+  ckpt_dir = "C:/Users/wengjy1/Desktop/VENet_190422_142926"
+  ckpt = ckpt_dir+'/model.ckpt-800000'
+  batch_size = 5000
+  features = read_features_npy("D:/Downloads/features.npy")[:50000]
 
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth=True
 
-  predictor = Prediction(ckpt_dir=ckpt_dir, config=config, device_name=None)
-  features = read_features_npy(os.path.join(train_dir,"features.npy"))
-  predictor.run_features(features=features, output_dir=ckpt_dir, batch_size=batch_size)
+  predictor = Prediction(ckpt=ckpt, config=config, device_name=None)
+  embeddings = predictor.run_features(features=features, batch_size=batch_size, output_dir=ckpt_dir)
+
+  print(features.shape)
+  uni_embeddings = np.unique(embeddings, axis=0)
+  print(uni_embeddings.shape)
+  print((features.shape[0]-uni_embeddings.shape[0])/features.shape[0])  # Repetition rate

@@ -74,22 +74,16 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
 
 
 # ========================= encoding guid =========================
-def encode_guids(guids):
-  """将 str guids 编码成有序的 index, 并返回编码/解码字典"""
+def encode_base_features(features):
+  """ 以 features 的 keys 为基准，把 guids 编码成有序的 index
+  features:dict. k,v 为 str guid, feature
+  """
   encode_map=collections.OrderedDict()
   decode_map=collections.OrderedDict()
-  for index, guid in enumerate(guids):
+  for index, guid in enumerate(features.keys()):
     if not guid in encode_map:
       encode_map[guid]=index
       decode_map[index]=guid
-  return encode_map, decode_map
-
-
-def encode_base_features(features):
-  """ 以 features 的 keys 为基准，编码 guids
-  features:dict. k,v 为 str guid, feature
-  """
-  encode_map, decode_map = encode_guids(features.keys())
   return encode_map, decode_map
 
 
@@ -108,8 +102,7 @@ def encode_features(features, decode_map):
   encoded_features = []
   for index, int_guid in enumerate(decode_map):
     str_guid = decode_map[index]
-    feature = features.pop(str_guid) # list of 1500 float
-    encoded_features.append(feature)
+    encoded_features.append(features[str_guid])# list of 1500 float
   return np.asarray(encoded_features, dtype=np.float32)
 
 

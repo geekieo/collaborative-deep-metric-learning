@@ -18,7 +18,6 @@ from imitation_data import arrays_to_dict
 from parse_data import get_unique_watched_guids
 from parse_data import filter_features
 from parse_data import filter_watched_guids
-from parse_data import encode_guids
 from parse_data import encode_base_features
 from parse_data import encode_features
 from parse_data import encode_all_watched_guids
@@ -107,17 +106,6 @@ def test_filter_watched_guids():
   assert len(all_watched_guids)==13
   assert len(filtered_watched_guids)==13
   assert len(filtered_watched_guids[0])==7
-
-
-def test_encode_guids():
-  guids = gen_unique_id_array(low=8, high=8*2, size=5, dtype=np.bytes_)
-  guids = guids.tolist()
-  guids.append(guids[0])
-  # print(guids)
-  guids = iter(guids)
-  encode_map, decode_map = encode_guids(guids)
-  for guid in guids:
-    assert decode_map[encode_map[guid]]==guid
 
 
 def test_encode_features():
@@ -246,7 +234,6 @@ if __name__ == "__main__":
   # test_get_unique_watched_guids()
   # test_filter_features()
   # test_filter_watched_guids()
-  # test_encode_guids()
   # test_encode_features()
   # test_encode_all_watched_guids()
   # test_get_one_list_of_cowatch()
