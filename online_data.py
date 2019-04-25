@@ -218,25 +218,42 @@ def write_triplets(triplets, save_dir='',split=4, ):
     logging.warning(str(e))
     return False
 
-def write_cowatches(cowatches, save_dir='',split=4):
+def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=100000):
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
-  cowatches_path = os.path.join(save_dir,'cowatches.txt')
+  eval_data_path = os.path.join(save_dir,'cowatches.eval')
+  test_data_path = os.path.join(save_dir,'cowatches.test')
+  train_data_path = os.path.join(save_dir,'cowatches.txt')
+  if eval_num + test_num > 0.3*len(cowatches)
+    eval_num = int(len(cowatches)*0.15)
+    test_num = int(len(cowatches)*0.15)
   try:
-    with open(cowatches_path, 'w') as file:
-      for cowatch in cowatches:
+    # split cowatch data to training data, evaluation data, testing data
+    if eval_num:
+      with open(eval_data_path, 'w') as file:
+        for cowatch in cowatches[:eval_num]:
+          cowatch = ','.join(list(map(str,cowatch)))
+          file.write(cowatch+'\n')
+    if test_num:
+      with open(test_data_path, 'w') as file:
+        for cowatch in cowatches[eval_num:eval_num+test_num]:
+          cowatch = ','.join(list(map(str,cowatch)))
+          file.write(cowatch+'\n')
+    with open(train_data_path, 'w') as file:
+      for cowatch in cowatches[eval_num+test_num:]:
         cowatch = ','.join(list(map(str,cowatch)))
         file.write(cowatch+'\n')
+    # split training data to multi part
     split = 1 if split<1 else int(split)  
     row_num = len(cowatches)
     row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
     cwd = os.getcwd()
     os.chdir(save_dir)
-    command = "split -l %d cowatches.txt --additional-suffix=.cowatch" % (row_cnt)
+    command = "split -l %d cowatches.txt --additional-suffix=.train" % (row_cnt)
     os.system(command)
     os.system("rm -f cowatches.txt")
     os.chdir(cwd)
-    logging.info("Write cowatches success")
+    logging.info("Write cowatch data success")
     return True
   except Exception as e:
     logging.error(str(e)+' write cowatches failed.')

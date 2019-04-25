@@ -319,7 +319,7 @@ def main(args):
   logging.info("Tensorflow version: %s.",tf.__version__)
   train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
-  pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.cowatch",
+  pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
                                 feature_file = train_dir + "/features.npy")
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
