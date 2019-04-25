@@ -229,15 +229,15 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
     if threshold <= 1:
       return cowatches
     # 返回存在重复 cowatch 的 cowatches
-    for i in range(len(cowatches) - 1, -1, -1): #倒序删除
-      cowatch = cowatches[i]
+    selected_cowatches = []
+    for cowatch in cowatches:
       edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
       try:
         if cowatch_graph[edge] < threshold:
-          cowatches.pop(i)
+          selected_cowatches.append(cowatch)
       except Exception as e:
         logging.warning('parse_data select_cowatch '+str(e))
-  return cowatches
+  return selected_cowatches
   
 # ========================= triplet mining =========================
 def yield_negative_index(size, putback=False):
