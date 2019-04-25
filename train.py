@@ -256,8 +256,8 @@ class Trainer():
             try:
               train_writer.add_summary(summary_np, global_step_np)
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-              evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
-                                    batch_size=50000, suffix=str(global_step_np))
+              evaluator.run_features(inputs.FEATURES, batch_size=50000, output_dir=self.checkpoint_dir, 
+                                     suffix=str(global_step_np))
               logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             except Exception as e:
               logging.error(str(e))
