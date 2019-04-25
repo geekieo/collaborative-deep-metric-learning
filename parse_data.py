@@ -9,7 +9,6 @@ from itertools import cycle
 import copy
 from tensorflow import logging
 from tqdm import tqdm
-import random
 import collections
 
 logging.set_verbosity(logging.DEBUG)
@@ -155,9 +154,9 @@ def get_all_cowatch(all_watched_guids):
   """
   all_cowatch = []
   for watched_guids in tqdm(all_watched_guids):
-    # TODO 这里可以用多线程
     cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
+  np.random.shuffle(all_cowatch)
   return all_cowatch
 
 
@@ -210,18 +209,20 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
   Args:
     cowatch_graph
     threshold
+    cowatches: shuffled
   Return:
-    cowatches
+    selected_cowatches
   """
   threshold = int(threshold)
+  selected_cowatches = []
   if unique:
-    # 返回 cowatch 不重复的 cowatche
-    cowatches=[]
+    # 返回 cowatch 唯一的 cowatches. 从 graph 的 key 中提取 cowatch, 打乱后返回.
     for edge in cowatch_graph:
       if cowatch_graph[edge]>=threshold:
         cowatch = list(map(int, edge.split(',')))
-        random.shuffle(cowatch)
-        cowatches.append(cowatch)
+        np.random.shuffle(cowatch)
+        selected_cowatches.append(cowatch)
+        np.random.shuffle(selected_cowatches)
   else:
     if cowatches is None:
       logging.error('cowatches is None')
@@ -229,7 +230,6 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
     if threshold <= 1:
       return cowatches
     # 返回存在重复 cowatch 的 cowatches
-    selected_cowatches = []
     for cowatch in cowatches:
       edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
       try:
@@ -237,6 +237,7 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
           selected_cowatches.append(cowatch)
       except Exception as e:
         logging.warning('parse_data select_cowatch '+str(e))
+    
   return selected_cowatches
   
 # ========================= triplet mining =========================
@@ -246,7 +247,7 @@ def yield_negative_index(size, putback=False):
   """
   if putback:
     while True:
-      yield random.randint(0,size-1)
+      yield np.random.randint(0,size)
   else:
     indexes = list(range(size))
     np.random.shuffle(indexes)
@@ -270,7 +271,7 @@ def combine_cowatch_neg(cowatch, neg_iter):
   triplet = [anchor_guid, pos_guid, neg_guid]
   return triplet
 
-
+@DeprecationWarning
 def mine_triplets(all_cowatch, features):
   """Get triplets for training model.
   A triplet contains an anchor, a positive, and a negative. Select 
