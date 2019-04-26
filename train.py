@@ -246,7 +246,7 @@ class Trainer():
       sess.run(init_op)
       train_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       summary_np=None  #暂存上个循环的 summary，以在循环结束时写入最后一次成功运行的 summary
-      evaluator = Prediction(sess=sess, device_name=None)
+      predictor = Prediction(sess=sess, device_name=None)
       while True:
         try:
           fetch_start_time = time.time()
@@ -256,7 +256,7 @@ class Trainer():
             try:
               train_writer.add_summary(summary_np, global_step_np)
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-              evaluator.run_features(inputs.FEATURES, batch_size=50000, output_dir=self.checkpoint_dir, 
+              predictor.run_features(inputs.FEATURES, batch_size=50000, output_dir=self.checkpoint_dir, 
                                      suffix=str(global_step_np))
               logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             except Exception as e:
@@ -295,21 +295,25 @@ class Trainer():
           trian_time = time.time() - batch_start_time
 
           if global_step_np % 400 == 0:
+            # terminal show
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 40000 == 0:
+            # summary
             train_writer.add_summary(summary_np, global_step_np)
             logging.info("add summary")
           if global_step_np % 400000 == 0:
+            # save
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
-            evaluator.run_features(inputs.FEATURES, batch_size=50000, 
+            # eval
+            eval_embed = predictor.run_features(inputs.FEATURES, batch_size=50000, 
                 output_dir=self.checkpoint_dir,suffix=str(global_step_np))
 
         except Exception as e:
           logging.error(str(e)) 
-          
+
       logging.info("Exited training loop.")
 
 

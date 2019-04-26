@@ -109,6 +109,7 @@ def get_cowatches(watch_file, feature_file):
     features: dict of features
   """
   # read file
+  logging.info('read features txt...')
   features = exe_time(read_features_txt)(feature_file)  #345.779s
   logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
 
@@ -224,7 +225,7 @@ def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=10
   eval_data_path = os.path.join(save_dir,'cowatches.eval')
   test_data_path = os.path.join(save_dir,'cowatches.test')
   train_data_path = os.path.join(save_dir,'cowatches.txt')
-  if eval_num + test_num > 0.3*len(cowatches)
+  if eval_num + test_num > 0.3*len(cowatches):
     eval_num = int(len(cowatches)*0.15)
     test_num = int(len(cowatches)*0.15)
   try:
@@ -262,26 +263,27 @@ def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=10
 
 def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
   all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
-  # for threshold in range(1,threshold+1):
-  #   for unique in [True, False]:
-  save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
-  if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-    if not os.path.exists(save_dir):
-      logging.error('Can not make dir:'+str(save_dir))
-      return
-  res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
-  cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
-  res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
-  if res1 and res2:
-    logging.info("Training data have saved to: "+save_dir)
+  thresholds = threshold+1
+  for threshold in range(1,thresholds):
+    for unique in [True, False]:
+      save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
+      if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+        if not os.path.exists(save_dir):
+          logging.error('Can not make dir:'+str(save_dir))
+          return
+      res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
+      cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
+      res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
+      if res1 and res2:
+        logging.info("Training data have saved to: "+save_dir)
 
 
 if __name__ == "__main__":
   gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
                     feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-                    threshold = 2,
+                    threshold = 3,
                     base_save_dir='/data/wengjy1/',
-                    split=8,
+                    split=10,
                     unique=False)
 

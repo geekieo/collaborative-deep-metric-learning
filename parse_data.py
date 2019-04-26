@@ -8,7 +8,6 @@ import numpy as np
 from itertools import cycle
 import copy
 from tensorflow import logging
-from tqdm import tqdm
 import collections
 
 logging.set_verbosity(logging.DEBUG)
@@ -153,7 +152,7 @@ def get_all_cowatch(all_watched_guids):
     all_guids: set of guid. all unique guids in all_cowatch
   """
   all_cowatch = []
-  for watched_guids in tqdm(all_watched_guids):
+  for watched_guids in all_watched_guids:
     cowatch,guids = get_one_list_of_cowatch(watched_guids)
     all_cowatch.extend(cowatch)
   np.random.shuffle(all_cowatch)
@@ -294,7 +293,7 @@ def mine_triplets(all_cowatch, features):
   # 初始化
   triplets = []
   # TODO 这里可以用多线程
-  for cowatch in tqdm(all_cowatch):
+  for cowatch in all_cowatch:
     triplet = combine_cowatch_neg(cowatch, neg_iter)
     triplets.append(triplet)
   return triplets
