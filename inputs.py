@@ -72,7 +72,7 @@ class MPTripletPipe(object):
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
-    """多进程读取多个 guid_triplets 文件，在子进程中将 guid 映射成 feature
+    """多进程读取多个文件，在子进程中将 guid 映射成 feature
     """
     self.batch_size = batch_size
     self.num_epochs = num_epochs

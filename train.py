@@ -304,13 +304,12 @@ class Trainer():
           if global_step_np % 400000 == 0:
             saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             logging.info("save checkpoint")
-            evaluator.run_features(inputs.FEATURES, output_dir=self.checkpoint_dir,
-                                   batch_size=50000, suffix=str(global_step_np))
-            pass
+            evaluator.run_features(inputs.FEATURES, batch_size=50000, 
+                output_dir=self.checkpoint_dir,suffix=str(global_step_np))
 
         except Exception as e:
           logging.error(str(e)) 
-      self.pipe.__del__()
+          
       logging.info("Exited training loop.")
 
 
@@ -328,7 +327,7 @@ def main(args):
   config.gpu_options.allow_growth=True
   trainer = Trainer(pipe=pipe,
                     num_epochs=6,
-                    batch_size=8,
+                    batch_size=64,
                     wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
