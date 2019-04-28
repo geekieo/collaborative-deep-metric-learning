@@ -1,5 +1,6 @@
 import sys
 import cv2
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -7,43 +8,59 @@ from get_guid_title import get_video_coverimg_use_guid
 from get_guid_title import get_video_name_use_guid
 result_file = sys.stdout
 
-INDEX2GUID = {}
-EMBEDDINGS = None
+
 nearestN=5
 
 embedding_file='C:/Users/wengjy1/Desktop/VENet_190422_142926/output.npy'
 decode_map_file='C:/Users/wengjy1/Desktop/decode_map.json'
+encode_map_file='C:/Users/wengjy1/Desktop/encode_map.json'
+query_guid_file = 'D:/PySpace/cdml/tests/guid.txt'
 
 
-def load_embeddings(filename):
-  global EMBEDDINGS
+def load_embedding(filename):
   EMBEDDINGS = np.load(filename)
+  return EMBEDDINGS
 
 
 def load_decode_map(filename):
-  global INDEX2GUID
+  decode_map ={}
   with open(filename) as f:
     index2guid_str = json.load(f)
   for k,v in index2guid_str.items():
-    INDEX2GUID[int(k)] = v
+    decode_map[int(k)] = v
+  return decode_map
+
+def load_encode_map(filename):
+  encode_map = {}
+  with open(filename) as f:
+    guid2index_str = json.load(f)
+  for k,v in guid2index_str.items():
+    encode_map[k] = int(v)
+  return encode_map
 
 
-def calc_nn_user(userList, user_embedding):
+def load_guids(filename):
+  guids=[]
+  with open(filename) as file:
+    for line in file.readlines():
+      line = line.strip()
+      guids.append(line)
+  return guids
+
+def calc_nn(query_index, all_embedding, decode_map):
   nearest_guids = []
-  for rand_doc in userList:
-    dist = user_embedding.dot(user_embedding[rand_doc][:, None])
-    closest_doc = np.argsort(dist, axis=0)[-nearestN:][::-1]
-    furthest_doc = np.argsort(dist, axis=0)[0][::-1]
-    result_file.write("\nnew : guid:---" + INDEX2GUID[rand_doc] + "--------\n")
+  for index in query_index:
+    dist = all_embedding.dot(all_embedding[index])
+    closest_index = np.argsort(-dist, axis=0)[:nearestN]
+    furthest_index = np.argsort(dist, axis=0)[0]
+    result_file.write("\nnew : guid:---" + decode_map[index] + "--------\n")
     strp = "nearest "
     for i in range(nearestN):
-      nearest_guids.append(INDEX2GUID[closest_doc[i][0]])
-      strp += INDEX2GUID[closest_doc[i][0]] + ":" + str(
-        user_embedding[closest_doc[i][0]].dot(user_embedding[rand_doc])) + ","
-    # print(EMBEDDINGS[closest_doc[0][0]])
-    # print(np.sum(EMBEDDINGS[closest_doc[0][0]]-EMBEDDINGS[closest_doc[1][0]]))
+      nearest_guids.append(decode_map[closest_index[i]])
+      strp += decode_map[closest_index[i]] + ":" + str(
+        all_embedding[closest_index[i]].dot(all_embedding[index])) + ","
     result_file.write(strp)
-    result_file.write("\nfarthest i guid:---" + INDEX2GUID[furthest_doc[0]] + "--------{}".format(dist[furthest_doc][0][0]))
+    result_file.write("\nfarthest i guid:---" + decode_map[furthest_index] + "--------{}".format(dist[furthest_index]))
   return nearest_guids
 
 
@@ -62,6 +79,9 @@ def build_result(guids):
     if img is not None:
       re_img = cv2.resize(img, dsize=(grid_w,grid_h))
       re_img = cv2.cvtColor(re_img, cv2.COLOR_BGR2RGB)
+      if re_img.ndim == 2:
+        re_img = np.expand_dims(re_img, axis=2)
+        re_img = np.repeat(re_img, repeats=3, axis=2)
       result_img[:grid_h, i * (horizontal_grid + grid_w): i * horizontal_grid + (i+1) * grid_w,:] = re_img
   for i, guid in enumerate(guids[half_index:]):
     img = get_video_coverimg_use_guid(guid)
@@ -72,27 +92,50 @@ def build_result(guids):
         re_img = np.expand_dims(re_img, axis=2)
         re_img = np.repeat(re_img, repeats=3, axis=2)
       result_img[grid_h+vertical_grid:grid_h*2+vertical_grid, i * (horizontal_grid + grid_w): i * horizontal_grid + (i + 1) * grid_w,:] = re_img
-  return result_img
+  return  result_img
 
 
-np.random.seed(1234)
-## calc knn
-load_decode_map(decode_map_file)
-load_embeddings(embedding_file)
+def set_matplot_zh_font():
+  myfont = mpl.font_manager.FontProperties(fname='C:/Windows/Fonts/simhei.ttf')
+  mpl.rcParams['axes.unicode_minus'] = False
+  mpl.rcParams['font.sans-serif'] = ['SimHei']
 
-print(EMBEDDINGS.shape)
 
-uni_EMBEDDINGS = np.unique(EMBEDDINGS, axis=0)
-print(uni_EMBEDDINGS.shape)
-print((EMBEDDINGS.shape[0]-uni_EMBEDDINGS.shape[0])/EMBEDDINGS.shape[0])  # Repetition rate
+if __name__ == '__main__':
+  np.random.seed(1234)
+  ## calc knn
+  decode_map = load_decode_map(decode_map_file)
+  encode_map = load_encode_map(encode_map_file)
+  EMBEDDINGS = load_embedding(embedding_file)
+  # query_ids = np.random.randint(0, EMBEDDINGS.shape[0], size=100)
+  query_guids = load_guids(query_guid_file)
 
-rand_doc = np.random.randint(0, EMBEDDINGS.shape[0], size=3)
-for doc in rand_doc:
-    guids = calc_nn_user([doc], EMBEDDINGS)
+  print(EMBEDDINGS.shape)
+  uni_EMBEDDINGS = np.unique(EMBEDDINGS, axis=0)
+  print(uni_EMBEDDINGS.shape)
+  print((EMBEDDINGS.shape[0]-uni_EMBEDDINGS.shape[0])/EMBEDDINGS.shape[0])  # Repetition rate
+
+
+  set_matplot_zh_font()
+  for guid in query_guids:
+    index = encode_map[guid]
+    nearest_guids = calc_nn([index], EMBEDDINGS, decode_map)
     ## show results in image
-    result_img = build_result([INDEX2GUID[doc]] + guids)
-    print('\n%s#########################'%(get_video_name_use_guid(INDEX2GUID[doc])))
-    for guid in guids:
-        print(get_video_name_use_guid(guid))
-    plt.imshow(result_img)
-    plt.show()
+    result_img = build_result([decode_map[index]] + nearest_guids)
+    titles = []
+    title = get_video_name_use_guid(guid)
+    print('\n%s#########################'%(title))   
+    titles.append(title)
+    for guid in nearest_guids:
+        title = get_video_name_use_guid(guid)
+        print(title) 
+        titles.append(title)
+    ret = np.ones((result_img.shape[0] * 3 // 2, result_img.shape[1], result_img.shape[2]), dtype=np.uint8) * 255
+    ret[-result_img.shape[0]:, :, :] = result_img
+    plt.imshow(ret)
+    plt.text(320, 10, '\n'.join(titles), fontsize=12, ha='center', va='top')
+    plt.title('标题顺序--从左至右从上至下')
+    plt.axis('off')
+    plt.savefig('D:/PySpace/cdml/results/{}.jpg'.format(index))
+    # plt.show()
+    plt.close()
