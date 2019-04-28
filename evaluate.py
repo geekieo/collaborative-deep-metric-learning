@@ -9,6 +9,7 @@ def l2_normalize(a, axis=-1, order=2):
 
 class Evaluater():
   def __init__(self, features, cowatches):
+    # NOTE features is very large
     self.eval_features, self.eval_cowatches = self._rencode(features, cowatches)
 
   def _rencode(self, features, cowatches):
@@ -39,7 +40,4 @@ class Evaluater():
     distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
-
-
-
 
