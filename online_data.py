@@ -286,4 +286,12 @@ if __name__ == "__main__":
                     base_save_dir='/data/wengjy1/',
                     split=10,
                     unique=False)
+  
+  # # local
+  # gen_training_data(watch_file="watched_guids.txt",
+  #                 feature_file="visual_features.txt",
+  #                 threshold = 2,
+  #                 base_save_dir='',
+  #                 split=10,
+  #                 unique=False)
 

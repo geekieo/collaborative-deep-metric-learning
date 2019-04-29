@@ -221,7 +221,7 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
         cowatch = list(map(int, edge.split(',')))
         np.random.shuffle(cowatch)
         selected_cowatches.append(cowatch)
-        np.random.shuffle(selected_cowatches)
+    np.random.shuffle(selected_cowatches)
   else:
     if cowatches is None:
       logging.error('cowatches is None')
@@ -232,7 +232,7 @@ def select_cowatch(cowatch_graph, threshold, cowatches=None, unique=False):
     for cowatch in cowatches:
       edge = str(cowatch[0])+','+str(cowatch[1]) if cowatch[0]<cowatch[1] else str(cowatch[1])+','+str(cowatch[0])
       try:
-        if cowatch_graph[edge] < threshold:
+        if cowatch_graph[edge] >= threshold:
           selected_cowatches.append(cowatch)
       except Exception as e:
         logging.warning('parse_data select_cowatch '+str(e))
