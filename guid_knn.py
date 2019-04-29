@@ -24,7 +24,7 @@ def load_embedding(filename):
 
 def load_decode_map(filename):
   decode_map ={}
-  with open(filename) as f:
+  with open(filename, 'r') as f:
     index2guid_str = json.load(f)
   for k,v in index2guid_str.items():
     decode_map[int(k)] = v
@@ -32,7 +32,7 @@ def load_decode_map(filename):
 
 def load_encode_map(filename):
   encode_map = {}
-  with open(filename) as f:
+  with open(filename, 'r') as f:
     guid2index_str = json.load(f)
   for k,v in guid2index_str.items():
     encode_map[k] = int(v)
@@ -41,7 +41,7 @@ def load_encode_map(filename):
 
 def load_guids(filename):
   guids=[]
-  with open(filename) as file:
+  with open(filename, 'r') as file:
     for line in file.readlines():
       line = line.strip()
       guids.append(line)

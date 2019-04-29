@@ -2,15 +2,33 @@
 import numpy as np
 from parse_data import get_unique_watched_guids
 
+
 def l2_normalize(a, axis=-1, order=2):
-    l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
-    l2[l2==0] = 1
-    return a / np.expand_dims(l2, axis)
+  l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
+  l2[l2==0] = 1
+  return a / np.expand_dims(l2, axis)
+
+
+def load_cowatches(filename):
+  cowatches = []
+  with open(filename, 'r') as file:
+    for line in file.readlines():
+      cowatch = []
+      line = line.strip()
+      ids = line.split(',')
+      try:
+        cowatch.append(int(ids[0]))
+        cowatch.append(int(ids[1]))
+        cowatches.append(cowatch)
+      except Exception as e:
+        print('WARNING ',str(e))
+  return cowatches
+
 
 class Evaluater():
   def __init__(self, features, cowatches):
     # NOTE features is very large
-    self.eval_features, self.eval_cowatches = self._rencode(features, cowatches)
+    self.features, self.cowatches = self._rencode(features, cowatches)
 
   def _rencode(self, features, cowatches):
     unique_indexes = get_unique_watched_guids(cowatches)
