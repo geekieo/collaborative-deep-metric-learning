@@ -174,7 +174,7 @@ def get_cowatch_graph(cowatches):
   """统计所有观看历史，返回 co-watch 无向图，丢弃自己与自己组成的 pair
   NOTE 所有 co-watch 中的 guid 必须是 index.
   Args:
-    guids: list of co-watch pair. the guid should be index.
+    cowatches: list of cowatch pair. Adjacent elements are not duplicated.
   Retrun:
     graph: dict
   """
@@ -184,7 +184,7 @@ def get_cowatch_graph(cowatches):
     cowatch = cowatches[i]
     if not(isinstance(cowatch[0],int) and isinstance(cowatch[0],int)):
       rint('get_cowatch_graph: cowatch is not int',str(cowatch))
-      cowatches.pop(i)
+      cowatches.pop(i)  # O(n) 若数据合规，不会触发
       continue
     # 有向转无向，并丢弃自己与自己组成的 co-watch pair
     if cowatch[0] < cowatch[1]:
@@ -193,7 +193,7 @@ def get_cowatch_graph(cowatches):
       edge = str(cowatch[1])+','+str(cowatch[0])
     else:
       drop_count += 1
-      cowatches.pop(i)
+      cowatches.pop(i)  # O(n) 若数据合规，不会触发
       continue
     # 统计边长
     if edge in graph:
