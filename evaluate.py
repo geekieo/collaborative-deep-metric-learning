@@ -12,10 +12,13 @@ def l2_normalize(a, axis=-1, order=2):
 
 
 class Evaluation():
-  def __init__(self, features, cowatches, sess=None):
+  def __init__(self, features, cowatches):
     # NOTE features is very large
-    self.features, self.cowatches = self._rencode(features, cowatches)
-    self.sess = sess
+    try:
+      self.features, self.cowatches = self._rencode(features, cowatches)
+    except Exception as e:
+      logging.warning('Evaluation.__init__ features or cowatches'+str(e))
+      self.features, self.cowatches = None, None
 
   def _rencode(self, features, cowatches):
     unique_indexes = get_unique_watched_guids(cowatches)

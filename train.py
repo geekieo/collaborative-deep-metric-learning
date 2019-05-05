@@ -153,7 +153,8 @@ def build_graph(input_batch,
 class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, wait_times, model, loss_fn, 
-               checkpoints_dir, optimizer_class, config, debug=False):
+               checkpoints_dir, optimizer_class, config, eval_cowatches, 
+               test_cowatches, debug=False):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -305,8 +306,8 @@ def main(args):
                     checkpoints_dir=checkpoints_dir,
                     optimizer_class=optimizer_class,
                     config=config,
-                    eval_cowatches=None,
-                    test_cowatches=None,
+                    eval_cowatches=eval_cowatches,
+                    test_cowatches=test_cowatches,
                     debug=False)
   trainer.run()
 

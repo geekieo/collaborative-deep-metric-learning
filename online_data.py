@@ -113,7 +113,8 @@ def load_cowatches(filename):
         cowatch.append(int(ids[1]))
         cowatches.append(cowatch)
       except Exception as e:
-        print('WARNING ',str(e))
+        logging.warning(str(e))
+  logging.info('online_data load_cowatches len:'+str(len(cowatches)))
   return cowatches
   
 
@@ -299,18 +300,10 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
 
 
 if __name__ == "__main__":
-  # gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
-  #                   feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-  #                   threshold = 3,
-  #                   base_save_dir='/data/wengjy1/',
-  #                   split=10,
-  #                   unique=False)
+  gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
+                    feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
+                    threshold = 3,
+                    base_save_dir='/data/wengjy1/',
+                    split=10,
+                    unique=False)
   
-  # local
-  gen_training_data(watch_file="watched_guids.txt",
-                  feature_file="visual_features.txt",
-                  threshold = 2,
-                  base_save_dir='',
-                  split=10,
-                  unique=False)
-
