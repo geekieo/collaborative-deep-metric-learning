@@ -11,7 +11,7 @@ def l2_normalize(a, axis=-1, order=2):
   return a / np.expand_dims(l2, axis)
 
 
-class Evaluater():
+class Evaluation():
   def __init__(self, features, cowatches, sess=None):
     # NOTE features is very large
     self.features, self.cowatches = self._rencode(features, cowatches)
@@ -40,7 +40,7 @@ class Evaluater():
     return eval_features, eval_cowatches
 
 
- def mean_dist(self, embeddings, cowatches):
+  def mean_dist(self, embeddings, cowatches):
     """ mean cosine distance of eval cowatch embeddings
     only work under the same set of hyperparameters
     embeddings are l2 normalized.
@@ -52,7 +52,7 @@ class Evaluater():
     try:
       co_embeddings = embeddings[cowatches]  # shape (num_cowatch, 2, size_embed)
     except Exception as e:
-      logging.error("Evaluater.mean_dist "+str(e))
+      logging.error("Evaluation.mean_dist "+str(e))
     distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)

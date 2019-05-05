@@ -11,7 +11,7 @@ import losses
 import inputs
 import models
 from predict import Prediction
-from evaluate import Evaluater
+from evaluate import Evaluation
 from online_data import load_cowatches
 from utils import find_class_by_name
 from utils import get_local_time
@@ -168,9 +168,9 @@ class Trainer():
     self.config = config
     self.debug = debug
     # 准备验证对象
-    self.evaluater = Evaluater(inputs.FEATURES, eval_cowatches)
+    self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
     # 准备测试对象
-    self.tester = Evaluater(inputs.FEATURES, test_cowatches)
+    self.tester = Evaluation(inputs.FEATURES, test_cowatches)
 
   def _build_model(self,input_batch):
     """Find the model and build the graph."""
@@ -287,13 +287,15 @@ def main(args):
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
                                 feature_file = train_dir + "/features.npy")
+  eval_cowatches =  load_cowatches(train_dir + "/cowatches.eval")
+  test_cowatches =  load_cowatches(train_dir + "/cowatches.test")
+
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
   optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
-  eval_cowatches =  load_cowatches(train_dir + "/cowatches.eval")
-  test_cowatches =  load_cowatches(train_dir + "/cowatches.test")
+
   trainer = Trainer(pipe=pipe,
                     num_epochs=20,
                     batch_size=1024,
