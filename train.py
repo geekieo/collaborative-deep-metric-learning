@@ -200,7 +200,7 @@ class Trainer():
     if self.tester.features:
       test_embeddings = predictor.run_features(tester.features, batch_size=50000)
       test_dist = self.evaluater.mean_dist(test_embeddings, tester.cowatches)
-      
+
     # summary
     summary_eval = tf.Summary(value=[
         tf.Summary.Value(tag="eval_dist", simple_value=eval_dist), 
@@ -242,7 +242,6 @@ class Trainer():
           fetch_start_time = time.time()
           input_triplets_np = self.pipe.get_batch(self.wait_times)
           if input_triplets_np is None:
-            logging.info('Done training. Pipe end! Add summary. Save checkpoint.')
             break
           if not input_triplets_np.shape == (None,3,1500):
             continue
@@ -277,7 +276,7 @@ class Trainer():
 
         except Exception as e:
           logging.error(str(e)) 
-
+      summary_writer.close()
       logging.info("Exited training loop.")
 
 
