@@ -1,7 +1,9 @@
 # -*- encode:utf-8 -*-
 import numpy as np
 from parse_data import get_unique_watched_guids
+from tensorflow import logging
 
+logging.set_verbosity(logging.DEBUG)
 
 def l2_normalize(a, axis=-1, order=2):
   l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
@@ -9,32 +11,21 @@ def l2_normalize(a, axis=-1, order=2):
   return a / np.expand_dims(l2, axis)
 
 
-def load_cowatches(filename):
-  cowatches = []
-  with open(filename, 'r') as file:
-    for line in file.readlines():
-      cowatch = []
-      line = line.strip()
-      ids = line.split(',')
-      try:
-        cowatch.append(int(ids[0]))
-        cowatch.append(int(ids[1]))
-        cowatches.append(cowatch)
-      except Exception as e:
-        print('WARNING ',str(e))
-  return cowatches
-
-
 class Evaluater():
-  def __init__(self, features, cowatches):
+  def __init__(self, features, cowatches, sess=None):
     # NOTE features is very large
     self.features, self.cowatches = self._rencode(features, cowatches)
+    self.sess = sess
 
   def _rencode(self, features, cowatches):
     unique_indexes = get_unique_watched_guids(cowatches)
-    print("Evaluater._rencode unique_indexes num: ",len(unique_indexes))
+    logging.info("Evaluater._rencode unique_indexes num: "+str(len(unique_indexes)))
     sorted_indexes = np.sort(unique_indexes) # Sort from small to large
-    eval_features = features[sorted_indexes]
+    try:
+      eval_features = features[sorted_indexes]
+    except Exception as e:
+      logging.error("Evaluater._rencode eval_features got None "+str(e))
+      eval_features = None
     # index mapping from features to eval_features
     index_map = {}
     for new_i, old_i in enumerate(sorted_indexes):
@@ -48,13 +39,20 @@ class Evaluater():
       eval_cowatches.append(eval_cowatch)
     return eval_features, eval_cowatches
 
-  def mean_dist(self, embeddings, cowatches):
-    """embeddings are l2 normalized.
+
+ def mean_dist(self, embeddings, cowatches):
+    """ mean cosine distance of eval cowatch embeddings
+    only work under the same set of hyperparameters
+    embeddings are l2 normalized.
     cosine_dist = a·b/|a||b| = a·b = Σ(x_a*x_b)
-    embeddings: shape (num_embed, size_embed)
-    cowatches: shape (num_cowatch, 2)
+    Arg:
+      embeddings: shape (num_embed, size_embed)
+      cowatches: shape (num_cowatch, 2)
     """
-    co_embeddings = embeddings[cowatches]  # shape (num_cowatch, 2, size_embed)
+    try:
+      co_embeddings = embeddings[cowatches]  # shape (num_cowatch, 2, size_embed)
+    except Exception as e:
+      logging.error("Evaluater.mean_dist "+str(e))
     distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
