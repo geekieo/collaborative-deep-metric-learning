@@ -70,7 +70,7 @@ def test_gen_training_data():
                     feature_file="visual_features.txt",
                     threshold=2,
                     base_save_dir = os.getcwd(),
-                    split=2,
+                    split=8,
                     unique=False)
 
 
