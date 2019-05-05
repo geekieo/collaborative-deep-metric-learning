@@ -5,8 +5,9 @@ __pycache__/
 # data
 *.txt
 *.json
-*.triplet
-*.cowatch
+*.train
+*.eval
+*.test
 *.npy
 
 # ipynb
