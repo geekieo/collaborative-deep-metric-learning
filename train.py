@@ -153,8 +153,7 @@ def build_graph(input_batch,
 class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, wait_times, model, loss_fn, 
-               checkpoints_dir, optimizer_class, config, eval_cowatches, 
-               test_cowatches, debug=False):
+               checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -167,7 +166,6 @@ class Trainer():
                           model.__class__.__name__+"_"+get_local_time())
     self.optimizer_class = optimizer_class
     self.config = config
-    self.debug = debug
     # 准备验证对象
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
     # 准备测试对象
@@ -202,7 +200,6 @@ class Trainer():
       test_embeddings = predictor.run_features(tester.features, batch_size=50000)
       test_dist = self.evaluater.mean_dist(test_embeddings, tester.cowatches)
 
-    # summary
     summary_eval = tf.Summary(value=[
         tf.Summary.Value(tag="eval_dist", simple_value=eval_dist), 
         tf.Summary.Value(tag="test_dist", simple_value=test_dist),])
@@ -246,31 +243,23 @@ class Trainer():
             break
           if not input_triplets_np.shape == (None,3,1500):
             continue
-          # print('input_triplets_np.shape: ',input_triplets_np.shape)
-          if self.debug:
-            logging.debug(type(input_triplets_np)+input_triplets_np.shape+input_triplets_np.dtype)
+          print('input_triplets_np.shape: ',input_triplets_np.shape) #debug
           input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
           fetch_time = time.time() - fetch_start_time
 
           batch_start_time = time.time()
-          if global_step_np % 4000 == 0:
-            # eval test and save
-            self._eval()
-            _, global_step_np, loss_np, summary_str = sess.run(
-                [train_op, global_step, loss, summary_op],
-                feed_dict={input_batch: input_batch_np})
-            logging.info("summary eval test save")
-            # summary
-            summary_writer.add_summary(summary_str, global_step_np)
-
-          elif global_step_np % 400 == 0:
+          if global_step_np % 4 == 0:
             _, global_step_np, loss_np = sess.run(
                 [train_op, global_step, loss],
                 feed_dict={input_batch: input_batch_np})
-            # terminal show
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
+            if global_step_np % 40 == 0:
+              logging.info("summary eval test save")
+              self._eval()
+              summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
+              summary_writer.add_summary(summary_str, global_step_np)
           else:
             _ = sess.run([train_op], feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
@@ -307,8 +296,7 @@ def main(args):
                     optimizer_class=optimizer_class,
                     config=config,
                     eval_cowatches=eval_cowatches,
-                    test_cowatches=test_cowatches,
-                    debug=False)
+                    test_cowatches=test_cowatches)
   trainer.run()
 
 if __name__ == "__main__":

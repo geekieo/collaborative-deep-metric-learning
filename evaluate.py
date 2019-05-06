@@ -22,7 +22,8 @@ class Evaluation():
 
   def _rencode(self, features, cowatches):
     unique_indexes = get_unique_watched_guids(cowatches)
-    logging.info("Evaluater._rencode unique_indexes num: "+str(len(unique_indexes)))
+    logging.info("Evaluater._rencode cowatches" + str(len(cowatches)) + 
+        ". unique_indexes in cowatches: " + str(len(unique_indexes)))
     sorted_indexes = np.sort(unique_indexes) # Sort from small to large
     try:
       eval_features = features[sorted_indexes]
