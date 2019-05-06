@@ -152,20 +152,27 @@ def build_graph(input_batch,
 
 class Trainer():
 
-  def __init__(self, pipe, num_epochs, batch_size, wait_times, model, loss_fn, 
-               checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches):
+  def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate,
+               checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches,
+               best_eval_dist=1000.0, require_improve_num=10):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
     self.num_epochs = num_epochs
     self.batch_size = batch_size
-    self.wait_times = wait_times
     self.model = model
     self.loss_fn = loss_fn
+    self.learning_rate = learning_rate
     self.checkpoint_dir = os.path.join(checkpoints_dir, 
                           model.__class__.__name__+"_"+get_local_time())
     self.optimizer_class = optimizer_class
     self.config = config
+
+    # 验证早停及模型选取依据
+    self.total_eval_num = 0
+    self.last_improve_num = 0
+    self.best_eval_dist = best_eval_dist
+    self.require_improve_num = require_improve_num # 如果几次验证没有改进，停止迭代
     # 准备验证对象
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
     # 准备测试对象
@@ -177,7 +184,7 @@ class Trainer():
                 model=self.model,
                 output_size=256,
                 loss_fn=self.loss_fn,
-                base_learning_rate=0.01,
+                base_learning_rate=self.learning_rate,
                 learning_rate_decay_examples=1000000,
                 learning_rate_decay=0.96,
                 optimizer_class=self.optimizer_class,
@@ -185,6 +192,7 @@ class Trainer():
                 regularization_penalty=0)
 
   def _eval(self, predictor, saver, sess, global_step_np, summary_writer):
+    self.total_eval_num += 1
     eval_dist = 0.0
     test_dist = 0.0
     
@@ -194,6 +202,7 @@ class Trainer():
       if eval_dist < self.best_eval_dist:
         self.best_eval_dist = eval_dist
         saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+        self.last_improve_num += self.total_eval_num
     else:
       logging.error('Train.run evaluater.features is None')
     
@@ -208,11 +217,6 @@ class Trainer():
     summary_writer.add_summary(summary_eval, global_step_np)
 
   def run(self):
-    # 早停及模型选取依据
-    total_eval_num = 0
-    last_improve_num = 0
-    self.best_eval_dist = 1000.0
-    require_improve_num = 5 # 如果5次验证没有改进，停止迭代
 
     self.pipe.create_pipe(self.num_epochs, self.batch_size)
 
@@ -239,8 +243,11 @@ class Trainer():
       while True:
         try:
           fetch_start_time = time.time()
-          input_triplets_np = self.pipe.get_batch(self.wait_times)
+          input_triplets_np = self.pipe.get_batch()
           if input_triplets_np is None:
+            break
+          if self.total_eval_num - self.last_improve_num > self.require_improve_num:
+            logging.info("early stop")
             break
           if not input_triplets_np.shape[1:] == (3,1500):
             continue
@@ -271,10 +278,11 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
-                                feature_file = train_dir + "/features.npy")
+                              feature_file = train_dir + "/features.npy",
+                              wait_times=20)
   eval_cowatches =  load_cowatches(train_dir + "/cowatches.eval")
   test_cowatches =  load_cowatches(train_dir + "/cowatches.test")
 
@@ -287,15 +295,18 @@ def main(args):
   trainer = Trainer(pipe=pipe,
                     num_epochs=20,
                     batch_size=1024,
-                    wait_times=20,
                     model=model,
                     loss_fn=loss_fn,
+                    learning_rate=1.0
                     checkpoints_dir=checkpoints_dir,
                     optimizer_class=optimizer_class,
                     config=config,
                     eval_cowatches=eval_cowatches,
-                    test_cowatches=test_cowatches)
+                    test_cowatches=test_cowatches,
+                    best_eval_dist=1000.0,
+                    require_improve_num=10)
   trainer.run()
+
 
 if __name__ == "__main__":
   import os
