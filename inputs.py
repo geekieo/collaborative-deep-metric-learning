@@ -56,18 +56,18 @@ class TripletPipe(BasePipe):
 
 
 class MPTripletPipe(object):
-  def __init__(self, cowatch_file_patten, feature_file=None):
+  def __init__(self, cowatch_file_patten, feature_file=None,  wait_times=30):
     """
     Arg:
       cowatch_file_patten: filename patten
       feature_file: filename
     """
-    global FEATURES
-    # global ALL_FILES_NUM
-    FEATURES = read_features_npy(feature_file)
-    
     self.cowatch_files = tf.gfile.Glob(cowatch_file_patten)
+    # global ALL_FILES_NUM
     # ALL_FILES_NUM = len(self.cowatch_files)
+    global FEATURES
+    FEATURES = read_features_npy(feature_file)    
+    self.wait_times = wait_times
     logging.info('MPTripletPipe __init__ cowatch_files: '+str(self.cowatch_files))
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
@@ -138,7 +138,7 @@ class MPTripletPipe(object):
           except Exception as e:
             logging.warning('subprocess:'+str(position)+str(e))
 
-  def get_batch(self, wait_times=30):
+  def get_batch(self):
     '''get batch training data with format [arc, pos, neg]
     Retrun:
       3-D array of training triplets, dtype np.float32
@@ -155,7 +155,7 @@ class MPTripletPipe(object):
       else:
         wait_num += 1
         logging.info("queue is empty, wait:{}".format(wait_num))
-        if wait_num >= wait_times:
+        if wait_num >= self.wait_times:
           logging.info('queue is empty, i do not wanna to wait any more!!!')
           exitFlag = True
         time.sleep(1)
