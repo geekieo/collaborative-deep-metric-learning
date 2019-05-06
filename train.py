@@ -241,27 +241,24 @@ class Trainer():
           input_triplets_np = self.pipe.get_batch(self.wait_times)
           if input_triplets_np is None:
             break
-          if not input_triplets_np.shape == (None,3,1500):
+          if not input_triplets_np.shape[1:] == (3,1500):
             continue
-          print('input_triplets_np.shape: ',input_triplets_np.shape) #debug
+          # print('input_triplets_np.shape: ',input_triplets_np.shape) #debug
           input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
           fetch_time = time.time() - fetch_start_time
 
           batch_start_time = time.time()
-          if global_step_np % 4 == 0:
-            _, global_step_np, loss_np = sess.run(
-                [train_op, global_step, loss],
+          _, global_step_np, loss_np = sess.run([train_op, global_step, loss],
                 feed_dict={input_batch: input_batch_np})
+          if global_step_np % 4 == 0:
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-            if global_step_np % 40 == 0:
-              logging.info("summary eval test save")
-              self._eval()
-              summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
-              summary_writer.add_summary(summary_str, global_step_np)
-          else:
-            _ = sess.run([train_op], feed_dict={input_batch: input_batch_np})
+          if global_step_np % 40 == 0:
+            logging.info("summary eval test save")
+            self._eval()
+            summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
+            summary_writer.add_summary(summary_str, global_step_np)
           trian_time = time.time() - batch_start_time
 
         except Exception as e:
