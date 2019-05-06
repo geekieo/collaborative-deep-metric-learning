@@ -297,7 +297,7 @@ def main(args):
                     batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,
-                    learning_rate=1.0
+                    learning_rate=1.0,
                     checkpoints_dir=checkpoints_dir,
                     optimizer_class=optimizer_class,
                     config=config,
