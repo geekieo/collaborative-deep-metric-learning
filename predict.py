@@ -14,7 +14,7 @@ logging.set_verbosity(tf.logging.INFO)
 
 class Prediction():
   def __init__(self, sess=None, ckpt=None, config=None, device_name=None, loglevel=tf.logging.INFO):
-    logging.set_verbosity(tf.logging.INFO)
+    logging.set_verbosity(loglevel)
     self.sess = sess
     self.ckpt = ckpt
     self.config = config
