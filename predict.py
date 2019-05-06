@@ -13,7 +13,8 @@ logging.set_verbosity(tf.logging.INFO)
 
 
 class Prediction():
-  def __init__(self, sess=None, ckpt=None, config=None, device_name=None):
+  def __init__(self, sess=None, ckpt=None, config=None, device_name=None, loglevel=tf.logging.INFO):
+    logging.set_verbosity(tf.logging.INFO)
     self.sess = sess
     self.ckpt = ckpt
     self.config = config
@@ -41,7 +42,7 @@ class Prediction():
     return output_batch_np
 
   def run_features(self, features, batch_size, output_dir='', suffix=''):
-    logging.info('Predicting features...')
+    logging.debug('Predicting features...')
 
     steps = int(features.shape[0]/batch_size)
     tail_size = features.shape[0] - batch_size * steps
@@ -56,7 +57,7 @@ class Prediction():
       output.extend(output_batch_list)
 
     output_np = np.asarray(output, np.float32)
-    logging.info('Predict done.')
+    logging.debug('Predict done.')
     if output_dir:
       try:
         save_dir = os.path.join(output_dir,"output"+suffix+".npy")
@@ -66,7 +67,7 @@ class Prediction():
       except Exception as e:
         logging.error('Prediction.run_features save error'+str(e))
     else:
-      logging.info('No save.')
+      logging.debug('No save.')
     return output_np
 
 
@@ -81,7 +82,7 @@ if __name__ == "__main__":
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth=True
 
-  predictor = Prediction(ckpt=ckpt, config=config, device_name=None)
+  predictor = Prediction(ckpt=ckpt, config=config, device_name=None, loglevel=tf.logging.DEBUG)
   embeddings = predictor.run_features(features=features, batch_size=batch_size, output_dir=ckpt_dir)
 
   print(features.shape)
