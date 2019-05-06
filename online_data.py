@@ -114,7 +114,7 @@ def load_cowatches(filename):
         cowatches.append(cowatch)
       except Exception as e:
         logging.warning(str(e))
-  logging.info('online_data load_cowatches len:'+str(len(cowatches)))
+  logging.info('online_data load_cowatches num:'+str(len(cowatches)))
   return cowatches
   
 
