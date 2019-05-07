@@ -72,12 +72,13 @@ class Prediction():
 
 
 if __name__ == "__main__":
-  # ckpts_dir = "/data/wengjy1/cdml_1_unique/checkpoints"
-  # ckpt_dir = get_latest_folder(ckpts_dir,nst_latest=1)
-  ckpt_dir = "C:/Users/wengjy1/Desktop/VENet_190422_142926"
-  ckpt = ckpt_dir+'/model.ckpt-800000'
-  batch_size = 5000
-  features = read_features_npy("D:/Downloads/features.npy")[:50000]
+  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+  checkpoints_dir = train_dir+"/checkpoints/"
+  ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
+  ckpt = tf.train.latest_checkpoint(ckpt_dir)
+  # ckpt = ckpt_dir+'/model.ckpt-800000'
+  batch_size = 100000
+  features = read_features_npy(train_dir+"/features.npy")
 
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth=True
