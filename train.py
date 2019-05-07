@@ -268,11 +268,11 @@ class Trainer():
           _, global_step_np, loss_np = sess.run([train_op, global_step, loss],
                 feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
-          if global_step_np % 4 == 0:
+          if global_step_np % 40 == 0:
             logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 40 == 0:
+          if global_step_np % 400 == 0:
             self._eval(predictor, saver, sess, global_step_np, summary_writer)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -286,7 +286,7 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_2"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
                               feature_file = train_dir + "/features.npy",
