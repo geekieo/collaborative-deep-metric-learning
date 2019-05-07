@@ -201,12 +201,12 @@ class Trainer():
         eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
         eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
         if eval_dist < self.best_eval_dist:
-          logging.info("best_eval_dist: "+str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist)+". Save ckpt.")
+          logging.info("best_eval_dist: "+str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist)+". Save ckpt.")
           self.best_eval_dist = eval_dist
           saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
           self.last_improve_num += self.total_eval_num
         else:
-          logging.info("best_eval_dist: "+str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist))
+          logging.info("best_eval_dist: "+str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist))
         summary_eval = tf.Summary(value=[
           tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
           tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
