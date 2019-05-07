@@ -1,21 +1,28 @@
 import sys
+import os
 import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+from utils import get_latest_folder
 from get_guid_title import get_video_coverimg_use_guid
 from get_guid_title import get_video_name_use_guid
-result_file = sys.stdout
 
 
 nearestN=5
 
-embedding_file='C:/Users/wengjy1/Desktop/VENet_190422_142926/output.npy'
-decode_map_file='C:/Users/wengjy1/Desktop/decode_map.json'
-encode_map_file='C:/Users/wengjy1/Desktop/encode_map.json'
-query_guid_file = 'D:/PySpace/cdml/tests/guid.txt'
+train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+checkpoints_dir = train_dir+"/checkpoints/"
+ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
+embedding_file = ckpt_dir+'/output.npy'
+decode_map_file = train_dir+'/decode_map.json'
+encode_map_file = train_dir+'/encode_map.json'
+query_guid_file = '/home/wengjy1/cdml/tests/guid.txt'
 
+result_file = ckpt_dir+'/results'
+if not os.path.exists(result_file):
+  os.mkdir(result_file)
 
 def load_embedding(filename):
   EMBEDDINGS = np.load(filename)
@@ -53,14 +60,14 @@ def calc_nn(query_index, all_embedding, decode_map):
     dist = all_embedding.dot(all_embedding[index])
     closest_index = np.argsort(-dist, axis=0)[:nearestN]
     furthest_index = np.argsort(dist, axis=0)[0]
-    result_file.write("\nnew : guid:---" + decode_map[index] + "--------\n")
+    sys.stdout.write("\nnew : guid:---" + decode_map[index] + "--------\n")
     strp = "nearest "
     for i in range(nearestN):
       nearest_guids.append(decode_map[closest_index[i]])
       strp += decode_map[closest_index[i]] + ":" + str(
         all_embedding[closest_index[i]].dot(all_embedding[index])) + ","
-    result_file.write(strp)
-    result_file.write("\nfarthest i guid:---" + decode_map[furthest_index] + "--------{}".format(dist[furthest_index]))
+    sys.stdout.write(strp)
+    sys.stdout.write("\nfarthest i guid:---" + decode_map[furthest_index] + "--------{}".format(dist[furthest_index]))
   return nearest_guids
 
 
@@ -96,7 +103,8 @@ def build_result(guids):
 
 
 def set_matplot_zh_font():
-  myfont = mpl.font_manager.FontProperties(fname='C:/Windows/Fonts/simhei.ttf')
+#   myfont = mpl.font_manager.FontProperties(fname='C:/Windows/Fonts/simhei.ttf')
+  myfont = mpl.font_manager.FontProperties(fname='/usr/share/fonts/simhei.ttf')
   mpl.rcParams['axes.unicode_minus'] = False
   mpl.rcParams['font.sans-serif'] = ['SimHei']
 
@@ -115,7 +123,6 @@ if __name__ == '__main__':
   print(uni_EMBEDDINGS.shape)
   print((EMBEDDINGS.shape[0]-uni_EMBEDDINGS.shape[0])/EMBEDDINGS.shape[0])  # Repetition rate
 
-
   set_matplot_zh_font()
   for guid in query_guids:
     index = encode_map[guid]
@@ -124,11 +131,11 @@ if __name__ == '__main__':
     result_img = build_result([decode_map[index]] + nearest_guids)
     titles = []
     title = get_video_name_use_guid(guid)
-    print('\n%s#########################'%(title))   
+    print('\n%s#########################'%(title))
     titles.append(title)
     for guid in nearest_guids:
         title = get_video_name_use_guid(guid)
-        print(title) 
+        print(title)
         titles.append(title)
     ret = np.ones((result_img.shape[0] * 3 // 2, result_img.shape[1], result_img.shape[2]), dtype=np.uint8) * 255
     ret[-result_img.shape[0]:, :, :] = result_img
@@ -136,6 +143,6 @@ if __name__ == '__main__':
     plt.text(320, 10, '\n'.join(titles), fontsize=12, ha='center', va='top')
     plt.title('标题顺序--从左至右从上至下')
     plt.axis('off')
-    plt.savefig('D:/PySpace/cdml/results/{}.jpg'.format(index))
+    plt.savefig(result_file+'/{}.jpg'.format(index))
     # plt.show()
     plt.close()

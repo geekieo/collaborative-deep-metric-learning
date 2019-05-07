@@ -62,7 +62,7 @@ class Prediction():
       try:
         save_dir = os.path.join(output_dir,"output"+suffix+".npy")
         np.save(save_dir, output_np)
-        print(output_np.shape, output_np[-1])
+        # print(output_np.shape, output_np[-1])
         logging.info('Saved to '+save_dir)
       except Exception as e:
         logging.error('Prediction.run_features save error'+str(e))
@@ -72,6 +72,8 @@ class Prediction():
 
 
 if __name__ == "__main__":
+  import os
+  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第1块GPU
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
