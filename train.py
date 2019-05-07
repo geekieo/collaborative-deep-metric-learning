@@ -203,7 +203,7 @@ class Trainer():
         if global_step_np <= check_stop_step:
           saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist))
+              str(self.best_eval_dist)+" eval_dist: "+str(eval_dist)+". Save ckpt before check stop.")
         elif eval_dist < self.best_eval_dist:
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
               str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist)+". Save ckpt.")
@@ -285,7 +285,6 @@ class Trainer():
 
         except Exception as e:
           logging.error("Train.run "+str(e)) 
-
       summary_writer.close()
       self.pipe.__del__()
       logging.info("Exited training loop.")

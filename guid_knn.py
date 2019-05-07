@@ -20,9 +20,13 @@ decode_map_file = train_dir+'/decode_map.json'
 encode_map_file = train_dir+'/encode_map.json'
 query_guid_file = '/home/wengjy1/cdml/tests/guid.txt'
 
+# 图片保存文件夹
 result_file = ckpt_dir+'/results'
 if not os.path.exists(result_file):
   os.mkdir(result_file)
+# print 写入文件
+f_handler=open(result_file+'/results.log', 'w')
+sys.stdout=f_handler
 
 def load_embedding(filename):
   EMBEDDINGS = np.load(filename)
@@ -60,14 +64,14 @@ def calc_nn(query_index, all_embedding, decode_map):
     dist = all_embedding.dot(all_embedding[index])
     closest_index = np.argsort(-dist, axis=0)[:nearestN]
     furthest_index = np.argsort(dist, axis=0)[0]
-    sys.stdout.write("\nnew : guid:---" + decode_map[index] + "--------\n")
+    print("\nnew : guid:---" + decode_map[index] + "--------\n")
     strp = "nearest "
     for i in range(nearestN):
       nearest_guids.append(decode_map[closest_index[i]])
       strp += decode_map[closest_index[i]] + ":" + str(
         all_embedding[closest_index[i]].dot(all_embedding[index])) + ","
-    sys.stdout.write(strp)
-    sys.stdout.write("\nfarthest i guid:---" + decode_map[furthest_index] + "--------{}".format(dist[furthest_index]))
+    print(strp)
+    print("\nfarthest i guid:---" + decode_map[furthest_index] + "--------{}".format(dist[furthest_index]))
   return nearest_guids
 
 
