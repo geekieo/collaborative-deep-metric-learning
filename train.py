@@ -196,38 +196,38 @@ class Trainer():
     self.total_eval_num += 1
     eval_dist = 0.0
     test_dist = 0.0
-    if global_step_np<check_stop_step:
-      logging.info("Save ckpt.")
-      saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-    else:
-      try:
-        if self.evaluater.features is not None:
-          eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
-          eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
-          if eval_dist < self.best_eval_dist:
-            logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-                str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist)+". Save ckpt.")
-            self.best_eval_dist = eval_dist
-            saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-            self.last_improve_num = self.total_eval_num
-          else:
-            logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-                str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist)+
-                ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
-          summary_eval = tf.Summary(value=[
-            tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
-            tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
-          summary_writer.add_summary(summary_eval, global_step_np)
+    try:
+      if self.evaluater.features is not None:
+        eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
+        eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
+        if global_step_np <= check_stop_step:
+          saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+              str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist))
+        elif eval_dist < self.best_eval_dist:
+          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+              str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist)+". Save ckpt.")
+          self.best_eval_dist = eval_dist
+          saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+          self.last_improve_num = self.total_eval_num
         else:
-          logging.error('Train.run evaluater.features is None')
-        if self.tester.features is not None:
-          test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
-          test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
-          summary_test = tf.Summary(value=[
-              tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
-          summary_writer.add_summary(summary_test, global_step_np)
-      except Exception as e:
-        logging.error("Train._eval "+str(e))
+          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+              str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist)+
+              ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
+        summary_eval = tf.Summary(value=[
+          tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
+          tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
+        summary_writer.add_summary(summary_eval, global_step_np)
+      else:
+        logging.error('Train.run evaluater.features is None')
+      if self.tester.features is not None:
+        test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
+        test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
+        summary_test = tf.Summary(value=[
+            tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
+        summary_writer.add_summary(summary_test, global_step_np)
+    except Exception as e:
+      logging.error("Train._eval "+str(e))
 
   def run(self):
 
@@ -278,7 +278,7 @@ class Trainer():
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 400 == 0:
-            check_stop_step = 10000 # 1个epoch之后早停
+            check_stop_step = 50000 # 1个epoch之后早停
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
