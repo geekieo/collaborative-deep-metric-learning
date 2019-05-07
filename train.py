@@ -317,7 +317,7 @@ def main(args):
                     config=config,
                     eval_cowatches=eval_cowatches,
                     test_cowatches=test_cowatches,
-                    best_eval_dist=1000.0,
+                    best_eval_dist=1.0,
                     require_improve_num=100,
                     loglevel=tf.logging.INFO)
   trainer.run()
