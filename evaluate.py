@@ -1,4 +1,4 @@
-# -*- encode:utf-8 -*-
+# -*- coding:utf-8 -*-
 import numpy as np
 from parse_data import get_unique_watched_guids
 from tensorflow import logging
