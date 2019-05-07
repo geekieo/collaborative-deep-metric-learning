@@ -18,7 +18,6 @@ from utils import get_local_time
 
 logging.set_verbosity(logging.DEBUG)
 
-
 def clip_gradient_norms(gradients_to_variables, max_norm):
   """Clips the gradients by the given value.
   Args:
@@ -154,7 +153,7 @@ class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate,
                checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches,
-               best_eval_dist=1000.0, require_improve_num=10):
+               best_eval_dist=1000.0, require_improve_num=10,loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -177,6 +176,8 @@ class Trainer():
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
     # 准备测试对象
     self.tester = Evaluation(inputs.FEATURES, test_cowatches)
+
+    logging.set_verbosity(loglevel)
 
   def _build_model(self,input_batch):
     """Find the model and build the graph."""
@@ -201,20 +202,27 @@ class Trainer():
       eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
       if eval_dist < self.best_eval_dist:
         self.best_eval_dist = eval_dist
+        logging.INFO("best_eval_dist: "+str(best_eval_dist)+" < eval_dist: "+str(eval_dist)+". Saved ckpt.")
         saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
         self.last_improve_num += self.total_eval_num
+      else:
+        logging.INFO("best_eval_dist: "+str(best_eval_dist)+" > eval_dist: "+str(eval_dist))
+      
+      summary_eval = tf.Summary(value=[
+        tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
+        tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
+      summary_writer.add_summary(summary_eval, global_step_np)
+    
     else:
       logging.error('Train.run evaluater.features is None')
     
     if self.tester.features is not None:
       test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
       test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
-       
-    summary_eval = tf.Summary(value=[
-        tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
-        tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist),
-        tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist),])
-    summary_writer.add_summary(summary_eval, global_step_np)
+      
+      summary_test = tf.Summary(value=[
+          tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
+      summary_writer.add_summary(summary_test, global_step_np)
 
   def run(self):
 
@@ -232,7 +240,8 @@ class Trainer():
 
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver()
-
+        
+    logging.debug("Train.pipe.get_batch"+str(self.pipe.get_batch().shape))
     logging.info("Starting session.")
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
@@ -264,7 +273,6 @@ class Trainer():
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 40 == 0:
-            logging.info("summary eval test save")
             self._eval(predictor, saver, sess, global_step_np, summary_writer)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -304,7 +312,8 @@ def main(args):
                     eval_cowatches=eval_cowatches,
                     test_cowatches=test_cowatches,
                     best_eval_dist=1000.0,
-                    require_improve_num=10)
+                    require_improve_num=10,
+                    loglevel=tf.logging.INFO)
   trainer.run()
 
 
