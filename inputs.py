@@ -164,6 +164,7 @@ class MPTripletPipe(object):
   def __del__(self):
     self.pool.close()
     self.pool.join()
+    logging.info("subprocess(es) done.")
 
 
 if __name__ == '__main__':

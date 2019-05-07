@@ -285,7 +285,9 @@ class Trainer():
 
         except Exception as e:
           logging.error("Train.run "+str(e)) 
+
       summary_writer.close()
+      self.pipe.__del__()
       logging.info("Exited training loop.")
 
 
