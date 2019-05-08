@@ -278,7 +278,7 @@ class Trainer():
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 400 == 0:
-            check_stop_step = 50000 # 1个epoch之后早停
+            check_stop_step = 20000  # 先运行一定step，在用验证集早停
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -303,13 +303,14 @@ def main(args):
 
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  optimizer_class = tf.contrib.opt.LARSOptimizer
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
                     num_epochs=20,
-                    batch_size=1024,
+                    batch_size=4096,
                     model=model,
                     loss_fn=loss_fn,
                     learning_rate=1.0,

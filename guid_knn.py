@@ -26,6 +26,7 @@ if not os.path.exists(result_file):
   os.mkdir(result_file)
 # print 写入文件
 f_handler=open(result_file+'/results.log', 'w')
+__console__=sys.stdout
 sys.stdout=f_handler
 
 def load_embedding(filename):
