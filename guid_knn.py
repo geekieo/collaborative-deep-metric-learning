@@ -12,22 +12,16 @@ from get_guid_title import get_video_name_use_guid
 
 nearestN=5
 
-train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
+train_dir = "/data/wengjy1/cdml_2"  # NOTE 路径是 data
 checkpoints_dir = train_dir+"/checkpoints/"
 ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
 encode_map_file = train_dir+'/encode_map.json'
 query_guid_file = '/home/wengjy1/cdml/tests/guid.txt'
-
 # 图片保存文件夹
 result_file = ckpt_dir+'/results'
-if not os.path.exists(result_file):
-  os.mkdir(result_file)
-# print 写入文件
-f_handler=open(result_file+'/results.log', 'w')
-__console__=sys.stdout
-sys.stdout=f_handler
+
 
 def load_embedding(filename):
   EMBEDDINGS = np.load(filename)
@@ -107,14 +101,18 @@ def build_result(guids):
   return  result_img
 
 
+
 def set_matplot_zh_font():
-#   myfont = mpl.font_manager.FontProperties(fname='C:/Windows/Fonts/simhei.ttf')
-  myfont = mpl.font_manager.FontProperties(fname='/usr/share/fonts/simhei.ttf')
+  myfont = mpl.font_manager.FontProperties(fname='C:/Windows/Fonts/simhei.ttf')
   mpl.rcParams['axes.unicode_minus'] = False
   mpl.rcParams['font.sans-serif'] = ['SimHei']
 
 
 if __name__ == '__main__':
+  if not os.path.exists(result_file):
+    os.mkdir(result_file)
+  # print 写入文件
+  sys.stdout=f_handler
   np.random.seed(1234)
   ## calc knn
   decode_map = load_decode_map(decode_map_file)
@@ -136,17 +134,19 @@ if __name__ == '__main__':
     result_img = build_result([decode_map[index]] + nearest_guids)
     titles = []
     title = get_video_name_use_guid(guid)
-    print('\n%s#########################'%(title))
+    print('\n%s###Query###'%(title))
     titles.append(title)
     for guid in nearest_guids:
         title = get_video_name_use_guid(guid)
         print(title)
         titles.append(title)
     ret = np.ones((result_img.shape[0] * 3 // 2, result_img.shape[1], result_img.shape[2]), dtype=np.uint8) * 255
+    
     ret[-result_img.shape[0]:, :, :] = result_img
     plt.imshow(ret)
     plt.text(320, 10, '\n'.join(titles), fontsize=12, ha='center', va='top')
     plt.title('标题顺序--从左至右从上至下')
+    
     plt.axis('off')
     plt.savefig(result_file+'/{}.jpg'.format(index))
     # plt.show()

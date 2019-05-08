@@ -153,7 +153,7 @@ class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate,
                checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches,
-               best_eval_dist=1000.0, require_improve_num=10,loglevel=tf.logging.INFO):
+               best_eval_dist=1.0, require_improve_num=10,loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -171,6 +171,8 @@ class Trainer():
     self.total_eval_num = 0
     self.last_improve_num = 0
     self.best_eval_dist = best_eval_dist
+    self.eval_dist = 0.0
+    self.test_dist = 0.0
     self.require_improve_num = require_improve_num # 如果几次验证没有改进，停止迭代
     # 准备验证对象
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
@@ -194,37 +196,34 @@ class Trainer():
 
   def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step):
     self.total_eval_num += 1
-    eval_dist = 0.0
-    test_dist = 0.0
     try:
       if self.evaluater.features is not None:
         eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
-        eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
+        self.eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
         if global_step_np <= check_stop_step:
-          saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" eval_dist: "+str(eval_dist)+". Save ckpt before check stop.")
-        elif eval_dist < self.best_eval_dist:
+              str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Save ckpt before check stop.")
+        elif self.eval_dist < self.best_eval_dist:
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" > eval_dist: "+str(eval_dist)+". Save ckpt.")
+              str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt.")
           self.best_eval_dist = eval_dist
           saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
           self.last_improve_num = self.total_eval_num
         else:
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" < eval_dist: "+str(eval_dist)+
+              str(self.best_eval_dist)+" < eval_dist: "+str(self.eval_dist)+
               ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
         summary_eval = tf.Summary(value=[
-          tf.Summary.Value(tag="eval/eval_dist", simple_value=eval_dist), 
+          tf.Summary.Value(tag="eval/eval_dist", simple_value=self.eval_dist), 
           tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
         summary_writer.add_summary(summary_eval, global_step_np)
       else:
         logging.error('Train.run evaluater.features is None')
       if self.tester.features is not None:
         test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
-        test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
+        self.test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
         summary_test = tf.Summary(value=[
-            tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
+            tf.Summary.Value(tag="eval/test_dist", simple_value=self.test_dist)])
         summary_writer.add_summary(summary_test, global_step_np)
     except Exception as e:
       logging.error("Train._eval "+str(e))
@@ -259,6 +258,8 @@ class Trainer():
           fetch_start_time = time.time()
           input_triplets_np = self.pipe.get_batch()
           if input_triplets_np is None:
+            if self.eval_dist < self.best_eval_dist:
+              saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
           if self.total_eval_num - self.last_improve_num > self.require_improve_num:
             logging.info("early stop")
@@ -278,7 +279,7 @@ class Trainer():
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 400 == 0:
-            check_stop_step = 20000  # 先运行一定step，在用验证集早停
+            check_stop_step = 11004  # 先运行一定step，再用验证集早停
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -293,7 +294,7 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_2"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_2_unique"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
                               feature_file = train_dir + "/features.npy",
@@ -303,14 +304,14 @@ def main(args):
 
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  optimizer_class = tf.contrib.opt.LARSOptimizer
+  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  # optimizer_class = tf.contrib.opt.LARSOptimizer #8196
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
                     num_epochs=20,
-                    batch_size=4096,
+                    batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,
                     learning_rate=1.0,
