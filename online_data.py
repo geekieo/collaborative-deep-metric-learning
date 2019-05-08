@@ -281,7 +281,7 @@ def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=10
     return False
 
 
-def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
+def gen_exp_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
   all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
   thresholds = threshold+1
   for threshold in range(1,thresholds):
@@ -297,6 +297,21 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
       res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
       if res1 and res2:
         logging.info("Training data have saved to: "+save_dir)
+
+
+def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
+  all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
+  save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
+  if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+    if not os.path.exists(save_dir):
+      logging.error('Can not make dir:'+str(save_dir))
+      return
+  res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
+  cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
+  res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
+  if res1 and res2:
+    logging.info("Training data have saved to: "+save_dir)
 
 
 if __name__ == "__main__":
