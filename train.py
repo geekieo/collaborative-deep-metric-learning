@@ -202,11 +202,11 @@ class Trainer():
         self.eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
         if global_step_np <= check_stop_step:
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Save ckpt before check stop.")
+              str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Before check stop.")
         elif self.eval_dist < self.best_eval_dist:
           logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
               str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt.")
-          self.best_eval_dist = eval_dist
+          self.best_eval_dist = self.eval_dist
           saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
           self.last_improve_num = self.total_eval_num
         else:
@@ -259,6 +259,8 @@ class Trainer():
           input_triplets_np = self.pipe.get_batch()
           if input_triplets_np is None:
             if self.eval_dist < self.best_eval_dist:
+              logging.info("Didn't check stop in Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+                  str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt in the end.")
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
           if self.total_eval_num - self.last_improve_num > self.require_improve_num:
