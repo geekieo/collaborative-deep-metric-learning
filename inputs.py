@@ -162,8 +162,9 @@ class MPTripletPipe(object):
     return
     
   def __del__(self):
-    self.pool.close()
-    self.pool.join()
+    # self.pool.close() # 不能在往进程池中添加进程。未完成的任务阻塞将无法调用join。
+    self.pool.terminate() # 关闭进程池，结束工作进程，不再处理未完成的任务。
+    self.pool.join()# 等待进程池中的所有进程执行完毕，必须在close()或terminate()之后调用。
     logging.info("subprocess(es) done.")
 
 
