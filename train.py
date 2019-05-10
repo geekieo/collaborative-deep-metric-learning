@@ -257,13 +257,15 @@ class Trainer():
         try:
           fetch_start_time = time.time()
           input_triplets_np = self.pipe.get_batch()
+          global_step_np = 0
+          check_stop_step = 11004  # 先运行一定step，再用验证集早停
           if input_triplets_np is None:
             if self.eval_dist < self.best_eval_dist:
               logging.info("Didn't check stop in Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
                   str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt in the end.")
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
-          if self.total_eval_num - self.last_improve_num > self.require_improve_num:
+          if self.total_eval_num - self.last_improve_num +1 > self.require_improve_num and global_step_np > check_stop_step:
             logging.info("early stop")
             break
           if not input_triplets_np.shape[1:] == (3,1500):
@@ -281,7 +283,6 @@ class Trainer():
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 400 == 0:
-            check_stop_step = 11004  # 先运行一定step，再用验证集早停
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -306,13 +307,13 @@ def main(args):
 
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
-  optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  # optimizer_class = tf.contrib.opt.LARSOptimizer #8196
+  # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+  optimizer_class = tf.contrib.opt.LARSOptimizer
   config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
-                    num_epochs=20,
+                    num_epochs=10,
                     batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,
