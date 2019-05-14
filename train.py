@@ -174,7 +174,6 @@ class Trainer():
     self.last_improve_num = 0
     self.best_eval_dist = best_eval_dist
     self.eval_dist = 0.0
-    self.test_dist = 0.0
     self.require_improve_num = require_improve_num # 如果几次验证没有改进，停止迭代
     # 准备验证对象
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
@@ -197,39 +196,43 @@ class Trainer():
                 clip_gradient_norm=0,
                 regularization_penalty=0)
 
-  def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step):
+  def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step, test=False):
     self.total_eval_num += 1
     try:
       if self.evaluater.features is not None:
-        eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
-        self.eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
-        if global_step_np <= check_stop_step:
-          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Before check stop.")
-        elif self.eval_dist < self.best_eval_dist:
-          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt.")
-          self.best_eval_dist = self.eval_dist
-          saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
-          self.last_improve_num = self.total_eval_num
-        else:
-          logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
-              str(self.best_eval_dist)+" < eval_dist: "+str(self.eval_dist)+
-              ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
-        summary_eval = tf.Summary(value=[
-          tf.Summary.Value(tag="eval/eval_dist", simple_value=self.eval_dist), 
-          tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
-        summary_writer.add_summary(summary_eval, global_step_np)
-      else:
         logging.error('Train.run evaluater.features is None')
-      if self.tester.features is not None:
-        test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
-        self.test_dist = self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
+      eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
+      self.eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
+      if global_step_np <= check_stop_step:
+        logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+            str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Before check stop.")
+      elif self.eval_dist < self.best_eval_dist:
+        logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+            str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt.")
+        self.best_eval_dist = self.eval_dist
+        saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+        self.last_improve_num = self.total_eval_num
+      else:
+        logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
+            str(self.best_eval_dist)+" < eval_dist: "+str(self.eval_dist)+
+            ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
+      summary_eval = tf.Summary(value=[
+        tf.Summary.Value(tag="eval/eval_dist", simple_value=self.eval_dist), 
+        tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
+      summary_writer.add_summary(summary_eval, global_step_np)
+      if test:
+        test_dist = _test(predictor)
         summary_test = tf.Summary(value=[
-            tf.Summary.Value(tag="eval/test_dist", simple_value=self.test_dist)])
-        summary_writer.add_summary(summary_test, global_step_np)
+        tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
+            summary_writer.add_summary(summary_test, global_step_np)
     except Exception as e:
       logging.error("Train._eval "+str(e))
+
+  def _test(self, predictor):
+    if self.tester.features is None:
+      logging.error('Train.run tester.features is None')
+    test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
+    return self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
 
   def run(self):
 
@@ -330,6 +333,8 @@ def main(args):
                     best_eval_dist=1.0,
                     require_improve_num=100,
                     loglevel=tf.logging.INFO)
+  # TODO model test and backup. new model vs last model
+  
   trainer.run()
 
 
