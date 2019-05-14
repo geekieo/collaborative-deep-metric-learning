@@ -255,13 +255,13 @@ class Trainer():
       summary_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
       predictor = Prediction(sess=sess, device_name=None)
 
+      global_step_np = 0
+      check_stop_step = 30000
       # 迭代拟合
       while True:
         try:
           fetch_start_time = time.time()
           input_triplets_np = self.pipe.get_batch()
-          global_step_np = 0
-          check_stop_step = 11004  # 先运行一定step，再用验证集早停
           if input_triplets_np is None:
             if self.eval_dist < self.best_eval_dist:
               logging.info("Didn't check stop in Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
