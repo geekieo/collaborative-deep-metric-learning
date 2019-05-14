@@ -52,6 +52,7 @@ def build_graph(input_batch,
                 base_learning_rate=0.01,
                 learning_rate_decay_examples=100000,
                 learning_rate_decay=0.96,
+                margin = 0.8
                 optimizer_class=tf.train.AdamOptimizer,
                 clip_gradient_norm=1.0,
                 regularization_penalty=1):
@@ -100,7 +101,7 @@ def build_graph(input_batch,
   output_batch = result["l2_norm"]  # shape: (-1,output_size)
   output_triplets = tf.reshape(output_batch,(-1,3,output_size))
 
-  loss_result = loss_fn.calculate_loss(output_triplets, margin=0.1)
+  loss_result = loss_fn.calculate_loss(output_triplets, margin=margin)
   loss = loss_result['hinge_loss']
 
   reg_loss = tf.constant(0.0)
@@ -151,7 +152,7 @@ def build_graph(input_batch,
 
 class Trainer():
 
-  def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate,
+  def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate, margin,
                checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches,
                best_eval_dist=1.0, require_improve_num=10,loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
@@ -162,6 +163,7 @@ class Trainer():
     self.model = model
     self.loss_fn = loss_fn
     self.learning_rate = learning_rate
+    self.margin = margin
     self.checkpoint_dir = os.path.join(checkpoints_dir, 
                           model.__class__.__name__+"_"+get_local_time())
     self.optimizer_class = optimizer_class
@@ -190,6 +192,7 @@ class Trainer():
                 base_learning_rate=self.learning_rate,
                 learning_rate_decay_examples=1000000,
                 learning_rate_decay=0.96,
+                margin = self.margin,
                 optimizer_class=self.optimizer_class,
                 clip_gradient_norm=0,
                 regularization_penalty=0)
@@ -297,7 +300,7 @@ class Trainer():
 def main(args):
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_2_unique"  # NOTE 路径是 data
+  train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
                               feature_file = train_dir + "/features.npy",
@@ -318,6 +321,7 @@ def main(args):
                     model=model,
                     loss_fn=loss_fn,
                     learning_rate=1.0,
+                    margin=0.8,
                     checkpoints_dir=checkpoints_dir,
                     optimizer_class=optimizer_class,
                     config=config,
