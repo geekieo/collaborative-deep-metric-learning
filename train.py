@@ -52,7 +52,7 @@ def build_graph(input_batch,
                 base_learning_rate=0.01,
                 learning_rate_decay_examples=100000,
                 learning_rate_decay=0.96,
-                margin = 0.8
+                margin = 0.8,
                 optimizer_class=tf.train.AdamOptimizer,
                 clip_gradient_norm=1.0,
                 regularization_penalty=1):
