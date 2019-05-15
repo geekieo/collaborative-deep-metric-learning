@@ -6,14 +6,27 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import logging
+from tensorflow import flags
 from online_data import read_features_npy
 from utils import get_latest_folder
 
 logging.set_verbosity(tf.logging.INFO)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第1块GPU
+config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+config.gpu_options.allow_growth=True
+FLAGS = flags.FLAGS
 
+flags.DEFINE_string("checkpoints_dir", "/data/wengjy1/cdml_1/checkpoints",
+    "存放 checkpoints 的目录")
+flags.DEFINE_string("feature_file", "/data/wengjy1/cdml_1/features.npy",
+    "待预测的向量文件")
+flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1/checkpoints",
+    "模型输出向量的保存路径")
+flags.DEFINE_integer("batch_size",300000,
+    "每次预测的向量数")
 
 class Prediction():
-  def __init__(self, sess=None, ckpt=None, config=None, device_name=None, loglevel=tf.logging.INFO):
+  def __init__(self, sess=None, ckpt=None, config=None, loglevel=tf.logging.INFO):
     logging.set_verbosity(loglevel)
     self.sess = sess
     self.ckpt = ckpt
@@ -25,8 +38,7 @@ class Prediction():
       meta_graph = self.ckpt + ".meta"
       if not os.path.exists(meta_graph):
         raise IOError("Prediction __init__ Cannot find %s" % self.ckpt)
-      with tf.device(device_name):
-        loader = tf.train.import_meta_graph(meta_graph, clear_devices=True)
+      loader = tf.train.import_meta_graph(meta_graph, clear_devices=True)
       self.sess = tf.Session()
       self.sess.graph.finalize()
       loader.restore(self.sess, self.ckpt)
@@ -71,9 +83,7 @@ class Prediction():
     return output_np
 
 
-if __name__ == "__main__":
-  import os
-  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第1块GPU
+def test_predict():
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
   checkpoints_dir = train_dir+"/checkpoints/"
   ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
@@ -82,13 +92,22 @@ if __name__ == "__main__":
   batch_size = 100000
   features = read_features_npy(train_dir+"/features.npy")
 
-  config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-  config.gpu_options.allow_growth=True
-
-  predictor = Prediction(ckpt=ckpt, config=config, device_name=None, loglevel=tf.logging.DEBUG)
+  predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
   embeddings = predictor.run_features(features=features, batch_size=batch_size, output_dir=ckpt_dir)
 
   print(features.shape)
   uni_embeddings = np.unique(embeddings, axis=0)
   print(uni_embeddings.shape)
   print((features.shape[0]-uni_embeddings.shape[0])/features.shape[0])  # Repetition rate
+
+
+def main(args):
+  ckpt_dir = get_latest_folder(FLAGS.checkpoints_dir,nst_latest=1)
+  ckpt = tf.train.latest_checkpoint(ckpt_dir)
+  predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
+  features = read_features_npy(FLAGS.feature_file)
+  predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
+
+
+if __name__ == "__main__":
+  tf.app.run()

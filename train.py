@@ -263,7 +263,7 @@ class Trainer():
     with tf.Session(config=self.config) as sess:
       sess.run(init_op)
       summary_writer = tf.summary.FileWriter(self.checkpoint_dir, sess.graph)
-      predictor = Prediction(sess=sess, device_name=None)
+      predictor = Prediction(sess=sess)
 
       global_step_np = 0
       check_stop_step = 30000
