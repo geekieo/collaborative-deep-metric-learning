@@ -4,6 +4,7 @@ import os
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow import logging
+from tensorflow import flags
 # from tensorflow.python.client import device_lib
 import numpy as np
 
@@ -17,6 +18,12 @@ from utils import find_class_by_name
 from utils import get_local_time
 
 logging.set_verbosity(logging.DEBUG)
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string("train_dir", "/data/wengjy1/cdml_1_unique",
+    "训练文件根目录，包括验证集和测试集")
+flags.DEFINE_string("checkpoints_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
+    "存储每次训练产生的模型文件，包含 tensorboard")
 
 def clip_gradient_norms(gradients_to_variables, max_norm):
   """Clips the gradients by the given value.
@@ -196,7 +203,7 @@ class Trainer():
                 clip_gradient_norm=0,
                 regularization_penalty=0)
 
-  def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step, test=False):
+  def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step):
     self.total_eval_num += 1
     try:
       if self.evaluater.features is not None:
@@ -220,11 +227,11 @@ class Trainer():
         tf.Summary.Value(tag="eval/eval_dist", simple_value=self.eval_dist), 
         tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
       summary_writer.add_summary(summary_eval, global_step_np)
-      if test:
-        test_dist = _test(predictor)
-        summary_test = tf.Summary(value=[
-        tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
-            summary_writer.add_summary(summary_test, global_step_np)
+
+      # test_dist = _test(predictor)
+      # summary_test = tf.Summary(value=[
+      #     tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
+      # summary_writer.add_summary(summary_test, global_step_np)
     except Exception as e:
       logging.error("Train._eval "+str(e))
 
@@ -301,15 +308,15 @@ class Trainer():
 
 
 def main(args):
+  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
-  checkpoints_dir = train_dir+"/checkpoints/"
-  pipe = inputs.MPTripletPipe(cowatch_file_patten = train_dir + "/*.train",
-                              feature_file = train_dir + "/features.npy",
+  checkpoints_dir = FLAGS.checkpoints_dir
+  pipe = inputs.MPTripletPipe(cowatch_file_patten = FLAGS.train_dir + "/*.train",
+                              feature_file = FLAGS.train_dir + "/features.npy",
                               wait_times=20)
-  eval_cowatches =  load_cowatches(train_dir + "/cowatches.eval")
-  test_cowatches =  load_cowatches(train_dir + "/cowatches.test")
+  eval_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.eval")
+  test_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.test")
 
   model = find_class_by_name("VENet", [models])()
   loss_fn = find_class_by_name("HingeLoss", [losses])()
@@ -339,6 +346,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  import os
-  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
   tf.app.run()
