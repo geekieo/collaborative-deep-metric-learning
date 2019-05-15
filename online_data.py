@@ -25,7 +25,6 @@ from parse_data import select_cowatch
 from parse_data import mine_triplets
 
 logging.set_verbosity(logging.DEBUG)
-
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("watch_file", "/data/wengjy1/cdml/watched_video_ids",
