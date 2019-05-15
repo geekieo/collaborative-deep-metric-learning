@@ -6,8 +6,11 @@ import sys
 import os
 import numpy as np
 import json
+import tensorflow as tf
 from tensorflow import logging
+from tensorflow import flags
 import collections
+import traceback
 
 from utils import exe_time
 from parse_data import get_unique_watched_guids
@@ -22,6 +25,21 @@ from parse_data import select_cowatch
 from parse_data import mine_triplets
 
 logging.set_verbosity(logging.DEBUG)
+
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string("watch_file", "/data/wengjy1/cdml/watched_video_ids",
+    "用户观看视频的 guid 历史文件")
+flags.DEFINE_string("feature_file", "/data/wengjy1/cdml/video_guid_inception_feature.txt",
+    "用户观看视频对应的视频特征向量文件")
+flags.DEFINE_integer("threshold", 1,
+    "生成训练文件的 cowatch 阈值")
+flags.DEFINE_string("base_save_dir", '/data/wengjy1/', 
+    "训练文件保存的根目录")
+flags.DEFINE_integer("split_num", 10,
+    "训练文件中 cowatch 文件的切分个数")
+flags.DEFINE_boolean("unique", True,
+    "是否对 cowatch 训练集做唯一化处理，即一种 cowatch 仅出现一次，这种唯一化不区分内部元素的顺序")
 
 
 def read_features_txt(filename):
@@ -213,7 +231,7 @@ def write_features(features, encode_map=None, decode_map=None, save_dir=''):
 
 
 @DeprecationWarning
-def write_triplets(triplets, save_dir='',split=4, ):
+def write_triplets(triplets, save_dir='',split_num=4, ):
   """
   args:
     triplets: list of str
@@ -226,9 +244,9 @@ def write_triplets(triplets, save_dir='',split=4, ):
       triplet = ','.join(list(map(str,triplet)))
       file.write(triplet+'\n')
   try:
-    split = 1 if split<1 else int(split)  
+    split_num = 1 if split_num<1 else int(split_num)  
     row_num = len(triplets)
-    row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
+    row_cnt = int(row_num / split_num) if row_num % split_num == 0 else int(row_num / split_num)+1
     cwd = os.getcwd()
     os.chdir(save_dir)
     command = "split -l %d triplets.txt --additional-suffix=.triplet" % (row_cnt) 
@@ -239,7 +257,7 @@ def write_triplets(triplets, save_dir='',split=4, ):
     logging.warning(str(e))
     return False
 
-def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=100000):
+def write_cowatches(cowatches, save_dir='',split_num=4, eval_num=100000, test_num=100000):
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
   eval_data_path = os.path.join(save_dir,'cowatches.eval')
@@ -265,9 +283,9 @@ def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=10
         cowatch = ','.join(list(map(str,cowatch)))
         file.write(cowatch+'\n')
     # split training data to multi part
-    split = 1 if split<1 else int(split)  
+    split_num = 1 if split_num<1 else int(split_num)  
     row_num = len(cowatches)
-    row_cnt = int(row_num / split) if row_num % split == 0 else int(row_num / split)+1
+    row_cnt = int(row_num / split_num) if row_num % split_num == 0 else int(row_num / split_num)+1
     cwd = os.getcwd()
     os.chdir(save_dir)
     command = "split -l %d cowatches.txt --additional-suffix=.train" % (row_cnt)
@@ -281,7 +299,7 @@ def write_cowatches(cowatches, save_dir='',split=4, eval_num=100000, test_num=10
     return False
 
 
-def gen_exp_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
+def gen_exp_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split_num=4, unique=False):
   all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
   thresholds = threshold+1
   for threshold in range(1,thresholds):
@@ -294,31 +312,33 @@ def gen_exp_training_data(watch_file, feature_file,threshold=3, base_save_dir='/
           return
       res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
       cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
-      res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
+      res2 = exe_time(write_cowatches)(cowatches, save_dir,split_num) #15.130s
       if res1 and res2:
         logging.info("Training data have saved to: "+save_dir)
 
 
-def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split=4, unique=False):
-  all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
-  save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
-  if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
+def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',split_num=4, unique=False):
+  try:
+    save_dir = os.path.join(base_save_dir,'cdml_'+str(threshold)+('_unique' if unique else ''))
     if not os.path.exists(save_dir):
-      logging.error('Can not make dir:'+str(save_dir))
-      return
-  res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
-  cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
-  res2 = exe_time(write_cowatches)(cowatches, save_dir,split) #15.130s
-  if res1 and res2:
-    logging.info("Training data have saved to: "+save_dir)
+      os.makedirs(save_dir)
+    all_cowatch, features, encode_map, decode_map, graph = get_cowatches(watch_file, feature_file)
+    res1 = exe_time(write_features)(features, encode_map, decode_map, save_dir) #7.333s
+    cowatches = exe_time(select_cowatches)(all_cowatch, graph, threshold, unique) #44.866s
+    res2 = exe_time(write_cowatches)(cowatches, save_dir,split_num) #15.130s
+    if res1 and res2:
+      logging.info("Training data have saved to: "+save_dir)
+  except Exception as e:
+    logging.error(traceback.format_exc())
 
+
+def main(args):
+  gen_training_data(watch_file=FLAGS.watch_file,
+                    feature_file=FLAGS.feature_file,
+                    threshold=FLAGS.threshold,
+                    base_save_dir=FLAGS.base_save_dir,
+                    split_num=FLAGS.split_num,
+                    unique=FLAGS.unique)
 
 if __name__ == "__main__":
-  gen_training_data(watch_file="/data/wengjy1/cdml/watched_video_ids",
-                    feature_file="/data/wengjy1/cdml/video_guid_inception_feature.txt",
-                    threshold = 1,
-                    base_save_dir='/data/wengjy1/',
-                    split=10,
-                    unique=True)
-  
+  tf.app.run()
