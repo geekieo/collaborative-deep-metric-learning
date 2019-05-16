@@ -68,7 +68,7 @@ else
         hadoop fs -rm -r $update_signal_file
         check_task "UPDATE: delete update signal file"
         # todo: hadoop fs 
-        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $project_dir/dataset/update_features
+        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/update_features
         check_task "UPDATE: update_features"
         # serving_model predict
         cd $project_dir 
