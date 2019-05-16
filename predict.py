@@ -33,7 +33,6 @@ class Prediction():
     self.sess = sess
     self.ckpt = ckpt
     self.config = config
-    self.device_name = device_name
     if not sess:
       # 如果没有传入 session，根据 ckpt 和 config 载入 session
       logging.info(str(self.ckpt))
