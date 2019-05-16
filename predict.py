@@ -7,7 +7,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import logging
 from tensorflow import flags
-from online_data import read_features_npy
+import json
+
+from online_data import read_predict_features_txt
 from utils import get_latest_folder
 
 logging.set_verbosity(tf.logging.INFO)
@@ -105,7 +107,10 @@ def main(args):
   ckpt_dir = get_latest_folder(FLAGS.checkpoints_dir,nst_latest=1)
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
-  features = read_features_npy(FLAGS.feature_file)
+  features, decode_map = read_predict_features_txt(FLAGS.feature_file)
+  with open(FLAGS.output_dir+'decode_map.json', 'w') as file:
+    json.dump(decode_map, file, ensure_ascii=False)
+  # features
   predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
 
 

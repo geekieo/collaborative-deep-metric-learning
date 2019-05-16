@@ -7,6 +7,8 @@ from tensorflow import logging
 from tensorflow import flags
 # from tensorflow.python.client import device_lib
 import numpy as np
+# import shutil
+import traceback
 
 import losses
 import inputs
@@ -16,6 +18,7 @@ from evaluate import Evaluation
 from online_data import load_cowatches
 from utils import find_class_by_name
 from utils import get_local_time
+# from utils import get_latest_folder
 
 logging.set_verbosity(logging.DEBUG)
 FLAGS = flags.FLAGS
@@ -171,8 +174,9 @@ class Trainer():
     self.loss_fn = loss_fn
     self.learning_rate = learning_rate
     self.margin = margin
-    self.checkpoint_dir = os.path.join(checkpoints_dir, 
-                          model.__class__.__name__+"_"+get_local_time())
+    # self.checkpoint_dir = os.path.join(checkpoints_dir, 
+    #                       model.__class__.__name__+"_"+get_local_time())
+    self.checkpoint_dir = os.path.join(checkpoints_dir, "cdml_venet")
     self.optimizer_class = optimizer_class
     self.config = config
 
@@ -241,6 +245,31 @@ class Trainer():
     test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
     return self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
 
+  # def _copy_ckpt(self, ckpt, output_dir):
+  #   data = ckpt+".data-00000-of-00001"
+  #   index = ckpt + ".index"
+  #   meta = ckpt + ".meta"
+  #   try:
+  #     shutil.copyfile(data, output_dir + "/"+get_local_time()+".data-00000-of-00001")
+  #     shutil.copyfile(index, output_dir + "/"+get_local_time()+".index")
+  #     shutil.copyfile(meta, output_dir + "/"+get_local_time()+".meta")
+  #   except Exception as e:
+  #     logging.error(traceback.format_exc())
+
+
+  # def _deploy_best_ckpt(self, checkpoints_dir, output_dir):
+  #   ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
+  #   today_ckpt = tf.train.latest_checkpoint(ckpt_dir)
+  #   try:
+  #     ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=2)
+  #     yesterday_ckpt = tf.train.latest_checkpoint(ckpt_dir)
+  #   except Exception as e:
+  #     logging.info('Got no yesterday\'s ckpt. Deploy today\'s ckpt to ' + output_dir)
+  #     _copy_ckpt(today_ckpt, output_dir)
+  #     break
+    
+
+
   def run(self):
 
     self.pipe.create_pipe(self.num_epochs, self.batch_size)
@@ -302,6 +331,7 @@ class Trainer():
 
         except Exception as e:
           logging.error("Train.run "+str(e)) 
+      # TODO tests and backup best model
       summary_writer.close()
       self.pipe.__del__()
       logging.info("Exited training loop.")
