@@ -73,7 +73,7 @@ else
         # serving_model predict
         cd $project_dir 
         $python_env predict.py --checkpoints_dir $serving_dir/checkpoints  \
-                               --feature_file $project_dir/dataset/update_features \
+                               --feature_file $serving_dir/dataset/update_features \
                                --output_dir $predict_dir
         check_task "UPDATE: predict"
         # todo:calc knn result use guid_knn.py (input encoded features output knn)
