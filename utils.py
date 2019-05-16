@@ -29,6 +29,7 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
   """获取目录文件夹，根据创建时间排序，
   返回第 nst_latest 新的文件夹路径
   """
+  if checkpoints_dir is None:
   files = os.listdir(checkpoints_dir)
   folders = []
   for file in files:
@@ -38,3 +39,18 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
       folders.append(path)
   folders.sort(key=lambda folder: os.path.getmtime(folder))
   return folders[-nst_latest]
+
+
+def clean_file(log_dir, keepdays=7):
+  """目录内部，文件将按时间无差别删除
+  NOTE: 对于定时删除的目录，使用专属目录
+  """
+  for parent, dirnames, filenames in os.walk(log_dir):
+    for filename in filenames:
+      fullname = parent + "/" + filename  # 文件全称
+      createTime = int(os.path.getctime(fullname))  # 文件创建时间
+      nDayAgo = (datetime.datetime.now() -
+                 datetime.timedelta(days=keepdays))  # 当前时间的n天前的时间
+      timeStamp = int(time.mktime(nDayAgo.timetuple()))
+      if createTime < timeStamp:  # 创建时间在n天前的文件删除
+        os.remove(os.path.join(parent, filename))

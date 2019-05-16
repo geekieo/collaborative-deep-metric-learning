@@ -27,13 +27,6 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "待计算近邻的向量文件")
 flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
-knn_result_dir = './knn_result/'
-knn_result_dir = ckpt_dir
-flags.DEFINE_string("knn_result_dir", knn_result_dir, 
-    "KNN 结果保存地址")
-timest = time.localtime()
-topk_path = './knn_result/%d%02d%02d'%(timest.tm_year, timest.tm_mon, timest.tm_mday)
-topk_path = ckpt_dir+'/%d%02d%02d'%(timest.tm_year, timest.tm_mon, timest.tm_mday)
 flags.DEFINE_string("topk_path", topk_path, 
     "Top-k 结果保存地址")
 subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
@@ -74,7 +67,7 @@ def knn_process(path, index, begin_index, I, D):
     raise
 
 
-def calc_knn(embeddings, result_dir, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
+def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
   """use faiss to calculate knn for recall online
   Arg:
     embeddings
@@ -121,31 +114,12 @@ def calc_knn(embeddings, result_dir, nearest_num=51, split_num=10, D=None, I=Non
     D, I = index.search(embeddings, nearest_num)  # actual search
     end1 = time.time()
     print('whole set query time cost:', end1 - end)
-    np.save(result_dir + '/nearest_index.npy', I)
-    np.save(result_dir + '/score.npy', D)
-    print("save to ",result_dir)
+    # np.save(result_dir + '/nearest_index.npy', I)
+    # np.save(result_dir + '/score.npy', D)
+    # print("save to ",result_dir)
 
   total_num = len(DECODE_MAP)
   patch_num = total_num // split_num
-
-  # # loop method
-  # begin = time.time()
-  # knn_users_name = os.path.join(topk_path, 'knn_users')
-  # fp = open(knn_users_name, 'w')
-  # for i in range(I.shape[0]):
-  #   query_id = id2uid_dict[i]
-  #   nearest_ids = map(lambda x: id2uid_dict[x], I[i][1:])
-  #   nearest_scores = D[i][1:]
-  #   topks = map(lambda x: x[1][0] + "," + str(x[0]) + "," + str(x[1][1]) + '\n' if x[1][1] > 0.5 else "",
-  #               enumerate(zip(nearest_ids, nearest_scores)))
-  #   string = ''
-  #   for item in topks:
-  #     if len(item) > 0:
-  #       string += query_id + ',' + item
-  #   fp.write(string)
-  # fp.close()
-  # end = time.time()
-  # print('single loop:%f s'%(end - begin))
 
   ## Pool method
   begin = time.time()
@@ -167,7 +141,7 @@ def main(args):
   print(len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
   print(embeddings.shape)
-  calc_knn(embeddings, result_dir=FLAGS.knn_result_dir, nearest_num=FLAGS.nearest_num)
+  calc_knn(embeddings, topk_path=FLAGS.topk_path, nearest_num=FLAGS.nearest_num)
 
 if __name__ == '__main__':
   tf.app.run()

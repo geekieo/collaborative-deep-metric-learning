@@ -4,54 +4,97 @@
 source /etc/profile
 source /data/bigdata/env.sh
 
-python_env=/data/anaconda2/bin/python2.7
+python_env=/data/anaconda2/envs/wengjy1/bin/python
 week=`date +"%w"`
 project_dir=/data/service/cdml
-training_dir=$project_dir/src
-serving_dir=$project_dir/src
+training_dir=$project_dir/training_dir
+serving_dir=$project_dir/serving_dir
+predict_dir=$serving_dir/knn_result
 
 cur_date=`date +"%Y%m%d%H"`
-knn_files=$project_dir/knn_result/$cur_date        # 调整 knn_split 地址
-target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
 # signal files
 signal_file=/user/zhoukang/videoknn/cdml/signal.txt
 update_signal_file=/user/zhoukang/video_clicks/cdml_update_signal.txt
 training_signal_file=/user/zhoukang/video_clicks/cdml_training_signal.txt
 
+
+dayHour=`date +'%d%H'`
+logfile=$project_dir/log/log.log_$dayHour
+
+getDate(){ echo `date +"%Y-%m-%d|%H:%M:%S"`; }
+
+check_task()
+{
+    if [ $? -eq 0 ]; then
+        printf "%s INFO $1 success.\n" $(getDate) >>$logfile
+    else
+        printf "%s INFO $1 failed.\n" $(getDate) >>$logfile
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com","txt":"training failed. check log on cluster","sub":"CDML training service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
+        exit 0
+    fi
+}
+
+printf "%s INFO Start processing .\n" $(getDate) >$logfile
+
 hadoop fs -test -e $training_signal_file
 if [ $? -eq 0 ];then
+
     ## training
     hadoop fs -rm -r $training_signal_file
-    check_task "delete training signal file"
+    check_task "TRAIN: delete training signal file"
     # todo: hadoop fs 
-    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $project_dir/dataset/src_watch_history
-    hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $project_dir/dataset/src_features
+    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $training_dir/dataset/src_watch_history
+    check_task "TRAIN: get src_watch_history"
+    hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/src_features
+    check_task "TRAIN: get src_features"
     # todo: train model
-    cd 
-    /data/python online_data.py --base_save_dir  "tests/" --feature_file "tests/visual_features.txt" --watch_file "tests/watched_guids.txt"
+    cd $project_dir
+    $python_env online_data.py --base_save_dir $training_dir/dataset/ \
+                               --feature_file $training_dir/dataset/src_features \
+                               --watch_file $training_dir/dataset/src_watch_history
+    check_task "TRAIN: online_data"
+    $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
+                         --checkpoints_dir $training_dir/checkpoint
+    check_task "TRAIN: train"
     # 模型 -> serving_model
+    mkdir -p $serving_dir/checkpoints/$cur_date
+    cp -fr $training_dir/checkpoint/* $serving_dir/checkpoints/$cur_date
+    check_task "TRAIN: copy ckpt"
 
 else
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
         ## updating
         hadoop fs -rm -r $update_signal_file
-        check_task "delete update signal file"
+        check_task "UPDATE: delete update signal file"
         # todo: hadoop fs 
-        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $project_dir/dataset/src_features
-        # serving_model predict 
+        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $project_dir/dataset/update_features
+        check_task "UPDATE: update_features"
+        # serving_model predict
+        cd $project_dir 
+        $python_env predict.py --checkpoints_dir $serving_dir/checkpoints  \
+                               --feature_file $project_dir/dataset/update_features \
+                               --output_dir $predict_dir
+        check_task "UPDATE: predict"
         # todo:calc knn result use guid_knn.py (input encoded features output knn)
-        # todo: calc knn results of new vectors
-        # 先测 knn
+        # 更新时间
+        cur_date=`date +"%Y%m%d%H"`
+        topk_path=$predict_dir/$cur_date        # 调整 knn_split 地址
+        target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
+        $python_env faiss_knn.py --embedding_file $serving_dir/checkpoint/output.npy \
+                                 --decode_map_file $serving_dir/checkpoint/decode_map.json \
+                                 --topk_path $topk_path
+        check_task "UPDATE: faiss_knn"
+
+        # put model to hdfs and send signal
+        hadoop fs -mkdir -p $target_dir
+        hadoop fs -put -f $topk_path/knn_split* $target_dir
+
+        # set finish signal
+        hadoop fs -touchz $signal_file
     else
         echo "nothing to do, waiting..."
         exit 1
     fi
 fi
 
-# put model to hdfs and send signal
-hadoop fs -mkdir -p $target_dir
-hadoop fs -put -f $knn_files/knn_split* $target_dir
-
-# set finish signal
-hadoop fs -touchz $signal_file
