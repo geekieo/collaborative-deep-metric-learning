@@ -6,7 +6,6 @@ import faiss
 from multiprocessing import Pool
 import subprocess
 import traceback
-
 import numpy as np
 import json
 import tensorflow as tf
@@ -15,32 +14,33 @@ from tensorflow import flags
 from utils import get_latest_folder
 
 
-
-train_dir = "/data/wengjy1/cdml_2"  # NOTE 路径是 data
+train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
 checkpoints_dir = train_dir+"/checkpoints/"
 ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
-encode_map_file = train_dir+'/encode_map.json'
-# 召回文件地址
-knn_result_path = ckpt_dir
-print(knn_result_path)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
     "待计算近邻的向量文件")
 flags.DEFINE_string("decode_map_file",decode_map_file,
     "待计算近邻的向量文件")
-flags.DEFINE_integer("nearest_num",5,
+flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
+knn_result_dir = './knn_result/'
+knn_result_dir = ckpt_dir
+flags.DEFINE_string("knn_result_dir", knn_result_dir, 
+    "KNN 结果保存地址")
 timest = time.localtime()
 topk_path = './knn_result/%d%02d%02d'%(timest.tm_year, timest.tm_mon, timest.tm_mday)
 topk_path = ckpt_dir+'/%d%02d%02d'%(timest.tm_year, timest.tm_mon, timest.tm_mday)
-subprocess.call('mkdir -p {}'.format(topk_path), shell=True)
+flags.DEFINE_string("topk_path", topk_path, 
+    "Top-k 结果保存地址")
+subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
 
 def load_embedding(filename):
-  EMBEDDINGS = np.load(filename)
-  return EMBEDDINGS
+  embeddings = np.load(filename)
+  return embeddings
 
 
 def load_decode_map(filename):
@@ -50,7 +50,7 @@ def load_decode_map(filename):
     index2guid_str = json.load(f)
   for k,v in index2guid_str.items():
     decode_map[int(k)] = v
-    encode_map[k] = int(v)
+    encode_map[v] = int(k)
   return decode_map, encode_map
 
 
@@ -74,7 +74,7 @@ def knn_process(path, index, begin_index, I, D):
     raise
 
 
-def calc_knn(embeddings, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
+def calc_knn(embeddings, result_dir, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
   """use faiss to calculate knn for recall online
   Arg:
     embeddings
@@ -105,14 +105,11 @@ def calc_knn(embeddings, nearest_num=51, split_num=10, D=None, I=None, method='h
       # make it into a gpu index
       index = faiss.index_cpu_to_gpu(res, 0, index_flat)
     elif method == 'gpuivf':
-      print(1)
       if single_gpu:
-        print(2)
         res = faiss.StandardGpuResources()
         ## nlist=400, somewhat like cluster centroids, todo: search a good value pair (nlist, nprobes)!!!!
         index = faiss.GpuIndexIVFFlat(res, factors, 400, faiss.METRIC_INNER_PRODUCT)
       else:
-        print(3)
         cpu_index = faiss.IndexFlat(factors)
         index = faiss.index_cpu_to_all_gpus(cpu_index)
       index.train(embeddings)
@@ -122,15 +119,14 @@ def calc_knn(embeddings, nearest_num=51, split_num=10, D=None, I=None, method='h
     print('create index time cost:', end - begin)
     index.nprobe = 256
     D, I = index.search(embeddings, nearest_num)  # actual search
-    print(D.shape, I.shape)
     end1 = time.time()
     print('whole set query time cost:', end1 - end)
-    np.save(knn_result_path + 'nearest_index.npy', I)
-    np.save(knn_result_path + 'score.npy', D)
-    print("save to ",knn_result_path)
+    np.save(result_dir + '/nearest_index.npy', I)
+    np.save(result_dir + '/score.npy', D)
+    print("save to ",result_dir)
 
-  total_num = len(embeddings)
-  splitted_num = total_num // split_num
+  total_num = len(DECODE_MAP)
+  patch_num = total_num // split_num
 
   # # loop method
   # begin = time.time()
@@ -155,12 +151,11 @@ def calc_knn(embeddings, nearest_num=51, split_num=10, D=None, I=None, method='h
   begin = time.time()
   pool_my = Pool(processes=split_num, maxtasksperchild=6)
   for i in range(split_num - 1):
-    batch_begin = i * splitted_num
-    batch_end = (i + 1) * splitted_num
+    batch_begin = i * patch_num
+    batch_end = (i + 1) * patch_num
     pool_my.apply_async(knn_process, args=(topk_path, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
-  pool_my.apply_async(knn_process, args=(topk_path, split_num-1, (split_num-1)*splitted_num,
-                                          I[(split_num-1)*splitted_num:], D[(split_num-1)*splitted_num:]))
-  # subprocess.call("split -l {} {} -d -a 4 model_split".format(split_line_num, knn_users_name), shell=True)
+  pool_my.apply_async(knn_process, args=(topk_path, split_num-1, (split_num-1)*patch_num,
+                                         I[(split_num-1)*patch_num:], D[(split_num-1)*patch_num:]))
   pool_my.close()
   pool_my.join()
   end = time.time()
@@ -168,11 +163,11 @@ def calc_knn(embeddings, nearest_num=51, split_num=10, D=None, I=None, method='h
 
 def main(args):
   global DECODE_MAP
-  DECODE_MAP, _= load_decode_map(FLAGS.decode_map_file)
+  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
   print(len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
   print(embeddings.shape)
-  calc_knn(embeddings, nearest_num=FLAGS.nearest_num)
+  calc_knn(embeddings, result_dir=FLAGS.knn_result_dir, nearest_num=FLAGS.nearest_num)
 
 if __name__ == '__main__':
   tf.app.run()
