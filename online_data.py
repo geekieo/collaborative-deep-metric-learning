@@ -95,18 +95,19 @@ def read_watched_guids(filename):
     all_watched_guids=[]
     data = file.readlines()
     for line in data:
-      line = line.rstrip('\n')  # 删除行末的 \n
-      guids = line.split(',')
+      line = line.rstrip('\n')    # 删除行末 \n
+      str_guids = line.split(',')[1] # 取 guid
+      str_guids = str_guids[:-1]  # 删除有括号
+      guids = str_guids.split('#')
       try:
-        guids = guids[1:]       # 删除第一个元素 uid
         watched_guids = []
         for i,guid in enumerate(guids):
           if i>0 and guids[i]==guids[i-1]:
             continue            # 过滤相邻重复元素
-          if guid[:6]=='video_':
-            guid = guid[6:]     # 删除每个 guid 前缀"video_"
-          else:
-            logging.warning('存在没有前缀 "video_" 的 guid in watched_guids: '+guid)
+          # if guid[:6]=='video_':
+          #   guid = guid[6:]     # 删除每个 guid 前缀"video_"
+          # else:
+          #   logging.warning('存在没有前缀 "video_" 的 guid in watched_guids: '+guid)
           watched_guids.append(guid)
         if len(watched_guids)>1:
           all_watched_guids.append(watched_guids)
