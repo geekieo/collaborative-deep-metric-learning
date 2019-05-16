@@ -27,7 +27,7 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "待计算近邻的向量文件")
 flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
-flags.DEFINE_string("topk_path", topk_path, 
+flags.DEFINE_string("topk_path", None, 
     "Top-k 结果保存地址")
 subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
 
@@ -138,9 +138,12 @@ def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None
 def main(args):
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
+  print("FLAGS.embedding_file",FLAGS.embedding_file)
   print(len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
+  print("FLAGS.embedding_file",FLAGS.embedding_file)
   print(embeddings.shape)
+  print("FLAGS.topk_path", FLAGS.topk_path)
   calc_knn(embeddings, topk_path=FLAGS.topk_path, nearest_num=FLAGS.nearest_num)
 
 if __name__ == '__main__':
