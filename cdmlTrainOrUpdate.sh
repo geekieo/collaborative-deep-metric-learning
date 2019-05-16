@@ -80,10 +80,10 @@ else
         # 更新时间
         cur_date=`date +"%Y%m%d%H"`
         topk_path=$predict_dir/$cur_date        # 调整 knn_split 地址
-        
+
         target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
-        $python_env faiss_knn.py --embedding_file $serving_dir/checkpoint/output.npy \
-                                 --decode_map_file $serving_dir/checkpoint/decode_map.json \
+        $python_env faiss_knn.py --embedding_file $predict_dir/output.npy \
+                                 --decode_map_file $predict_dir/decode_map.json \
                                  --topk_path $topk_path
         check_task "UPDATE: faiss_knn"
 
