@@ -29,9 +29,14 @@ def test_read_watched_guids():
     '27f4acd4-e881-4cee-b4fa-4fce9a51a8af',
     'af801030-49ac-40fc-ba56-e8b5fc94a63c',
     '7e6840f6-569b-44ac-94bb-f685f7cde23f',
+    'af7a6100-e15f-4ee4-8f0b-4e10f6dc7903',
+    'f465bf56-4ace-477e-978a-e49df36d19bc',
+    'e8dc3ffc-6b80-49f8-9e02-5bf2e8ff0e09',
+    '82353b77-f250-49df-aa3c-376edbb41b01',
     'b8d18517-b61b-4b1a-b321-d999cc66c7af',
     'bcbc6cfd-4407-40be-bf04-d724d1da26b3']
-  assert len(all_watched_guids[12])==38
+  # print(len(all_watched_guids[12]))
+  assert len(all_watched_guids[12])==40
 
 
 def test_get_triplets():
@@ -84,9 +89,9 @@ def test_read_features_npy():
 
 if __name__ == "__main__":
   # test_read_features_txt()
-  # test_read_watched_guids()
+  test_read_watched_guids()
   # test_get_triplets()
 
   # test_get_triplets_real()
-  test_gen_training_data()
+  # test_gen_training_data()
   # test_read_features_npy()
