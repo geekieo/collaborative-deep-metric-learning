@@ -29,7 +29,6 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
   """获取目录文件夹，根据创建时间排序，
   返回第 nst_latest 新的文件夹路径
   """
-  if checkpoints_dir is None:
   files = os.listdir(checkpoints_dir)
   folders = []
   for file in files:
