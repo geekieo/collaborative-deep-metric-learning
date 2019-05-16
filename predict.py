@@ -107,7 +107,7 @@ def main(args):
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
   features, decode_map = read_predict_features_txt(FLAGS.feature_file)
-  with open(FLAGS.output_dir+'decode_map.json', 'w') as file:
+  with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
     json.dump(decode_map, file, ensure_ascii=False)
   # features
   predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
