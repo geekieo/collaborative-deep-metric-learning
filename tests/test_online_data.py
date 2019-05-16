@@ -75,9 +75,8 @@ def test_gen_training_data():
                     feature_file="visual_features.txt",
                     threshold=1,
                     base_save_dir = os.getcwd(),
-                    split=8,
-                    unique=False)
-
+                    split_num=8,
+                    unique=True)
 
 def test_read_features_npy():
   features = read_features_npy('train_dir/features.npy')
@@ -89,9 +88,9 @@ def test_read_features_npy():
 
 if __name__ == "__main__":
   # test_read_features_txt()
-  test_read_watched_guids()
+  # test_read_watched_guids()
   # test_get_triplets()
 
   # test_get_triplets_real()
-  # test_gen_training_data()
+  test_gen_training_data()
   # test_read_features_npy()
