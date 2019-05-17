@@ -23,6 +23,8 @@ flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1/checkpoints",
     "服务模型的目录，含备份模型")
 flags.DEFINE_string("feature_file", "/data/wengjy1/cdml_1/features.npy",
     "待预测的向量文件")
+flags.DEFINE_string("feature_meta_file", "/data/wengjy1/cdml_1/features_num",
+    "待预测的向量文件的行数文件")
 flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1/checkpoints",
     "模型输出向量的保存路径")
 flags.DEFINE_integer("batch_size",300000,
@@ -108,11 +110,12 @@ def main(args):
     ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
-    features, decode_map = read_predict_features_txt(FLAGS.feature_file)
-    logging.info("predict read_predict_features_txt success")
+    logging.info("predict read_predict_features_txt reading ...")
+    features, decode_map = read_predict_features_txt(FLAGS.feature_file, FLAGS.feature_meta_file)
+    logging.info("predict read_predict_features_txt success!")
     with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
-    logging.info("predict write decode_map.json success")
+    logging.info("predict write decode_map.json success!")
     # features
     predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
   except Exception as e:

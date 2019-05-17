@@ -67,7 +67,7 @@ def read_features_txt(filename):
         print(i, line)
     return features
 
-def read_predict_features_txt(filename):
+def read_predict_features_txt(filename, meta_file):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature。
@@ -75,8 +75,11 @@ def read_predict_features_txt(filename):
   Arg:
     filename: string
   """
+  line_num = 0
+  with open(meta_file, 'r') as file:
+    line_num = int(file.readline().strip())
   with open(filename,'r') as file:
-    features = []
+    features = np.zeros((line_num, 1500), np.float32)
     decode_map = {}
     i = 0
     for line in file:
@@ -86,14 +89,14 @@ def read_predict_features_txt(filename):
         try:
           feature = list(map(float, (str_feature.split(','))))
           if len(feature) == 1500:
-            features.append(feature)
+            features[i] = feature
             decode_map[i] = str_guid
             i += 1
         except Exception as e:
           logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
         logging.warning('read_features_txt'+str(e))
-    return np.asarray(features), decode_map
+    return features[:i], decode_map
 
 def read_features_npy(filename):
   """features 必须是 key 从 0 自增的 dict，其 value 为 ndarray。这里
