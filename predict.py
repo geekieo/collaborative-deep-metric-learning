@@ -8,12 +8,13 @@ import tensorflow as tf
 from tensorflow import logging
 from tensorflow import flags
 import json
+import traceback
 
 from online_data import read_predict_features_txt
 from utils import get_latest_folder
 
 logging.set_verbosity(tf.logging.INFO)
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第1块GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第2块GPU
 config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
 FLAGS = flags.FLAGS
@@ -103,15 +104,19 @@ def test_predict():
 
 
 def main(args):
-  ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
-  ckpt = tf.train.latest_checkpoint(ckpt_dir)
-  predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
-  features, decode_map = read_predict_features_txt(FLAGS.feature_file)
-  with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
-    json.dump(decode_map, file, ensure_ascii=False)
-  # features
-  predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
-
+  try:
+    ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
+    ckpt = tf.train.latest_checkpoint(ckpt_dir)
+    predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
+    features, decode_map = read_predict_features_txt(FLAGS.feature_file)
+    logging.info("predict read_predict_features_txt success")
+    with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
+      json.dump(decode_map, file, ensure_ascii=False)
+    logging.info("predict write decode_map.json success")
+    # features
+    predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
+  except Exception as e:
+    logging.error(traceback.format_exc())
 
 if __name__ == "__main__":
   tf.app.run()

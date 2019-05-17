@@ -339,7 +339,7 @@ class Trainer():
 
 
 def main(args):
-  os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
+  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第 2 块GPU
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = FLAGS.checkpoint_dir
@@ -357,7 +357,7 @@ def main(args):
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
-                    num_epochs=10,
+                    num_epochs=5,
                     batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,

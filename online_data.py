@@ -78,8 +78,8 @@ def read_predict_features_txt(filename):
   with open(filename,'r') as file:
     features = []
     decode_map = {}
-    data = file.readlines()
-    for i, line in enumerate(data):
+    i = 0
+    for line in file:
       line = line.strip('\n')   #删除行末的 \n
       try:
         str_guid, str_feature = line.split('#')
@@ -88,6 +88,7 @@ def read_predict_features_txt(filename):
           if len(feature) == 1500:
             features.append(feature)
             decode_map[i] = str_guid
+            i += 1
         except Exception as e:
           logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
