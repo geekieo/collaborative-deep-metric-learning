@@ -138,12 +138,10 @@ def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None
 def main(args):
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("FLAGS.embedding_file",FLAGS.embedding_file)
-  print(len(DECODE_MAP))
+  print("faiss_knn FLAGS.DECODE_MAP",FLAGS.decode_map_file, ' decode_map len', len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
-  print("FLAGS.embedding_file",FLAGS.embedding_file)
-  print(embeddings.shape)
-  print("FLAGS.topk_path", FLAGS.topk_path)
+  print("faiss_knn FLAGS.embedding_file",FLAGS.embedding_file, ' embedding_file shape', embeddings.shape)
+  print("faiss_knn FLAGS.topk_path", FLAGS.topk_path, 'calc_knn ...')
   calc_knn(embeddings, topk_path=FLAGS.topk_path, nearest_num=FLAGS.nearest_num)
 
 if __name__ == '__main__':

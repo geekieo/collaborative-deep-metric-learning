@@ -29,7 +29,7 @@ check_task()
         printf "%s INFO $1 success.\n" $(getDate) >>$logfile
     else
         printf "%s INFO $1 failed.\n" $(getDate) >>$logfile
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com","txt":"training failed. check log on cluster","sub":"CDML training service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"training failed. check log on training server","sub":"CDML training service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
         exit 0
     fi
 }
