@@ -74,6 +74,8 @@ else
         # hadoop fs 
         hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/features
         check_task "UPDATE: get serving_dir/dataset/features"
+        wc -l $serving_dir/dataset/features > $serving_dir/dataset/features_line_num 
+
         # serving_dir predict
         cd $project_dir 
         $python_env predict.py --model_dir $serving_dir/models  \

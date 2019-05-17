@@ -141,8 +141,9 @@ def main(args):
   print("faiss_knn FLAGS.DECODE_MAP",FLAGS.decode_map_file, ' decode_map len', len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
   print("faiss_knn FLAGS.embedding_file",FLAGS.embedding_file, ' embedding_file shape', embeddings.shape)
-  print("faiss_knn FLAGS.topk_path", FLAGS.topk_path, 'calc_knn ...')
+  print('calc_knn ...')
   calc_knn(embeddings, topk_path=FLAGS.topk_path, nearest_num=FLAGS.nearest_num)
+  print("faiss_knn save knn_result to FLAGS.topk_path", FLAGS.topk_path)
 
 if __name__ == '__main__':
   tf.app.run()
