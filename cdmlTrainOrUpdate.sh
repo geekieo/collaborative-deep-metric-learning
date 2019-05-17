@@ -54,15 +54,15 @@ if [ $? -eq 0 ];then
                                --watch_file $training_dir/dataset/watch_history
     check_task "TRAIN: online_data"
     $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
-                         --checkpoints_dir $training_dir/checkpoint
+                         --checkpoint_dir $training_dir/checkpoints
     check_task "TRAIN: train"
     # 模型 -> serving_dir
-    mkdir -p $serving_dir/checkpoints/$cur_date
-    cp -fr $training_dir/checkpoint/* $serving_dir/checkpoints/$cur_date
+    mkdir -p $serving_dir/models/$cur_date
+    cp -fr $training_dir/checkpoints/* $serving_dir/models/$cur_date
     # 重写 checkpoint 
-    cd $serving_dir/checkpoints/$cur_date
+    cd $serving_dir/models/$cur_date
     ckpt=`ls -lt | grep ckpt | head -1 |awk '{print $9}' |awk -F'.' '{print $2}'`
-    printf "model_checkpoint_path: \"$serving_dir/checkpoints/$cur_date/model.$ckpt\"" > checkpoint
+    printf "model_checkpoint_path: \"$serving_dir/models/$cur_date/model.$ckpt\"" > checkpoint
     check_task "TRAIN: copy ckpt -> serving_dir"
 
 else
@@ -76,7 +76,7 @@ else
         check_task "UPDATE: get serving_dir/dataset/features"
         # serving_dir predict
         cd $project_dir 
-        $python_env predict.py --checkpoints_dir $serving_dir/checkpoints  \
+        $python_env predict.py --model_dir $serving_dir/models  \
                                --feature_file $serving_dir/dataset/features \
                                --output_dir $predict_dir
         check_task "UPDATE: predict"
