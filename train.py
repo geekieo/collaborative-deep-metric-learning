@@ -25,7 +25,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("train_dir", "/data/wengjy1/cdml_1_unique",
     "训练文件根目录，包括验证集和测试集")
-flags.DEFINE_string("checkpoints_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
+flags.DEFINE_string("checkpoint_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
     "存储每次训练产生的模型文件，包含 tensorboard")
 
 def clip_gradient_norms(gradients_to_variables, max_norm):
@@ -163,7 +163,7 @@ def build_graph(input_batch,
 class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate, margin,
-               checkpoints_dir, optimizer_class, config, eval_cowatches, test_cowatches,
+               checkpoint_dir, optimizer_class, config, eval_cowatches, test_cowatches,
                best_eval_dist=1.0, require_improve_num=10,loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
@@ -174,9 +174,9 @@ class Trainer():
     self.loss_fn = loss_fn
     self.learning_rate = learning_rate
     self.margin = margin
-    # self.checkpoint_dir = os.path.join(checkpoints_dir, 
+    # self.checkpoint_dir = os.path.join(checkpoint_dir, 
     #                       model.__class__.__name__+"_"+get_local_time())
-    self.checkpoint_dir = os.path.join(checkpoints_dir, "cdml_venet")
+    self.checkpoint_dir = checkpoint_dir
     self.optimizer_class = optimizer_class
     self.config = config
 
@@ -285,7 +285,7 @@ class Trainer():
     init_op = tf.global_variables_initializer()
 
     summary_op = tf.summary.merge_all()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=1)   # 仅保存1个ckpt, 验证效果最好的ckpt
         
     logging.debug("Train.pipe.get_batch"+str(self.pipe.get_batch().shape))
     logging.info("Starting session.")
@@ -341,7 +341,7 @@ def main(args):
   os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第 2 块GPU
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoints_dir = FLAGS.checkpoints_dir
+  checkpoint_dir = FLAGS.checkpoint_dir
   pipe = inputs.MPTripletPipe(cowatch_file_patten = FLAGS.train_dir + "/*.train",
                               feature_file = FLAGS.train_dir + "/features.npy",
                               wait_times=20)
@@ -362,7 +362,7 @@ def main(args):
                     loss_fn=loss_fn,
                     learning_rate=1.0,
                     margin=0.8,
-                    checkpoints_dir=checkpoints_dir,
+                    checkpoint_dir=checkpoint_dir,
                     optimizer_class=optimizer_class,
                     config=config,
                     eval_cowatches=eval_cowatches,

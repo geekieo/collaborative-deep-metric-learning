@@ -42,24 +42,26 @@ if [ $? -eq 0 ];then
     ## training
     hadoop fs -rm -r $training_signal_file
     check_task "TRAIN: delete training signal file"
-    # todo: hadoop fs 
-    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $training_dir/dataset/src_watch_history
-    check_task "TRAIN: get src_watch_history"
-    hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/src_features
-    check_task "TRAIN: get src_features"
-    # todo: train model
+    # hadoop fs 
+    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $training_dir/dataset/watch_history
+    check_task "TRAIN: get training_dir/dataset/watch_history"
+    hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/features
+    check_task "TRAIN: get training_dir/dataset/features"
+    # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
-                               --feature_file $training_dir/dataset/src_features \
-                               --watch_file $training_dir/dataset/src_watch_history
+                               --feature_file $training_dir/dataset/features \
+                               --watch_file $training_dir/dataset/watch_history
     check_task "TRAIN: online_data"
     $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
                          --checkpoints_dir $training_dir/checkpoint
     check_task "TRAIN: train"
-    # 模型 -> serving_model
+    # 模型 -> serving_dir
     mkdir -p $serving_dir/checkpoints/$cur_date
     cp -fr $training_dir/checkpoint/* $serving_dir/checkpoints/$cur_date
-    check_task "TRAIN: copy ckpt"
+    # 重写 checkpoint 
+
+    check_task "TRAIN: copy ckpt -> serving_dir"
 
 else
     hadoop fs -test -e $update_signal_file
@@ -67,30 +69,28 @@ else
         ## updating
         hadoop fs -rm -r $update_signal_file
         check_task "UPDATE: delete update signal file"
-        # todo: hadoop fs 
-        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/update_features
-        check_task "UPDATE: update_features"
-        # serving_model predict
+        # hadoop fs 
+        hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/features
+        check_task "UPDATE: get serving_dir/dataset/features"
+        # serving_dir predict
         cd $project_dir 
         $python_env predict.py --checkpoints_dir $serving_dir/checkpoints  \
-                               --feature_file $serving_dir/dataset/update_features \
+                               --feature_file $serving_dir/dataset/features \
                                --output_dir $predict_dir
         check_task "UPDATE: predict"
         # todo:calc knn result use guid_knn.py (input encoded features output knn)
-        # 更新时间
-        cur_date=`date +"%Y%m%d%H"`
+        cur_date=`date +"%Y%m%d%H"`             # 更新时间
         topk_path=$predict_dir/$cur_date        # 调整 knn_split 地址
-
-        target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
         $python_env faiss_knn.py --embedding_file $predict_dir/output.npy \
                                  --decode_map_file $predict_dir/decode_map.json \
                                  --topk_path $topk_path
         check_task "UPDATE: faiss_knn"
 
-        # put model to hdfs and send signal
+        # put knn_result to hdfs and send signal
+        target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
         hadoop fs -mkdir -p $target_dir
         hadoop fs -put -f $topk_path/knn_split* $target_dir
-
+        heck_task "UPDATE: knn_result -> hadoop"
         # set finish signal
         hadoop fs -touchz $signal_file
     else
