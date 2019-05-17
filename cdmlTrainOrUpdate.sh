@@ -60,7 +60,9 @@ if [ $? -eq 0 ];then
     mkdir -p $serving_dir/checkpoints/$cur_date
     cp -fr $training_dir/checkpoint/* $serving_dir/checkpoints/$cur_date
     # 重写 checkpoint 
-
+    cd $serving_dir/checkpoints/$cur_date
+    ckpt=`ls -lt | grep ckpt | head -1 |awk '{print $9}' |awk -F'.' '{print $2}'`
+    printf "model_checkpoint_path: \"$serving_dir/checkpoints/$cur_date/model.$ckpt\"" > checkpoint
     check_task "TRAIN: copy ckpt -> serving_dir"
 
 else
