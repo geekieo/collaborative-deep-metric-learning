@@ -86,8 +86,8 @@ class Prediction():
 
 def test_predict():
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
-  models_dir = train_dir+"/checkpoints/"
-  ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
+  model_dir = train_dir+"/checkpoints/"
+  ckpt_dir = get_latest_folder(model_dir,nst_latest=1)
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   # ckpt = ckpt_dir+'/model.ckpt-800000'
   batch_size = 100000
@@ -103,7 +103,7 @@ def test_predict():
 
 
 def main(args):
-  ckpt_dir = get_latest_folder(FLAGS.models_dir,nst_latest=1)
+  ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
   features, decode_map = read_predict_features_txt(FLAGS.feature_file)
