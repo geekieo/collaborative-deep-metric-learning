@@ -18,8 +18,8 @@ config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("checkpoints_dir", "/data/wengjy1/cdml_1/checkpoints",
-    "存放 checkpoints 的目录")
+flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1/checkpoints",
+    "服务模型的目录，含备份模型")
 flags.DEFINE_string("feature_file", "/data/wengjy1/cdml_1/features.npy",
     "待预测的向量文件")
 flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1/checkpoints",
@@ -86,7 +86,7 @@ class Prediction():
 
 def test_predict():
   train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
-  checkpoints_dir = train_dir+"/checkpoints/"
+  models_dir = train_dir+"/checkpoints/"
   ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   # ckpt = ckpt_dir+'/model.ckpt-800000'
@@ -103,7 +103,7 @@ def test_predict():
 
 
 def main(args):
-  ckpt_dir = get_latest_folder(FLAGS.checkpoints_dir,nst_latest=1)
+  ckpt_dir = get_latest_folder(FLAGS.models_dir,nst_latest=1)
   ckpt = tf.train.latest_checkpoint(ckpt_dir)
   predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
   features, decode_map = read_predict_features_txt(FLAGS.feature_file)
