@@ -50,7 +50,7 @@ if [ $? -eq 0 ];then
     # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
-                               --feature_file $training_dir/dataset/features \
+                               --watch_feature_file $training_dir/dataset/features \
                                --watch_file $training_dir/dataset/watch_history
     check_task "TRAIN: online_data"
     $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \

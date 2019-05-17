@@ -210,8 +210,9 @@ class Trainer():
   def _eval(self, predictor, saver, sess, global_step_np, summary_writer, check_stop_step):
     self.total_eval_num += 1
     try:
-      if self.evaluater.features is not None:
+      if self.evaluater.features is None:
         logging.error('Train.run evaluater.features is None')
+        raise
       eval_embeddings = predictor.run_features(self.evaluater.features, batch_size=10000)
       self.eval_dist = self.evaluater.mean_dist(eval_embeddings, self.evaluater.cowatches)
       if global_step_np <= check_stop_step:

@@ -76,7 +76,7 @@ def test_gen_training_data():
                     threshold=1,
                     base_save_dir = os.getcwd(),
                     split_num=8,
-                    unique=True)
+                    unique=False)
 
 def test_read_features_npy():
   features = read_features_npy('train_dir/features.npy')
