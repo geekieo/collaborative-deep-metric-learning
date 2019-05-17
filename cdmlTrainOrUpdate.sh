@@ -92,7 +92,7 @@ else
         target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
         hadoop fs -mkdir -p $target_dir
         hadoop fs -put -f $topk_path/knn_split* $target_dir
-        heck_task "UPDATE: knn_result -> hadoop"
+        check_task "UPDATE: knn_result -> hadoop"
         # set finish signal
         hadoop fs -touchz $signal_file
     else
