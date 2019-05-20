@@ -71,6 +71,47 @@ def filter_watched_guids(all_watched_guids, no_feature_guids):
   return filtered_watched_guids
 
 
+def filter_training_data(features, encode_map, decode_map, all_watched_guids):
+  """ 取 features 和 all_watched_guids 两者的交集
+  Args:
+    features: numpy.ndarray
+    all_watched_guids: 2-D list. list of watched guids.
+  Return:
+    features: numpy.ndarray
+    all_watched_ids: 2-D list. list of watched ids(encoded guids)
+  """
+  unique_watched_guids = get_unique_watched_guids(all_watched_guids)
+  # 过滤无法和feature对应的 guid
+  unique_watched_ids = []
+  # no_feature_guids = []
+  for guid in unique_watched_guids:
+    try:
+      unique_watched_ids.append(encode_map[guid])
+    except:
+      # no_feature_guids.append(guid)
+      pass  
+    
+  new_encode_map = {}
+  new_decode_map = {}
+  for i, id in enumerate(unique_watched_ids):
+      new_decode_map[i] = decode_map[id]
+      new_encode_map[decode_map[id]] = i
+  
+  # re-encode features and encode watched_guids
+  no_feature_guid_num = 0
+  all_watched_ids = []
+  for guids in all_watched_guids:
+    ids = []
+    for guid in guids:
+      try:
+        ids.append(new_encode_map[guid])
+      except:
+        no_feature_guid_num += 1
+    all_watched_ids.append(ids)
+  logging.info("number of invalid guids in all_watched_guids: "+str(no_feature_guid_num))
+  
+  return features[unique_watched_ids], new_encode_map, new_decode_map, all_watched_ids
+
 # ========================= encoding guid =========================
 def encode_base_features(features):
   """ 以 features 的 keys 为基准，把 guids 编码成有序的 index
