@@ -53,9 +53,13 @@ if [ $? -eq 0 ];then
                                --watch_feature_file $training_dir/dataset/features \
                                --watch_file $training_dir/dataset/watch_history
     check_task "TRAIN: online_data"
+    # 删除旧模型
+    rm -rf $training_dir/checkpoints/*
+    # 训练新模型
     $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
                          --checkpoint_dir $training_dir/checkpoints
     check_task "TRAIN: train"
+    # TODO 新旧模型测试 看测试结果给部署信号，没有旧模型直接部署
     # 模型 -> serving_dir
     mkdir -p $serving_dir/models/$cur_date
     cp -fr $training_dir/checkpoints/* $serving_dir/models/$cur_date
