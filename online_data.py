@@ -14,11 +14,12 @@ import traceback
 
 from utils import exe_time
 from parse_data import get_unique_watched_guids
-from parse_data import filter_features
-from parse_data import filter_watched_guids
-from parse_data import encode_base_features
-from parse_data import encode_features
-from parse_data import encode_all_watched_guids
+# from parse_data import filter_features
+# from parse_data import filter_watched_guids
+# from parse_data import encode_base_features
+# from parse_data import encode_features
+# from parse_data import encode_all_watched_guids
+from parse_data import filter_training_data
 from parse_data import get_all_cowatch
 from parse_data import get_cowatch_graph
 from parse_data import select_cowatch
@@ -49,39 +50,13 @@ def read_features_txt(filename):
   Arg:
     filename: string
   """
+  line_num = int(os.popen('wc -l '+filename).read().split()[0])
+  logging.debug('read_features_txt line_num:'+str(line_num))
+  features = np.zeros((line_num, 1500), np.float32)
+  encode_map = {}
+  decode_map = {}
+  i = 0
   with open(filename,'r') as file:
-    features = collections.OrderedDict()
-    data = file.readlines()
-    for i, line in enumerate(data):
-      line = line.strip('\n')   #删除行末的 \n
-      try:
-        str_guid, str_feature = line.split('#')
-        try:
-          feature = list(map(float, (str_feature.split(','))))
-          if len(feature) == 1500:
-            features[str_guid]=feature
-        except Exception as e:
-          logging.warning('read_features_txt: drop feature. '+str(e))
-      except Exception as e:
-        logging.warning(traceback.format_exc())
-        print(i, line)
-    return features
-
-def read_predict_features_txt(filename, meta_file):
-  """读取 feature txt 文件，解析并返回 dict。
-  文件内容参考 tests/features.txt。
-  对于每行样本，分号前是 guid, 分号后是 visual feature。
-  visual feature 是 str 类型的 1500 维向量，需格式化后使用。
-  Arg:
-    filename: string
-  """
-  line_num = 0
-  with open(meta_file, 'r') as file:
-    line_num = int(file.readline().strip())
-  with open(filename,'r') as file:
-    features = np.zeros((line_num, 1500), np.float32)
-    decode_map = {}
-    i = 0
     for line in file:
       line = line.strip('\n')   #删除行末的 \n
       try:
@@ -90,13 +65,15 @@ def read_predict_features_txt(filename, meta_file):
           feature = list(map(float, (str_feature.split(','))))
           if len(feature) == 1500:
             features[i] = feature
+            encode_map[str_guid] = i
             decode_map[i] = str_guid
             i += 1
         except Exception as e:
           logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
-        logging.warning('read_features_txt'+str(e))
-    return features[:i], decode_map
+        logging.warning(traceback.format_exc())
+    return features[:i], encode_map, decode_map
+
 
 def read_features_npy(filename):
   """features 必须是 key 从 0 自增的 dict，其 value 为 ndarray。这里
@@ -124,9 +101,8 @@ def read_watched_guids(filename):
   """
   with open(filename, 'r') as file:
     all_watched_guids=[]
-    data = file.readlines()
-    for line in data:
-      line = line.rstrip('\n')    # 删除行末 \n
+    for line in file:
+      line = line.strip('\n')    # 删除行末 \n
       str_guids = line.split(',')[1] # 取 guid
       str_guids = str_guids[:-1]  # 删除有括号
       guids = str_guids.split('#')
@@ -135,10 +111,6 @@ def read_watched_guids(filename):
         for i,guid in enumerate(guids):
           if i>0 and guids[i]==guids[i-1]:
             continue            # 过滤相邻重复元素
-          # if guid[:6]=='video_':
-          #   guid = guid[6:]     # 删除每个 guid 前缀"video_"
-          # else:
-          #   logging.warning('存在没有前缀 "video_" 的 guid in watched_guids: '+guid)
           watched_guids.append(guid)
         if len(watched_guids)>1:
           all_watched_guids.append(watched_guids)
@@ -153,7 +125,7 @@ def load_cowatches(filename):
   '''
   cowatches = []
   with open(filename, 'r') as file:
-    for line in file.readlines():
+    for line in file:
       cowatch = []
       line = line.strip()
       ids = line.split(',')
@@ -179,31 +151,35 @@ def get_cowatches(watch_file, feature_file):
   """
   # read file
   logging.info('read features txt...')
-  features = exe_time(read_features_txt)(feature_file)  #345.779s
-  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
+  features, encode_map, decode_map = exe_time(read_features_txt)(feature_file)  #345.779s
+  logging.info("features num:"+str(len(features)))
 
   all_watched_guids = exe_time(read_watched_guids)(watch_file) #215.065s
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
+  logging.info("all_watched_guids num:"+str(len(all_watched_guids)))
 
-  # filter all_watched_guids and features
-  features, no_feature_guids = exe_time(filter_features)(features, all_watched_guids) #41.599s
-  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
-  logging.info("no_feature_guids size:"+str(sys.getsizeof(no_feature_guids))+"\tnum:"+str(len(no_feature_guids)))
+  # # filter and all_watched_guids and features
+  # feature, no_feature_guids = exe_time(filter_features)(features, all_watched_guids) #41.599s
+  # logging.info("features num:"+str(len(features))+"no_feature_guids num:"+str(len(no_feature_guids)))
 
-  all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids) #94.864s
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
+  # all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids) #94.864s
+  # logging.info("all_watched_guids num:"+str(len(all_watched_guids)))
 
-  # encode guid to sequential integer, to save memory and speed up processing
-  encode_map, decode_map = exe_time(encode_base_features)(features) #1.134s
-  features = exe_time(encode_features)(features, decode_map)  #422.296s #TODO
-  logging.info("features size:"+str(sys.getsizeof(features))+"\tnum:"+str(len(features)))
+  # # encode guid to sequential integer, to save memory and speed up processing
+  # encode_map, decode_map = exe_time(encode_base_features)(features) #1.134s
+  # features = exe_time(encode_features)(features, decode_map)  #422.296s #TODO
+  # logging.info("features num:"+str(len(features)))
   
-  all_watched_guids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map) #146.209s
-  logging.info("all_watched_guids size:"+str(sys.getsizeof(all_watched_guids))+"\tnum:"+str(len(all_watched_guids)))
+  # all_watched_ids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map) #146.209s
+  # logging.info("all_watched_ids num:"+str(len(all_watched_ids)))
 
+  # filter and re-encode
+  features, encode_map, decode_map, all_watched_ids = filter_training_data(features, encode_map, decode_map, all_watched_guids)
+  logging.info("features num:"+str(len(features)))
+  logging.info("all_watched_ids num:"+str(len(all_watched_ids)))
+  
   # get cowatch
-  all_cowatch = exe_time(get_all_cowatch)(all_watched_guids)  #283.462s
-  logging.info("all_cowatch size:"+str(sys.getsizeof(all_cowatch))+"\tnum:"+str(len(all_cowatch)))
+  all_cowatch = exe_time(get_all_cowatch)(all_watched_ids)  #283.462s
+  logging.info("all_cowatch num:"+str(len(all_cowatch)))
   
   # get cowatch graph, delete self pair
   graph, cowatches = exe_time(get_cowatch_graph)(all_cowatch) #297.414s
@@ -213,7 +189,7 @@ def get_cowatches(watch_file, feature_file):
 
 def select_cowatches(cowatches, graph,threshold=3, unique=False):
   cowatches = select_cowatch(graph, threshold, cowatches, unique=unique)
-  logging.info("cowatches size:"+str(sys.getsizeof(cowatches))+"\tnum:"+str(len(cowatches)))
+  logging.info("cowatches num:"+str(len(cowatches)))
   logging.debug("unique_guids in cowatches:"+str(len(exe_time(get_unique_watched_guids)(cowatches))))
   return cowatches
 
@@ -232,7 +208,7 @@ def get_triplets(watch_file, feature_file, threshold=3,unique=False):
   cowatches = select_cowatches(cowatches, graph, threshold, unique=unique)
   # mine triplets
   triplets = exe_time(mine_triplets)(cowatches, features)
-  logging.info("triplets size:"+str(sys.getsizeof(triplets))+"\tnum:"+str(len(triplets)))
+  logging.info("triplets num:"+str(len(triplets)))
   
   return triplets, features, encode_map, decode_map
 
