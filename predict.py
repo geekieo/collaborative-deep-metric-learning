@@ -10,7 +10,7 @@ from tensorflow import flags
 import json
 import traceback
 
-from online_data import read_predict_features_txt
+from online_data import read_features_txt
 from utils import get_latest_folder
 
 logging.set_verbosity(tf.logging.INFO)
@@ -109,7 +109,7 @@ def main(args):
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     logging.info("predict read_features_txt reading ...")
-    features, encode_map, decode_map = read_features_txt(FLAGS.feature_file)
+    features, _, decode_map = read_features_txt(FLAGS.feature_file)
     logging.info("predict read_features_txt success!")
     # features
     predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
