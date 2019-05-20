@@ -63,11 +63,11 @@ class MPTripletPipe(object):
       feature_file: filename
     """
     self.cowatch_files = tf.gfile.Glob(cowatch_file_patten)
+    self.cowatch_num = self._get_cowatch_num()
     # global ALL_FILES_NUM
     # ALL_FILES_NUM = len(self.cowatch_files)
     global FEATURES
     FEATURES = read_features_npy(feature_file) 
-    self.cowatch_num = _get_cowatch_num()
     self.wait_times = wait_times
     logging.info('MPTripletPipe __init__ cowatch_files: '+str(self.cowatch_files))
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
