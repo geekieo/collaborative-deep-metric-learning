@@ -66,10 +66,17 @@ class MPTripletPipe(object):
     # global ALL_FILES_NUM
     # ALL_FILES_NUM = len(self.cowatch_files)
     global FEATURES
-    FEATURES = read_features_npy(feature_file)    
+    FEATURES = read_features_npy(feature_file) 
+    self.cowatch_num = _get_cowath_num()
     self.wait_times = wait_times
     logging.info('MPTripletPipe __init__ cowatch_files: '+str(self.cowatch_files))
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
+
+  def _get_cowath_num(self):
+    cowath_num = 0
+    for file in self.cowatch_files:
+      cowath_num += int(os.popen('wc -l '+file).read().split()[0])
+    return cowath_num
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
     """多进程读取多个文件，在子进程中将 guid 映射成 feature
@@ -160,7 +167,7 @@ class MPTripletPipe(object):
           exitFlag = True
         time.sleep(1)
     return
-    
+  
   def __del__(self):
     # self.pool.close() # 不能在往进程池中添加进程。未完成的任务阻塞将无法调用join。
     self.pool.terminate() # 关闭进程池，结束工作进程，不再处理未完成的任务。
@@ -170,7 +177,7 @@ class MPTripletPipe(object):
 
 if __name__ == '__main__':
   # test
-  pipe = MPTripletPipe(triplet_file_patten='/data/wengjy1/cdml_1_unique/*.train',
+  pipe = MPTripletPipe(cowatch_file_patten='/data/wengjy1/cdml_1_unique/*.train',
                        feature_file="/data/wengjy1/cdml_1_unique/features.txt")
   pipe.create_pipe(num_epochs=2,batch_size=50)
   # 单例
