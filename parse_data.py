@@ -91,7 +91,7 @@ def filter_training_data(features, encode_map, decode_map, all_watched_guids):
     except:
       no_feature_guids.append(guid)
       no_feature_guid_num += 0
-  logging.info("filter_training_data unique_watched_guids num:"+str(unique_watched_guids))
+  logging.info("filter_training_data unique_watched_guids num:"+str(len(unique_watched_guids)))
   logging.info("filter_training_data invalid guids in unique_watched_guids: "+str(no_feature_guid_num))
     
   new_encode_map = {}
