@@ -30,7 +30,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("watch_file", "/data/wengjy1/cdml/watched_video_ids",
     "用户观看视频的 guid 历史文件")
-flags.DEFINE_string("watch_feature_file", "/data/wengjy1/cdml/video_guid_inception_feature.txt",
+flags.DEFINE_string("watch_feature_file", "/data/wengjy1/cdml/video_guid_inception_feature",
     "用户观看视频对应的视频特征向量文件")
 flags.DEFINE_integer("threshold", 1,
     "生成训练文件的 cowatch 阈值")
