@@ -48,7 +48,7 @@ def load_encode_map(filename):
 def load_guids(filename):
   guids=[]
   with open(filename, 'r') as file:
-    for line in file.readlines():
+    for line in file:
       line = line.strip()
       guids.append(line)
   return guids
