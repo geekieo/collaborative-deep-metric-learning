@@ -67,16 +67,16 @@ class MPTripletPipe(object):
     # ALL_FILES_NUM = len(self.cowatch_files)
     global FEATURES
     FEATURES = read_features_npy(feature_file) 
-    self.cowatch_num = _get_cowath_num()
+    self.cowatch_num = _get_cowatch_num()
     self.wait_times = wait_times
     logging.info('MPTripletPipe __init__ cowatch_files: '+str(self.cowatch_files))
     logging.debug('MPTripletPipe __init__ features id: '+str(id(FEATURES)))
 
-  def _get_cowath_num(self):
-    cowath_num = 0
+  def _get_cowatch_num(self):
+    cowatch_num = 0
     for file in self.cowatch_files:
-      cowath_num += int(os.popen('wc -l '+file).read().split()[0])
-    return cowath_num
+      cowatch_num += int(os.popen('wc -l '+file).read().split()[0])
+    return cowatch_num
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
     """多进程读取多个文件，在子进程中将 guid 映射成 feature
