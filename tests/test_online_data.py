@@ -53,7 +53,7 @@ def test_get_triplets():
 
 def test_read_features_txt_real():
   try:
-    features = read_features_txt('/data/wengjy1/video_guid_inception_feature')
+    features = read_features_txt('/data/wengjy1/video_guid_inception_features')
   except Exception as e:
     print(e)
   print(sys.getsizeof(features))
@@ -66,7 +66,7 @@ def test_get_triplets_real():
   try:
     triplets, features = get_triplets(
       watch_file="/data/wengjy1/watched_video_ids",
-      feature_file="/data/wengjy1/video_guid_inception_feature")
+      feature_file="/data/wengjy1/video_guid_inception_features")
   except Exception as e:
     print(e)
 
