@@ -329,7 +329,9 @@ class Trainer():
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
-
+          # if global_step_np == 5000:
+          #   saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
+          #   break
         except Exception as e:
           logging.error("Train.run "+str(e)) 
       # TODO tests and backup best model

@@ -67,32 +67,31 @@ def get_title_by_simid(simid):
 
 
 def get_guid_title(input_file, output_file, b_guid=False):
-    f = open(input_file, 'r')
     f_save = open(output_file, 'w')
-    for line in f.readlines():
-        line = line.strip()
-        if line == '':
-            f_save.write('\n')
-            continue
-        if 'top' in line:
-            f_save.write(line + '\n')
-            continue
-        if ' ' not in line:
-            guid = line
-            if not b_guid:
-                title = get_title_by_simid(guid)
+    with open(input_file, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line == '':
+                f_save.write('\n')
+                continue
+            if 'top' in line:
+                f_save.write(line + '\n')
+                continue
+            if ' ' not in line:
+                guid = line
+                if not b_guid:
+                    title = get_title_by_simid(guid)
+                else:
+                    title = get_video_name_use_guid(guid)
+                f_save.write(title + '\n')
             else:
-                title = get_video_name_use_guid(guid)
-            f_save.write(title + '\n')
-        else:
-            guid, score = line.split(' ')
-            if not b_guid:
-                title = get_title_by_simid(guid)
-            else:
-                title = get_video_name_use_guid(guid)
-            f_save.write((title + ' ' + score + '\n').encode('gbk', 'replace').decode('gbk'))
-    f.close()
-    f_save.close()
+                guid, score = line.split(' ')
+                if not b_guid:
+                    title = get_title_by_simid(guid)
+                else:
+                    title = get_video_name_use_guid(guid)
+                f_save.write((title + ' ' + score + '\n').encode('gbk', 'replace').decode('gbk'))
+        f_save.close()
 
 
 if __name__ == '__main__':
