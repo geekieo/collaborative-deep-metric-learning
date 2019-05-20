@@ -92,7 +92,7 @@ def filter_training_data(features, encode_map, decode_map, all_watched_guids):
       no_feature_guids.append(guid)
       no_feature_guid_num += 0
   logging.info("filter_training_data unique_watched_guids num:"+str(len(unique_watched_guids)))
-  logging.info("filter_training_data invalid guids in unique_watched_guids: "+str(no_feature_guid_num))
+  logging.info("filter_training_data no_feature_guids in unique_watched_guids: "+str(no_feature_guid_num))
     
   new_encode_map = {}
   new_decode_map = {}
@@ -115,7 +115,7 @@ def filter_training_data(features, encode_map, decode_map, all_watched_guids):
       except:
         no_feature_guid_num += 1
     all_watched_ids.append(ids)
-  logging.info("invalid guids in all_watched_guids should be 0 : "+str(no_feature_guid_num))
+  logging.info("no_feature_guid in all_watched_guids should be 0 : "+str(no_feature_guid_num))
   
   return features[unique_watched_ids], new_encode_map, new_decode_map, all_watched_ids
 
