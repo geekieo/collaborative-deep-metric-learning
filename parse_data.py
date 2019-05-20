@@ -83,19 +83,26 @@ def filter_training_data(features, encode_map, decode_map, all_watched_guids):
   unique_watched_guids = get_unique_watched_guids(all_watched_guids)
   # 过滤无法和feature对应的 guid
   unique_watched_ids = []
-  # no_feature_guids = []
+  no_feature_guids = []
+  no_feature_guid_num = 0
   for guid in unique_watched_guids:
     try:
       unique_watched_ids.append(encode_map[guid])
     except:
-      # no_feature_guids.append(guid)
-      pass  
+      no_feature_guids.append(guid)
+      no_feature_guid_num += 0
+  logging.info("filter_training_data unique_watched_guids num:"+str(unique_watched_guids))
+  logging.info("filter_training_data invalid guids in unique_watched_guids: "+str(no_feature_guid_num))
     
   new_encode_map = {}
   new_decode_map = {}
   for i, id in enumerate(unique_watched_ids):
       new_decode_map[i] = decode_map[id]
       new_encode_map[decode_map[id]] = i
+
+  # delete invalid guids and resplit watch_guids
+  all_watched_guids = filter_watched_guids(all_watched_guids, no_feature_guids)
+  logging.info("filter_training_data filter_watched_guids all_watched_guids:"+str(len(all_watched_guids)))
   
   # re-encode features and encode watched_guids
   no_feature_guid_num = 0
@@ -108,7 +115,7 @@ def filter_training_data(features, encode_map, decode_map, all_watched_guids):
       except:
         no_feature_guid_num += 1
     all_watched_ids.append(ids)
-  logging.info("number of invalid guids in all_watched_guids: "+str(no_feature_guid_num))
+  logging.info("invalid guids in all_watched_guids should be 0 : "+str(no_feature_guid_num))
   
   return features[unique_watched_ids], new_encode_map, new_decode_map, all_watched_ids
 
@@ -224,8 +231,8 @@ def get_cowatch_graph(cowatches):
   for i in range(len(cowatches) - 1, -1, -1): #倒序
     cowatch = cowatches[i]
     if not(isinstance(cowatch[0],int) and isinstance(cowatch[0],int)):
-      rint('get_cowatch_graph: cowatch is not int',str(cowatch))
-      cowatches.pop(i)  # O(n) 若数据合规，不会触发
+      raise RuntimeError('get_cowatch_graph: cowatch is not int 数据不合规'+str(cowatch))
+      cowatches.pop(i)  # O(n) 若数据合规，不会触发，否则复杂度会爆炸
       continue
     # 有向转无向，并丢弃自己与自己组成的 co-watch pair
     if cowatch[0] < cowatch[1]:
@@ -234,7 +241,8 @@ def get_cowatch_graph(cowatches):
       edge = str(cowatch[1])+','+str(cowatch[0])
     else:
       drop_count += 1
-      cowatches.pop(i)  # O(n) 若数据合规，不会触发
+      raise RuntimeError('get_cowatch_graph cowatch 存在相邻重复元素，结果不合规')
+      cowatches.pop(i)  # O(n) 若数据合规，不会触发，否则复杂度会爆炸
       continue
     # 统计边长
     if edge in graph:

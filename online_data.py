@@ -173,7 +173,7 @@ def get_cowatches(watch_file, feature_file):
   # logging.info("all_watched_ids num:"+str(len(all_watched_ids)))
 
   # filter and re-encode
-  features, encode_map, decode_map, all_watched_ids = filter_training_data(features, encode_map, decode_map, all_watched_guids)
+  features, encode_map, decode_map, all_watched_ids = exe_time(filter_training_data)(features, encode_map, decode_map, all_watched_guids)
   logging.info("features num:"+str(len(features)))
   logging.info("all_watched_ids num:"+str(len(all_watched_ids)))
   
@@ -183,6 +183,7 @@ def get_cowatches(watch_file, feature_file):
   
   # get cowatch graph, delete self pair
   graph, cowatches = exe_time(get_cowatch_graph)(all_cowatch) #297.414s
+  logging.info("cowatches num:"+str(len(cowatches)))
 
   return cowatches, features, encode_map, decode_map, graph
 
