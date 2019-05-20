@@ -107,6 +107,7 @@ def main(args):
   try:
     ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
+    logging.info("ckpt is "+ckpt)
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     logging.info("predict read_features_txt reading ...")
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
