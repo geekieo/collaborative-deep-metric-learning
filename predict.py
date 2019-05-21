@@ -21,8 +21,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1/checkpoints",
     "服务模型的目录，含备份模型")
-flags.DEFINE_string("feature_file", "/data/wengjy1/cdml_1/features.npy",
-    "待预测的向量文件")
+flags.DEFINE_string("feature_file", "/data/wengjy1/1905cdml/features",
+    "待预测的原始向量文件")
 flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1/checkpoints",
     "模型输出向量的保存路径")
 flags.DEFINE_integer("batch_size",300000,
@@ -86,17 +86,16 @@ class Prediction():
 
 
 def test_predict():
-  train_dir = "/data/wengjy1/cdml_1"  # NOTE 路径是 data
-  model_dir = train_dir+"/checkpoints/"
-  ckpt_dir = get_latest_folder(model_dir,nst_latest=1)
-  ckpt = tf.train.latest_checkpoint(ckpt_dir)
-  # ckpt = ckpt_dir+'/model.ckpt-800000'
-  batch_size = 100000
-  features = read_features_npy(train_dir+"/features.npy")
+  ckpt_dir = FLAGS.model_dir
+  logging.info("ckpt is "+ckpt)
 
+  logging.info("predict read_features_txt reading ...")
+  features, _, decode_map = read_features_txt(FLAGS.feature_file)
+  logging.info("predict read_features_txt success!")
+  # predict
   predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
-  embeddings = predictor.run_features(features=features, batch_size=batch_size, output_dir=ckpt_dir)
-
+  embeddings = predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
+ 
   print(features.shape)
   uni_embeddings = np.unique(embeddings, axis=0)
   print(uni_embeddings.shape)
@@ -108,11 +107,12 @@ def main(args):
     ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
     logging.info("ckpt is "+ckpt)
-    predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
+
     logging.info("predict read_features_txt reading ...")
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
     logging.info("predict read_features_txt success!")
-    # features
+    # predict and write output
+    predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
     # write decode_map
     with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
