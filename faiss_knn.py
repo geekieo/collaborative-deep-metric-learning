@@ -15,8 +15,8 @@ from utils import get_latest_folder
 
 
 train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
-checkpoints_dir = train_dir+"/checkpoints/"
-ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
+ckpt_dir = train_dir+"/checkpoints/"
+# ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
 
