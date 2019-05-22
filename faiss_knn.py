@@ -19,6 +19,7 @@ ckpt_dir = train_dir+"/checkpoints/"
 # ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
+topk_dir = ckpt_dir+'/knn_result'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
@@ -27,7 +28,7 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "待计算近邻的向量文件")
 flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
-flags.DEFINE_string("topk_path", None, 
+flags.DEFINE_string("topk_dir", ckpt_dir, 
     "Top-k 结果保存地址")
 
 
@@ -67,7 +68,7 @@ def knn_process(path, index, begin_index, I, D):
     raise
 
 
-def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
+def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
   """use faiss to calculate knn for recall online
   Arg:
     embeddings
@@ -127,8 +128,8 @@ def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None
   for i in range(split_num - 1):
     batch_begin = i * patch_num
     batch_end = (i + 1) * patch_num
-    pool_my.apply_async(knn_process, args=(topk_path, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
-  pool_my.apply_async(knn_process, args=(topk_path, split_num-1, (split_num-1)*patch_num,
+    pool_my.apply_async(knn_process, args=(topk_dir, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
+  pool_my.apply_async(knn_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
                                          I[(split_num-1)*patch_num:], D[(split_num-1)*patch_num:]))
   pool_my.close()
   pool_my.join()
@@ -137,15 +138,15 @@ def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None
 
 def main(args):
   # TODO logging FLAGS
-  subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
+  subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
   print("faiss_knn FLAGS.DECODE_MAP",FLAGS.decode_map_file, ' decode_map len', len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
   print("faiss_knn FLAGS.embedding_file",FLAGS.embedding_file, ' embedding_file shape', embeddings.shape)
   print('calc_knn ...')
-  calc_knn(embeddings, topk_path=FLAGS.topk_path, nearest_num=FLAGS.nearest_num)
-  print("faiss_knn save knn_result to FLAGS.topk_path", FLAGS.topk_path)
+  calc_knn(embeddings, topk_dir=FLAGS.topk_dir, nearest_num=FLAGS.nearest_num)
+  print("faiss_knn save knn_result to FLAGS.topk_dir", FLAGS.topk_dir)
 
 if __name__ == '__main__':
   tf.app.run()

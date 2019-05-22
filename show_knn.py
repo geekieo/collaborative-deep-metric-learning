@@ -13,8 +13,9 @@ from get_guid_title import get_video_name_use_guid
 nearestN=5
 
 train_dir = "/data/wengjy1/cdml_2"  # NOTE 路径是 data
-checkpoints_dir = train_dir+"/checkpoints/"
-ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
+# checkpoints_dir = train_dir+"/checkpoints/"
+# ckpt_dir = get_latest_folder(checkpoints_dir,nst_latest=1)
+ckpt_dir = train_dir+"/checkpoints/"
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
 encode_map_file = train_dir+'/encode_map.json'
