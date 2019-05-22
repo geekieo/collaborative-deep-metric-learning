@@ -99,16 +99,16 @@ else
         check_update_task "UPDATE: predict"
         # todo:calc knn result use guid_knn.py (input encoded features output knn)
         cur_date=`date +"%Y%m%d%H"`             # 更新时间
-        topk_path=$predict_dir/$cur_date        # 调整 knn_split 地址
+        topk_dir=$predict_dir/$cur_date        # 调整 knn_split 地址
         $python_env faiss_knn.py --embedding_file $predict_dir/output.npy \
                                  --decode_map_file $predict_dir/decode_map.json \
-                                 --topk_path $topk_path
+                                 --topk_dir $topk_dir
         check_update_task "UPDATE: faiss_knn"
 
         # put knn_result to hdfs and send signal
         target_dir=/user/zhoukang/videoknn/cdml/$cur_date 
         hadoop fs -mkdir -p $target_dir
-        hadoop fs -put -f $topk_path/knn_split* $target_dir
+        hadoop fs -put -f $topk_dir/knn_split* $target_dir
         check_update_task "UPDATE: knn_result -> hadoop"
         # set finish signal
         hadoop fs -touchz $signal_file

@@ -42,7 +42,7 @@ flags.DEFINE_boolean("unique", True,
     "是否对 cowatch 训练集做唯一化处理，即一种 cowatch 仅出现一次，这种唯一化不区分内部元素的顺序")
 
 
-def read_features_txt(filename):
+def read_features_txt(filename, drop_record=10):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature。
@@ -55,7 +55,7 @@ def read_features_txt(filename):
   features = np.zeros((line_num, 1500), np.float32)
   encode_map = {}
   decode_map = {}
-  i = 0
+  i = 0 # feature index
   with open(filename,'r') as file:
     for line in file:
       line = line.strip('\n')   #删除行末的 \n
@@ -69,10 +69,13 @@ def read_features_txt(filename):
             decode_map[i] = str_guid
             i += 1
         except Exception as e:
-          logging.warning('read_features_txt: drop feature. '+str(e))
+          if is not None and drop_record > 0:
+            drop_record -= 1
+            logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
         logging.warning(traceback.format_exc())
-    return features[:i], encode_map, decode_map
+  logging.info("read_features_txt drop features count:"+str(line_num-i))
+  return features[:i], encode_map, decode_map
 
 
 def read_features_npy(filename):
@@ -341,6 +344,7 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
 
 
 def main(args):
+  
   gen_training_data(watch_file=FLAGS.watch_file,
                     feature_file=FLAGS.watch_feature_file,
                     threshold=FLAGS.threshold,
