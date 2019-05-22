@@ -69,7 +69,7 @@ def read_features_txt(filename, drop_record=10):
             decode_map[i] = str_guid
             i += 1
         except Exception as e:
-          if is not None and drop_record > 0:
+          if drop_record is not None and drop_record > 0:
             drop_record -= 1
             logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
@@ -344,7 +344,7 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
 
 
 def main(args):
-  
+
   gen_training_data(watch_file=FLAGS.watch_file,
                     feature_file=FLAGS.watch_feature_file,
                     threshold=FLAGS.threshold,
