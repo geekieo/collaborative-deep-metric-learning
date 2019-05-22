@@ -148,10 +148,10 @@ def main(args):
   subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("faiss_knn decode_map len', len(DECODE_MAP))
+  print("faiss_knn decode_map len", len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
-  print("faiss_knn embedding_file shape', embeddings.shape)
-  print('calc_knn ...')
+  print("faiss_knn embedding_file shape", embeddings.shape)
+  print("calc_knn ...")
   calc_knn(embeddings, topk_dir=FLAGS.topk_dir, nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
