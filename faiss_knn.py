@@ -24,8 +24,10 @@ topk_dir = ckpt_dir+'/knn_result'
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
     "待计算近邻的向量文件")
+flags.DEFINE_boolean("l2_norm", False, 
+    "是否对输入向量做 L2 归一化")
 flags.DEFINE_string("decode_map_file",decode_map_file,
-    "待计算近邻的向量文件")
+    "向量文件索引到 guid 的映射文件")
 flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
@@ -119,7 +121,7 @@ def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None,
     # np.save(result_dir + '/score.npy', D)
     # print("save to ",result_dir)
 
-  total_num = len(DECODE_MAP)
+  total_num = embeddings.shape[0]
   patch_num = total_num // split_num
 
   ## Pool method
@@ -138,15 +140,20 @@ def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None,
 
 def main(args):
   # TODO logging FLAGS
+  print("FLAGS.topk_dir " + str(FLAGS.topk_dir))
+  print("FLAGS.decode_map_file " + str(decode_map_file))
+  print("FLAGS.embedding_file " + str(embedding_file))
+  print("FLAGS.l2_norm " + str(FLAGS.l2_norm))
+
   subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("faiss_knn FLAGS.DECODE_MAP",FLAGS.decode_map_file, ' decode_map len', len(DECODE_MAP))
+  print("faiss_knn decode_map len', len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
-  print("faiss_knn FLAGS.embedding_file",FLAGS.embedding_file, ' embedding_file shape', embeddings.shape)
+  print("faiss_knn embedding_file shape', embeddings.shape)
   print('calc_knn ...')
-  calc_knn(embeddings, topk_dir=FLAGS.topk_dir, nearest_num=FLAGS.nearest_num)
-  print("faiss_knn save knn_result to FLAGS.topk_dir", FLAGS.topk_dir)
+  calc_knn(embeddings, topk_dir=FLAGS.topk_dir, nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
+  print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
 if __name__ == '__main__':
   tf.app.run()
