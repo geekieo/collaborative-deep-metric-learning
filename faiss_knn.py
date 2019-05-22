@@ -29,7 +29,7 @@ flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
 flags.DEFINE_string("topk_path", None, 
     "Top-k 结果保存地址")
-subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
+
 
 def load_embedding(filename):
   embeddings = np.load(filename)
@@ -136,6 +136,8 @@ def calc_knn(embeddings, topk_path, nearest_num=51, split_num=10, D=None, I=None
   print('multiprocessing pool:%f s'%(end - begin))
 
 def main(args):
+  # TODO logging FLAGS
+  subprocess.call('mkdir -p {}'.format(FLAGS.topk_path), shell=True)
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
   print("faiss_knn FLAGS.DECODE_MAP",FLAGS.decode_map_file, ' decode_map len', len(DECODE_MAP))
