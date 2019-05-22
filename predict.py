@@ -87,8 +87,8 @@ class Prediction():
 
 def test_predict():
   ckpt_dir = FLAGS.model_dir
-  logging.info("ckpt is "+ckpt)
-
+  logging.info("ckpt is "+ckpt_dir)
+  ckpt = tf.train.latest_checkpoint(ckpt_dir)
   logging.info("predict read_features_txt reading ...")
   features, _, decode_map = read_features_txt(FLAGS.feature_file)
   logging.info("predict read_features_txt success!")
@@ -103,6 +103,7 @@ def test_predict():
 
 
 def main(args):
+  # TODO logging.info("FLAGS")
   try:
     ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
@@ -111,7 +112,7 @@ def main(args):
     logging.info("predict read_features_txt reading ...")
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
     logging.info("predict read_features_txt success!")
-    # predict and write output
+    # predict and write
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
     # write decode_map

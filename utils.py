@@ -40,7 +40,7 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
   return folders[-nst_latest]
 
 
-def clean_file(log_dir, keepdays=7):
+def clean_file_by_time(log_dir, keepdays=7):
   """目录内部，文件将按时间无差别删除
   NOTE: 对于定时删除的目录，使用专属目录
   """
@@ -53,3 +53,7 @@ def clean_file(log_dir, keepdays=7):
       timeStamp = int(time.mktime(nDayAgo.timetuple()))
       if createTime < timeStamp:  # 创建时间在n天前的文件删除
         os.remove(os.path.join(parent, filename))
+
+
+def delete_file_by_count(base_dir, prefix, keepcount=7):
+  pass

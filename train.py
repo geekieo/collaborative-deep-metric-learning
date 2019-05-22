@@ -322,7 +322,7 @@ class Trainer():
                 feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
           if global_step_np % 40 == 0:
-            logging.info("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
+            logging.debug("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % 400 == 0:
