@@ -246,31 +246,6 @@ class Trainer():
     test_embeddings = predictor.run_features(self.tester.features, batch_size=50000)
     return self.evaluater.mean_dist(test_embeddings, self.tester.cowatches)
 
-  # def _copy_ckpt(self, ckpt, output_dir):
-  #   data = ckpt+".data-00000-of-00001"
-  #   index = ckpt + ".index"
-  #   meta = ckpt + ".meta"
-  #   try:
-  #     shutil.copyfile(data, output_dir + "/"+get_local_time()+".data-00000-of-00001")
-  #     shutil.copyfile(index, output_dir + "/"+get_local_time()+".index")
-  #     shutil.copyfile(meta, output_dir + "/"+get_local_time()+".meta")
-  #   except Exception as e:
-  #     logging.error(traceback.format_exc())
-
-
-  # def _deploy_best_ckpt(self, checkpoints_dir, output_dir):
-  #   ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
-  #   today_ckpt = tf.train.latest_checkpoint(ckpt_dir)
-  #   try:
-  #     ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=2)
-  #     yesterday_ckpt = tf.train.latest_checkpoint(ckpt_dir)
-  #   except Exception as e:
-  #     logging.info('Got no yesterday\'s ckpt. Deploy today\'s ckpt to ' + output_dir)
-  #     _copy_ckpt(today_ckpt, output_dir)
-  #     break
-    
-
-
   def run(self):
 
     self.pipe.create_pipe(self.num_epochs, self.batch_size)
