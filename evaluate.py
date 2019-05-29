@@ -61,3 +61,8 @@ class Evaluation():
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
 
+  def nDCG(self, embeddings, cowatches):
+    pass
+
+  def MAP(self):
+    pass
