@@ -233,10 +233,6 @@ class Trainer():
         tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
       summary_writer.add_summary(summary_eval, global_step_np)
 
-      # test_dist = _test(predictor)
-      # summary_test = tf.Summary(value=[
-      #     tf.Summary.Value(tag="eval/test_dist", simple_value=test_dist)])
-      # summary_writer.add_summary(summary_test, global_step_np)
     except Exception as e:
       logging.error("Train._eval "+str(e))
 

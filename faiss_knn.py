@@ -110,11 +110,11 @@ def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None,
         index = faiss.index_cpu_to_all_gpus(cpu_index)
       index.train(embeddings)
 
-    index.add(embeddings)
+    index.add(embeddings) #待召回向量
     end = time.time()
     print('create index time cost:', end - begin)
     index.nprobe = 256
-    D, I = index.search(embeddings, nearest_num)  # actual search
+    D, I = index.search(embeddings, nearest_num)  # actual search , 全部缓存 embedding （训练+增量），作为query 
     end1 = time.time()
     print('whole set query time cost:', end1 - end)
     # np.save(result_dir + '/nearest_index.npy', I)
