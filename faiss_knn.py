@@ -63,8 +63,8 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
             'gpuivf': inverted file index, low time cost with lossing little precision
     l2_norm: NOTE embeddings should be L2 normalized, otherwise it will get wrong result in HNSW method! 
   Return:
-    D: 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引
-    I：与 D 对应的每个近邻的与 query 向量的距离
+    D: D for distance. 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引
+    I：I for index. 与 D 对应的每个近邻的与 query 向量的距离
   """
   if method not in ['hnsw', 'L2', 'gpuivf']:
     raise(ValueError, 'Unsupported method:%s'%(method))
@@ -106,20 +106,20 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   return D, I
 
 
-def diff(eD, fD, eI):
+def diff(eD, eI, fI):
   mask = np.zeros(eI.shape).astype('bool')
-  for i, (e, f) in enumerate(zip(eD, fD)):
+  for i, (e, f) in enumerate(zip(eI, fI)):
     mask[i] = np.isin(e,f)
-  eI[mask] = 0.0  #会修改原始eI
-  return eI
+  eD[mask] = 0.0  #会修改原始eI
+  return eD
 
 
 def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51, l2_norm):
   eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm)
-  fD, _ = calc_knn(features, features, method,nearest_num, l2_norm=True)
+  _, fI = calc_knn(features, features, method,nearest_num, l2_norm=True)
   print('eD.shape: ',eD.shape)
   print('fD.shape: ',fD.shape)
-  eI = diff(eD, fD, eI)
+  eD = diff(eD, eI, fI)
   return  eD, eI
 
 
