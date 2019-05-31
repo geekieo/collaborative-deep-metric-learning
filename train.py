@@ -164,7 +164,8 @@ class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate, margin,
                checkpoint_dir, optimizer_class, config, eval_cowatches, test_cowatches,
-               best_eval_dist=1.0, require_improve_num=10,loglevel=tf.logging.INFO):
+               best_eval_dist=1.0, eval_per_epoch=100 ,require_improve_num=10,
+               loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -185,6 +186,7 @@ class Trainer():
     self.last_improve_num = 0
     self.best_eval_dist = best_eval_dist
     self.eval_dist = 0.0
+    self.eval_per_epoch = eval_per_epoch
     self.require_improve_num = require_improve_num # 如果几次验证没有改进，停止迭代
     # 准备验证对象
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
@@ -267,7 +269,10 @@ class Trainer():
       predictor = Prediction(sess=sess)
 
       global_step_np = 0
-      check_stop_step = 30000
+      check_stop_step = self.pipe.cowatch_num # 1个epoch后才开始验证
+      eval_step = int(self.pipe.cowatch_num/self.eval_per_epoch)
+      logging_step = int(eval_step/10)
+
       # 迭代拟合
       while True:
         try:
@@ -292,11 +297,11 @@ class Trainer():
           _, global_step_np, loss_np = sess.run([train_op, global_step, loss],
                 feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
-          if global_step_np % 40 == 0:
+          if global_step_np % logging_step == 0:
             logging.debug("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
-          if global_step_np % 400 == 0:
+          if global_step_np % eval_step == 0:
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)
             summary_str = sess.run(summary_op, feed_dict={input_batch: input_batch_np})
             summary_writer.add_summary(summary_str, global_step_np)
@@ -330,7 +335,7 @@ def main(args):
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
-                    num_epochs=5,
+                    num_epochs=3,
                     batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,
@@ -342,7 +347,8 @@ def main(args):
                     eval_cowatches=eval_cowatches,
                     test_cowatches=test_cowatches,
                     best_eval_dist=1.0,
-                    require_improve_num=100,
+                    eval_per_epoch = 100,
+                    require_improve_num=30,
                     loglevel=tf.logging.INFO)
   # TODO model test and backup. new model vs last model
   
