@@ -269,9 +269,12 @@ class Trainer():
       predictor = Prediction(sess=sess)
 
       global_step_np = 0
-      check_stop_step = self.pipe.cowatch_num # 1个epoch后才开始验证
-      eval_step = int(self.pipe.cowatch_num/self.eval_per_epoch)
-      logging_step = int(eval_step/10)
+      check_stop_step = self.pipe.cowatch_num/self.batch_size # 1个epoch后才开始验证
+      eval_step = int(self.pipe.cowatch_num/self.batch_size/self.eval_per_epoch)
+      show_step = int(eval_step/10)
+      logging.info("check_stop_step: "+str(check_stop_step))
+      logging.info("eval_step: "+str(eval_step))
+      logging.info("show_step: "+str(show_step))
 
       # 迭代拟合
       while True:
@@ -297,7 +300,7 @@ class Trainer():
           _, global_step_np, loss_np = sess.run([train_op, global_step, loss],
                 feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
-          if global_step_np % logging_step == 0:
+          if global_step_np % show_step == 0:
             logging.debug("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
                 " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
