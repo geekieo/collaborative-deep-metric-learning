@@ -220,6 +220,7 @@ class Trainer():
       if global_step_np <= check_stop_step:
         logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
             str(self.best_eval_dist)+" eval_dist: "+str(self.eval_dist)+". Before check stop.")
+        self.last_improve_num = self.total_eval_num   # 防止 early stop
       elif self.eval_dist < self.best_eval_dist:
         logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
             str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt.")
@@ -269,7 +270,7 @@ class Trainer():
       predictor = Prediction(sess=sess)
 
       global_step_np = 0
-      check_stop_step = self.pipe.cowatch_num/self.batch_size # 1个epoch后才开始验证
+      check_stop_step = int(self.pipe.cowatch_num/self.batch_size) # 1个epoch后才开始验证
       eval_step = int(self.pipe.cowatch_num/self.batch_size/self.eval_per_epoch)
       show_step = int(eval_step/10)
       logging.info("check_stop_step: "+str(check_stop_step))
@@ -287,8 +288,8 @@ class Trainer():
                   str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt in the end.")
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
-          if self.total_eval_num - self.last_improve_num +1 > self.require_improve_num and global_step_np > check_stop_step:
-            logging.info("early stop")
+          if self.total_eval_num - self.total_eval_num  > self.require_improve_num and global_step_np > check_stop_step:
+            logging.info("total_eval_num %s. total_eval_num %s. early stop" % self.total_eval_num,self.total_eval_num)
             break
           if not input_triplets_np.shape[1:] == (3,1500):
             continue
