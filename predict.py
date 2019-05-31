@@ -19,13 +19,13 @@ config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1/checkpoints",
+flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
     "服务模型的目录，含备份模型")
-flags.DEFINE_string("feature_file", "/data/wengjy1/1905cdml/features",
+flags.DEFINE_string("feature_file", "/home/wengjy1/cdml/tests/visual_features.txt",# "/data/wengjy1/20190522/features"
     "待预测的原始向量文件")
-flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1/checkpoints",
+flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
     "模型输出向量的保存路径")
-flags.DEFINE_integer("batch_size",300000,
+flags.DEFINE_integer("pred_batch_size",200000,
     "每次预测的向量数")
 
 class Prediction():
@@ -109,10 +109,10 @@ def main(args):
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
     if not os.path.exists(ckpt + ".meta"):
       ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
-      ckpt_2 = tf.train.latest_checkpoint(ckpt_dir)
+      ckpt_2 = tf.train.latest_checkpoint(ckpt_dir_2)
       ckpt = ckpt_2
     else:
-      raise IOError("Prediction main Cannot find %s or %s" % ckpt, ckpt_2)
+      raise IOError("Prediction main Cannot find %s or %s" % (ckpt, ckpt_2))
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
@@ -120,14 +120,15 @@ def main(args):
     logging.info("predict read_features_txt success!")
     # predict and write
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
-    predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
+    predictor.run_features(features=features, batch_size=FLAGS.pred_batch_size, output_dir=FLAGS.output_dir)
     # write features and decode_map
-    features_path = os.path.join(FLAGS.output_dir, '/features.npy')
+    features_path = os.path.join(FLAGS.output_dir, 'features.npy')
     np.save(features_path, features)
-    logging.info("predict write features.npy success!")
-    with open(os.path.join(FLAGS.output_dir,'/decode_map.json'), 'w') as file:
+    logging.info("predict write features.npy to "+str(features_path))
+    decode_map_path = os.path.join(FLAGS.output_dir, 'decode_map.json')
+    with open(decode_map_path, 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
-    logging.info("predict write decode_map.json success!")
+    logging.info("predict write decode_map.json to "+str(decode_map_path))
   except Exception as e:
     logging.error(traceback.format_exc())
 
