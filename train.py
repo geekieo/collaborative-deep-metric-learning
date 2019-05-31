@@ -289,7 +289,7 @@ class Trainer():
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
           if self.total_eval_num - self.total_eval_num  > self.require_improve_num and global_step_np > check_stop_step:
-            logging.info("total_eval_num %s. total_eval_num %s. early stop" % self.total_eval_num,self.total_eval_num)
+            logging.info("total_eval_num %s. total_eval_num %s. early stop" % (self.total_eval_num,self.total_eval_num))
             break
           if not input_triplets_np.shape[1:] == (3,1500):
             continue
