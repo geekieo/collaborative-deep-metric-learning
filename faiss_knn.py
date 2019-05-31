@@ -28,6 +28,8 @@ flags.DEFINE_boolean("l2_norm", False,
     "是否对输入向量做 L2 归一化")
 flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
+flags.DEFINE_string("pred_feature_file",pred_feature_file,
+    "原始特征向量文件")
 flags.DEFINE_integer("nearest_num",51,
     "返回的近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
@@ -50,18 +52,88 @@ def load_decode_map(filename):
   return decode_map, encode_map
 
 
-def knn_process(path, index, begin_index, I, D):
+def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=True):
+  """use faiss to calculate knn for recall online
+  Arg:
+    embeddings
+    nearest_num: 51 = 50 个近邻 + query 自身
+    method: ['hnsw', 'L2', 'gpuivf'] supported
+            'hnws': hnsw get high precision with low probes
+            'L2': The only index that can guarantee exact results
+            'gpuivf': inverted file index, low time cost with lossing little precision
+    l2_norm: NOTE embeddings should be L2 normalized, otherwise it will get wrong result in HNSW method! 
+  Return:
+    D: 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引
+    I：与 D 对应的每个近邻的与 query 向量的距离
+  """
+  if method not in ['hnsw', 'L2', 'gpuivf']:
+    raise(ValueError, 'Unsupported method:%s'%(method))
+  embeddings = embeddings.astype(np.float32)
+  if l2_norm:
+    norm_data = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    embeddings /= norm_data
+  factors = embeddings.shape[1]
+  begin = time.time()
+  single_gpu = True
+  index = None
+  if method == 'hnsw':
+    index = faiss.IndexHNSWFlat(factors, nearest_num)
+    ## higher with better performance and more time cost
+    index.hnsw.efConstruction = 40
+  elif method == 'L2':
+    res = faiss.StandardGpuResources()
+    # build a flat (CPU) index
+    index_flat = faiss.IndexFlatL2(factors)
+    # make it into a gpu index
+    index = faiss.index_cpu_to_gpu(res, 0, index_flat)
+  elif method == 'gpuivf':
+    if single_gpu:
+      res = faiss.StandardGpuResources()
+      ## nlist=400, somewhat like cluster centroids, todo: search a good value pair (nlist, nprobes)!!!!
+      index = faiss.GpuIndexIVFFlat(res, factors, 400, faiss.METRIC_INNER_PRODUCT)
+    else:
+      cpu_index = faiss.IndexFlat(factors)
+      index = faiss.index_cpu_to_all_gpus(cpu_index)
+    index.train(embeddings)
+
+  index.add(embeddings)   # 待召回向量
+  end = time.time()
+  print('create index time cost:', end - begin)
+  index.nprobe = 256      # 搜索聚类中心的个数
+  D, I = index.search(q_embeddings, nearest_num)  # actual search , 全部缓存（训练+增量）作为query 
+  end1 = time.time()
+  print('whole set query time cost:', end1 - end)
+  return D, I
+
+
+def diff(eD, fD, eI):
+  mask = np.zeros(eI.shape).astype('bool')
+  for i, (e, f) in enumerate(zip(eD, fD)):
+    mask[i] = np.isin(e,f)
+  eI[mask] = 0.0  #会修改原始eI
+  return eI
+
+
+def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51, l2_norm):
+  eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm)
+  fD, _ = calc_knn(features, features, method,nearest_num, l2_norm=True)
+  print('eD.shape: ',eD.shape)
+  print('fD.shape: ',fD.shape)
+  eI = diff(eD, fD, eI)
+  return  eD, eI
+
+
+def write_process(path, index, begin_index, D, I):
   try:
     with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
       for i in range(I.shape[0]):
         query_id = DECODE_MAP[begin_index+i]
         nearest_ids = map(lambda x: DECODE_MAP[x], I[i][1:])
         nearest_scores = D[i][1:]
-        ##check knn distance metric, defualt:L2 norm(HNSW)!!!!  otherwise will get wrong result!!!!!
-        ##recomment condition: larger than 0.5 for cosine and less than 1.0 for L2 norm
-        ##TODO: filter similar video use simid!!!!!
+        ## larger than 0.5 for cosine and less than 1.0 for Euclidean distance under L2 norm
+        ## 2(1-cosine) = e_dist
         topks = '<'.join(map(
-          lambda x: x[1][0] + "#" + str(x[1][1]) if x[1][1] < 1.0 else "",
+          lambda x: x[1][0] + "#" + str(x[1][1]) if x[1][1] > 0.01 and x[1][1] <2.0 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
         string = query_id + ',' + topks + '\n'
         fp.write(string)
@@ -70,58 +142,8 @@ def knn_process(path, index, begin_index, I, D):
     raise
 
 
-def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None, method='hnsw',l2_norm=False):
-  """use faiss to calculate knn for recall online
-  Arg:
-    embeddings
-    nearest_num
-    method: ['hnsw', 'L2', 'gpuivf'] supported
-      'hnws' and 'L2' use cpu, hnsw get high precision with low probes
-      'gpuivf': inverted file index, low time cost with lossing little precision
-  """
-  if method not in ['hnsw', 'L2', 'gpuivf']:
-    raise(ValueError, 'Unsupported method:%s'%(method))
-  if D is None and I is None:
-    embeddings = embeddings.astype(np.float32)
-    if l2_norm:
-      norm_data = np.linalg.norm(embeddings, axis=1, keepdims=True)
-      embeddings /= norm_data
-    factors = embeddings.shape[1]
-    begin = time.time()
-    single_gpu = True
-    index = None
-    if method == 'hnsw':
-      index = faiss.IndexHNSWFlat(factors, nearest_num)
-      ## higher with better performance and more time cost
-      index.hnsw.efConstruction = 40
-    elif method == 'L2':
-      res = faiss.StandardGpuResources()
-      # build a flat (CPU) index
-      index_flat = faiss.IndexFlatL2(factors)
-      # make it into a gpu index
-      index = faiss.index_cpu_to_gpu(res, 0, index_flat)
-    elif method == 'gpuivf':
-      if single_gpu:
-        res = faiss.StandardGpuResources()
-        ## nlist=400, somewhat like cluster centroids, todo: search a good value pair (nlist, nprobes)!!!!
-        index = faiss.GpuIndexIVFFlat(res, factors, 400, faiss.METRIC_INNER_PRODUCT)
-      else:
-        cpu_index = faiss.IndexFlat(factors)
-        index = faiss.index_cpu_to_all_gpus(cpu_index)
-      index.train(embeddings)
-
-    index.add(embeddings) #待召回向量
-    end = time.time()
-    print('create index time cost:', end - begin)
-    index.nprobe = 256
-    D, I = index.search(embeddings, nearest_num)  # actual search , 全部缓存 embedding （训练+增量），作为query 
-    end1 = time.time()
-    print('whole set query time cost:', end1 - end)
-    # np.save(result_dir + '/nearest_index.npy', I)
-    # np.save(result_dir + '/score.npy', D)
-    # print("save to ",result_dir)
-
-  total_num = embeddings.shape[0]
+def write_knn(topk_dir, split_num=10, D=None, I=None):
+  total_num = D.shape[0]
   patch_num = total_num // split_num
 
   ## Pool method
@@ -130,8 +152,8 @@ def calc_knn(embeddings, topk_dir, nearest_num=51, split_num=10, D=None, I=None,
   for i in range(split_num - 1):
     batch_begin = i * patch_num
     batch_end = (i + 1) * patch_num
-    pool_my.apply_async(knn_process, args=(topk_dir, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
-  pool_my.apply_async(knn_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
+    pool_my.apply_async(write_process, args=(topk_dir, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
+  pool_my.apply_async(write_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
                                          I[(split_num-1)*patch_num:], D[(split_num-1)*patch_num:]))
   pool_my.close()
   pool_my.join()
@@ -151,8 +173,13 @@ def main(args):
   print("faiss_knn decode_map len", len(DECODE_MAP))
   embeddings = load_embedding(FLAGS.embedding_file)
   print("faiss_knn embedding_file shape", embeddings.shape)
+  features = load_embedding(FLAGS.pred_feature_file)
+  print("faiss_knn pred_feature_file shape", features.shape)
   print("calc_knn ...")
-  calc_knn(embeddings, topk_dir=FLAGS.topk_dir, nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
+  # D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
+  D, I = calc_knn_desim(embeddings, features, method='hnsw',nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
+
+  write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
 if __name__ == '__main__':
