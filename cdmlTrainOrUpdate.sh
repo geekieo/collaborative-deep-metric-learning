@@ -9,7 +9,8 @@ week=`date +"%w"`
 project_dir=/data/service/cdml
 training_dir=$project_dir/training_dir
 serving_dir=$project_dir/serving_dir
-predict_dir=$serving_dir/knn_result
+predict_dir=$serving_dir/predict_result
+knn_dir=$serving_dir/knn_result
 
 cur_date=`date +"%Y%m%d%H"`
 # signal files
@@ -89,7 +90,6 @@ else
         # hadoop fs 
         hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/features
         check_update_task "UPDATE: get serving_dir/dataset/features"
-        # wc -l $serving_dir/dataset/features > $serving_dir/dataset/features_line_num 
 
         # serving_dir predict
         cd $project_dir 
@@ -99,9 +99,10 @@ else
         check_update_task "UPDATE: predict"
         # todo:calc knn result use guid_knn.py (input encoded features output knn)
         cur_date=`date +"%Y%m%d%H"`             # 更新时间
-        topk_dir=$predict_dir/$cur_date        # 调整 knn_split 地址
+        topk_dir=$knn_dir/$cur_date        # 调整 knn_split 地址
         $python_env faiss_knn.py --embedding_file $predict_dir/output.npy \
                                  --decode_map_file $predict_dir/decode_map.json \
+                                 --pred_feature_file $predict_dir/pred_feature_file.json \
                                  --topk_dir $topk_dir
         check_update_task "UPDATE: faiss_knn"
 

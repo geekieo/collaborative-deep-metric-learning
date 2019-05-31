@@ -107,6 +107,12 @@ def main(args):
   try:
     ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
     ckpt = tf.train.latest_checkpoint(ckpt_dir)
+    if not os.path.exists(ckpt + ".meta"):
+      ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
+      ckpt_2 = tf.train.latest_checkpoint(ckpt_dir)
+      ckpt = ckpt_2
+    else:
+      raise IOError("Prediction main Cannot find %s or %s" % ckpt, ckpt_2)
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
@@ -115,8 +121,11 @@ def main(args):
     # predict and write
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     predictor.run_features(features=features, batch_size=FLAGS.batch_size, output_dir=FLAGS.output_dir)
-    # write decode_map
-    with open(FLAGS.output_dir+'/decode_map.json', 'w') as file:
+    # write features and decode_map
+    features_path = os.path.join(FLAGS.output_dir, '/features.npy')
+    np.save(features_path, features)
+    logging.info("predict write features.npy success!")
+    with open(os.path.join(FLAGS.output_dir,'/decode_map.json'), 'w') as file:
       json.dump(decode_map, file, ensure_ascii=False)
     logging.info("predict write decode_map.json success!")
   except Exception as e:
