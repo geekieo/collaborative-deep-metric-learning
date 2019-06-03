@@ -136,8 +136,8 @@ def write_process(path, index, begin_index, D, I):
         nearest_scores = D[i][1:]
         ## larger than 0.5 for cosine and less than 1.0 for Euclidean distance under L2 norm
         ## 2(1-cosine) = e_dist
-        topks = '<'.join(map(
-          lambda x: x[1][0] + "#" + str(x[1][1]) if  x[1][1] > 0.0 and x[1][1] <2.0 else "",
+        topks = ''.join(map(
+          lambda x: '<' + x[1][0] + "#" + str(x[1][1]) if  x[1][1] > 0.0 and x[1][1] <2.0 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
         string = query_id + ',' + topks + '\n'
         fp.write(string)

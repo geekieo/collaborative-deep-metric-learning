@@ -230,7 +230,7 @@ class Trainer():
       else:
         logging.info("Eval "+str(self.total_eval_num)+" | best_eval_dist: "+
             str(self.best_eval_dist)+" < eval_dist: "+str(self.eval_dist)+
-            ". From the last improvement: "+str(self.total_eval_num-self.last_improve_num))
+            ". From the last improvement: "+str(self.total_eval_num - self.last_improve_num))
       summary_eval = tf.Summary(value=[
         tf.Summary.Value(tag="eval/eval_dist", simple_value=self.eval_dist), 
         tf.Summary.Value(tag="eval/best_eval_dist", simple_value=self.best_eval_dist)])
@@ -288,8 +288,8 @@ class Trainer():
                   str(self.best_eval_dist)+" > eval_dist: "+str(self.eval_dist)+". Save ckpt in the end.")
               saver.save(sess, self.checkpoint_dir+'/model.ckpt', global_step_np)
             break
-          if self.total_eval_num - self.total_eval_num  > self.require_improve_num and global_step_np > check_stop_step:
-            logging.info("total_eval_num %s. total_eval_num %s. early stop" % (self.total_eval_num,self.total_eval_num))
+          if self.total_eval_num - self.last_improve_num  > self.require_improve_num and global_step_np > check_stop_step:
+            logging.info("total_eval_num %s. last_improve_num %s. early stop" % (self.total_eval_num,self.total_eval_num))
             break
           if not input_triplets_np.shape[1:] == (3,1500):
             continue
@@ -352,7 +352,7 @@ def main(args):
                     test_cowatches=test_cowatches,
                     best_eval_dist=1.0,
                     eval_per_epoch = 100,
-                    require_improve_num=30,
+                    require_improve_num=40,
                     loglevel=tf.logging.INFO)
   # TODO model test and backup. new model vs last model
   
