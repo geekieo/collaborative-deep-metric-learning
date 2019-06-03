@@ -20,7 +20,7 @@ training_signal_file=/user/zhoukang/video_clicks/cdml_training_signal.txt
 
 
 dayHour=`date +'%d%H'`
-logfile=$project_dir/log/log.log_$dayHour
+logfile=$project_dir/logs/cdmlTrainOrUpdate.log_$dayHour
 
 getDate(){ echo `date +"%Y-%m-%d|%H:%M:%S"`; }
 
