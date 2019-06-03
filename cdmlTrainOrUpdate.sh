@@ -102,7 +102,7 @@ else
         topk_dir=$knn_dir/$cur_date        # 调整 knn_split 地址
         $python_env faiss_knn.py --embedding_file $predict_dir/output.npy \
                                  --decode_map_file $predict_dir/decode_map.json \
-                                 --pred_feature_file $predict_dir/featrues.npy \
+                                 --pred_feature_file $predict_dir/features.npy \
                                  --topk_dir $topk_dir
         check_update_task "UPDATE: faiss_knn"
 
