@@ -76,7 +76,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 50)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
     index.hnsw.efSearch = 16        # efSearch 越大，召回率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
@@ -118,7 +118,9 @@ def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51):
   eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm=False)
   print('embeddings knn done. eD.shape: ',eD.shape)
   print('calc features knn...')
-  _, fI = calc_knn(features, features, method,nearest_num, l2_norm=True)
+  fD, fI = calc_knn(features, features, method,nearest_num, l2_norm=True)
+  # np.save(FLAGS.topk_dir+'/fI.npy',fI)
+  # np.save(FLAGS.topk_dir+'/fD.npy',fD)
   print('features knn done. fD.shape: ',eD.shape)
   eD = diff(eD, eI, fI)
   return  eD, eI
@@ -155,9 +157,9 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   for i in range(split_num - 1):
     batch_begin = i * patch_num
     batch_end = (i + 1) * patch_num
-    pool_my.apply_async(write_process, args=(topk_dir, i, batch_begin, I[batch_begin:batch_end], D[batch_begin:batch_end]))
+    pool_my.apply_async(write_process, args=(topk_dir, i, batch_begin, D[batch_begin:batch_end], I[batch_begin:batch_end]))
   pool_my.apply_async(write_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
-                                         I[(split_num-1)*patch_num:], D[(split_num-1)*patch_num:]))
+                                         D[(split_num-1)*patch_num:], I[(split_num-1)*patch_num:]))
   pool_my.close()
   pool_my.join()
   end = time.time()
