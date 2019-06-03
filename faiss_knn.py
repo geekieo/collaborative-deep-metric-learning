@@ -19,13 +19,12 @@ ckpt_dir = train_dir+"/checkpoints/"
 # ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = train_dir+'/decode_map.json'
+pred_feature_file = ckpt_dir+'features.npy'
 topk_dir = ckpt_dir+'/knn_result'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
     "待计算近邻的向量文件")
-flags.DEFINE_boolean("l2_norm", False, 
-    "是否对输入向量做 L2 归一化")
 flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
@@ -77,9 +76,9 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, nearest_num)
-    ## higher with better performance and more time cost
-    index.hnsw.efConstruction = 40
+    index = faiss.IndexHNSWFlat(factors, 50)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
+    index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
+    index.hnsw.efSearch = 16        # efSearch 越大，召回率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
     res = faiss.StandardGpuResources()
     # build a flat (CPU) index
@@ -114,11 +113,13 @@ def diff(eD, eI, fI):
   return eD
 
 
-def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51, l2_norm):
-  eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm)
+def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51):
+  print('calc embeddings knn...')
+  eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm=False)
+  print('embeddings knn done. eD.shape: ',eD.shape)
+  print('calc features knn...')
   _, fI = calc_knn(features, features, method,nearest_num, l2_norm=True)
-  print('eD.shape: ',eD.shape)
-  print('fD.shape: ',fD.shape)
+  print('features knn done. fD.shape: ',eD.shape)
   eD = diff(eD, eI, fI)
   return  eD, eI
 
@@ -143,6 +144,8 @@ def write_process(path, index, begin_index, D, I):
 
 
 def write_knn(topk_dir, split_num=10, D=None, I=None):
+  if not os.path.exists(topk_dir):
+    os.makedirs(topk_dir)
   total_num = D.shape[0]
   patch_num = total_num // split_num
 
@@ -165,7 +168,6 @@ def main(args):
   print("FLAGS.topk_dir " + str(FLAGS.topk_dir))
   print("FLAGS.decode_map_file " + str(decode_map_file))
   print("FLAGS.embedding_file " + str(embedding_file))
-  print("FLAGS.l2_norm " + str(FLAGS.l2_norm))
 
   subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
   global DECODE_MAP
@@ -176,9 +178,11 @@ def main(args):
   features = load_embedding(FLAGS.pred_feature_file)
   print("faiss_knn pred_feature_file shape", features.shape)
   print("calc_knn ...")
-  # D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
-  D, I = calc_knn_desim(embeddings, features, method='hnsw',nearest_num=FLAGS.nearest_num, l2_norm=FLAGS.l2_norm)
-
+  # D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
+  D, I = calc_knn_desim(embeddings, features, method='hnsw',nearest_num=FLAGS.nearest_num)
+  # np.save(FLAGS.topk_dir+'/D.npy',D)
+  # np.save(FLAGS.topk_dir+'/I.npy',I)
+    
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
