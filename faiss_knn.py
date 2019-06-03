@@ -106,10 +106,11 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
 
 
 def diff(eD, eI, fI):
+  # 取 eI 和 fI 的交集，对 eD 中交集索引位置的元素置 0
   mask = np.zeros(eI.shape).astype('bool')
   for i, (e, f) in enumerate(zip(eI, fI)):
     mask[i] = np.isin(e,f)
-  eD[mask] = 0.0  #会修改原始eI
+  eD[mask] = 0.0  # 会修改原始eI
   return eD
 
 
@@ -136,7 +137,7 @@ def write_process(path, index, begin_index, D, I):
         ## larger than 0.5 for cosine and less than 1.0 for Euclidean distance under L2 norm
         ## 2(1-cosine) = e_dist
         topks = '<'.join(map(
-          lambda x: x[1][0] + "#" + str(x[1][1]) if x[1][1] <2.0 else "",
+          lambda x: x[1][0] + "#" + str(x[1][1]) if  x[1][1] > 0.0 and x[1][1] <2.0 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
         string = query_id + ',' + topks + '\n'
         fp.write(string)
@@ -182,8 +183,11 @@ def main(args):
   print("calc_knn ...")
   # D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
   D, I = calc_knn_desim(embeddings, features, method='hnsw',nearest_num=FLAGS.nearest_num)
+
   # np.save(FLAGS.topk_dir+'/D.npy',D)
   # np.save(FLAGS.topk_dir+'/I.npy',I)
+  # D = np.load(FLAGS.topk_dir+'/D.npy')
+  # I = np.load(FLAGS.topk_dir+'/I.npy')
     
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
