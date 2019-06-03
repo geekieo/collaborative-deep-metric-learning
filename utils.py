@@ -28,6 +28,7 @@ def get_local_time():
 def get_latest_folder(checkpoints_dir, nst_latest=1):
   """获取目录文件夹，根据创建时间排序，
   返回第 nst_latest 新的文件夹路径
+  如果没有子目录，返回 checkpoints_dir
   """
   files = os.listdir(checkpoints_dir)
   folders = []
@@ -37,7 +38,12 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
     if os.path.isdir(path):
       folders.append(path)
   folders.sort(key=lambda folder: os.path.getmtime(folder))
-  return folders[-nst_latest]
+  try:
+    ckpt_dir = folders[-nst_latest]
+  except:
+    ckpt_dir = checkpoints_dir
+    print('没有获得第 %d 新的文件夹路径，返回入参 %s'%(nst_latest,ckpt_dir))
+  return ckpt_dir
 
 
 def clean_file_by_time(log_dir, keepdays=7):

@@ -111,8 +111,8 @@ def main(args):
       ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
       ckpt_2 = tf.train.latest_checkpoint(ckpt_dir_2)
       ckpt = ckpt_2
-    else:
-      raise IOError("Prediction main Cannot find %s or %s" % (ckpt, ckpt_2))
+      if not os.path.exists(ckpt + ".meta"):
+        raise IOError("Prediction main Cannot find %s.meta or %s.meta" % (ckpt, ckpt_2))
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
