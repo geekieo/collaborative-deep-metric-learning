@@ -76,7 +76,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, nearest_num)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
     index.hnsw.efSearch = 16        # efSearch 越大，召回率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
@@ -114,16 +114,24 @@ def diff(eD, eI, fI):
   return eD
 
 
-def calc_knn_desim(embeddings, features, method='hnsw',nearest_num=51):
-  print('calc embeddings knn...')
-  eD, eI = calc_knn(embeddings, embeddings, method,nearest_num, l2_norm=False)
-  print('embeddings knn done. eD.shape: ',eD.shape)
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=0):
+  """
+  Arg:
+    eD, eI: 带召回向量的召回结果
+    features: 原始特征向量
+    method: the same as the argument method in calc_knn
+    nearest_num: the same as the argument nearest_num in calc_knn
+    disim_gap: nearest_num of embeddings - nearest_num of features
+  """
   print('calc features knn...')
-  fD, fI = calc_knn(features, features, method,nearest_num, l2_norm=True)
+  desim_nearest_num = FLAGS.nearest_num-desim_gap if FLAGS.nearest_num > desim_gap else 1
+  print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
+  fD, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
   # np.save(FLAGS.topk_dir+'/fI.npy',fI)
   # np.save(FLAGS.topk_dir+'/fD.npy',fD)
   print('features knn done. fD.shape: ',eD.shape)
   eD = diff(eD, eI, fI)
+  print('knn diff done. eD.shape: ',eD.shape)
   return  eD, eI
 
 
@@ -181,8 +189,8 @@ def main(args):
   features = load_embedding(FLAGS.pred_feature_file)
   print("faiss_knn pred_feature_file shape", features.shape)
   print("calc_knn ...")
-  # D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
-  D, I = calc_knn_desim(embeddings, features, method='hnsw',nearest_num=FLAGS.nearest_num)
+  D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
+  D, I = calc_knn_desim(D, I, features, method='hnsw',nearest_num=FLAGS.nearest_num)
 
   # np.save(FLAGS.topk_dir+'/D.npy',D)
   # np.save(FLAGS.topk_dir+'/I.npy',I)
