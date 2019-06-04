@@ -43,7 +43,6 @@ class Evaluation():
       eval_cowatches.append(eval_cowatch)
     return eval_features, eval_cowatches
 
-
   def mean_dist(self, embeddings, cowatches):
     """ mean cosine distance of eval cowatch embeddings
     only work under the same set of hyperparameters
@@ -60,6 +59,9 @@ class Evaluation():
     distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
+
+  def knn():
+    pass
 
   def nDCG(self, embeddings, cowatches):
     pass
