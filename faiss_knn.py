@@ -110,7 +110,7 @@ def diff(eD, eI, fI):
   mask = np.zeros(eI.shape).astype('bool')
   for i, (e, f) in enumerate(zip(eI, fI)):
     mask[i] = np.isin(e,f)
-  eD[mask] = 0.0  # 会修改原始eI
+  eD[mask] = 0.0  # 会修改原始eD
   return eD
 
 
