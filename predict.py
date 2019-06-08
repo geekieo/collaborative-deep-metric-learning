@@ -41,7 +41,7 @@ class Prediction():
       if not os.path.exists(meta_graph):
         raise IOError("Prediction __init__ Cannot find %s" % self.ckpt)
       loader = tf.train.import_meta_graph(meta_graph, clear_devices=True)
-      self.sess = tf.Session()
+      self.sess = tf.Session(config = self.config)
       self.sess.graph.finalize()
       loader.restore(self.sess, self.ckpt)
     
