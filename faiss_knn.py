@@ -76,15 +76,13 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
-    index.hnsw.efSearch = 16        # efSearch 越大，召回率增加，查询的响应时间增加，默认 16
+    index.hnsw.efSearch = 16        # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
     res = faiss.StandardGpuResources()
-    # build a flat (CPU) index
-    index_flat = faiss.IndexFlatL2(factors)
-    # make it into a gpu index
-    index = faiss.index_cpu_to_gpu(res, 0, index_flat)
+    index_flat = faiss.IndexFlatL2(factors) # L2 计算精准的索引
+    index = faiss.index_cpu_to_gpu(res, 0, index_flat)    # make it into a gpu index
   elif method == 'gpuivf':
     if single_gpu:
       res = faiss.StandardGpuResources()
@@ -105,16 +103,26 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   return D, I
 
 
-def diff(eD, eI, fI):
-  # 取 eI 和 fI 的交集，对 eD 中交集索引位置的元素置 0
+def intersection(eI, fI):
+  # 取 eI 和 fI 的交集在 eI 中的索引置 True
   mask = np.zeros(eI.shape).astype('bool')
   for i, (e, f) in enumerate(zip(eI, fI)):
     mask[i] = np.isin(e,f)
+  return mask
+
+
+def intersection_iter(eI, fI):
+  # 对 eI 中的每列元素，依次找出其在 fI 对应元素的交集，跳过，对交集在 eI 中的索引位置置 True
+  pass
+
+def diff(eD, eI, fI):
+  # 对 eD 中 eI 和 fI 交集位置的元素置 0
+  mask = intersection(eI, fI)
   eD[mask] = 0.0  # 会修改原始eD
   return eD
 
 
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=0):
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=10):
   """
   Arg:
     eD, eI: 模型输出向量的 faiss search 结果
