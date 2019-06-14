@@ -76,7 +76,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, nearest_num)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
     index.hnsw.efSearch = 16        # efSearch 越大，召回率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
@@ -117,7 +117,7 @@ def diff(eD, eI, fI):
 def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=0):
   """
   Arg:
-    eD, eI: 带召回向量的召回结果
+    eD, eI: 模型输出向量的 faiss search 结果
     features: 原始特征向量
     method: the same as the argument method in calc_knn
     nearest_num: the same as the argument nearest_num in calc_knn
