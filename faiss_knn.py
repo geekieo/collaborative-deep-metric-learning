@@ -76,7 +76,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 51)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 60)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
     index.hnsw.efSearch = 16        # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
@@ -122,7 +122,7 @@ def diff(eD, eI, fI):
   return eD
 
 
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=10):
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=31):
   """
   Arg:
     eD, eI: 模型输出向量的 faiss search 结果
@@ -132,7 +132,7 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_gap=10)
     disim_gap: nearest_num of embeddings - nearest_num of features
   """
   print('calc features knn...')
-  desim_nearest_num = FLAGS.nearest_num-desim_gap if FLAGS.nearest_num > desim_gap else 1
+  desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
   fD, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
   # np.save(FLAGS.topk_dir+'/fI.npy',fI)
