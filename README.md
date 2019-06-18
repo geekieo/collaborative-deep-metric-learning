@@ -31,16 +31,19 @@ pillow
 
 ### Evaluation
 
-* `get_guid_title.py`
-* `guid_knn.py`
-* `average_precision_calculator.py`
-* `mean_average_precision_calculator.py`
+* `evaluate.py`
+* `average_precision_calculator.py`（useless）
+* `mean_average_precision_calculator.py`（useless）
 
 ### Prediction
 
 * `predict.py`
+* `faiss_knn.py`
 
 ### Misc
 
+* `utils.py`
+* `get_guid_title.py`
+* `show_knn.py`
 * `README.md`
 * `流程表.md`
