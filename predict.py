@@ -25,7 +25,7 @@ flags.DEFINE_string("feature_file", "/home/wengjy1/cdml/tests/visual_features.tx
     "待预测的原始向量文件")
 flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
     "模型输出向量的保存路径")
-flags.DEFINE_integer("pred_batch_size",200000,
+flags.DEFINE_integer("pred_batch_size",50000,
     "每次预测的向量数")
 
 class Prediction():
