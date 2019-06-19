@@ -60,8 +60,8 @@ pillow
 
 ### 下载项目
 
-`cd /data/`\
-`mkdir  -p /data/service`\
+`cd /data/`  
+`mkdir  -p /data/service`  
 `git clone *项目git地址*`
 
 ### 修改路径权限
@@ -70,11 +70,10 @@ pillow
 
 ### 添加定时任务
 
-`crontab -e`\
-添加如下任务
+`crontab -e`  添加以下任务
 ```
 # CDML Train or Update
-*/5 * * * * /bin/bash /data/service/cdml/cdmlTrainOrUpdate.sh 
+*/5 * * * * /bin/bash /data/service/cdml/cdmlTrainOrUpdate.sh
 
 # clean old models which generated 7 days ago
 30 01 * * * /bin/bash /data/service/cdml/deleteOldData.sh
