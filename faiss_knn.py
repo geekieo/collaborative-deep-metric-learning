@@ -122,7 +122,7 @@ def diff(eD, eI, fI):
   return eD
 
 
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=21):
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=31):
   """
   Arg:
     eD, eI: 模型输出向量的 faiss search 结果
