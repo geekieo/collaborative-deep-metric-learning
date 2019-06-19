@@ -47,3 +47,35 @@ pillow
 * `show_knn.py`
 * `README.md`
 * `流程表.md`
+
+## 部署
+
+### 切换 prod 用户
+
+`su prod`
+
+#### 没有 prod 用户则创建
+
+`adduser prod`
+
+### 下载项目
+
+`cd /data/`\
+`mkdir  -p /data/service`\
+`git clone *项目git地址*`
+
+### 修改路径权限
+
+`chown -R prod:ifengdev cdml/`
+
+### 添加定时任务
+
+`crontab -e`\
+添加如下任务
+```
+# CDML Train or Update
+*/5 * * * * /bin/bash /data/service/cdml/cdmlTrainOrUpdate.sh 
+
+# clean old models which generated 7 days ago
+30 01 * * * /bin/bash /data/service/cdml/deleteOldData.sh
+```

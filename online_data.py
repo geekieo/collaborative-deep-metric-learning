@@ -193,7 +193,7 @@ def get_cowatches(watch_file, feature_file):
 
 def select_cowatches(cowatches, graph,threshold=3, unique=False):
   cowatches = select_cowatch(graph, threshold, cowatches, unique=unique)
-  logging.info("cowatches num:"+str(len(cowatches)))
+  logging.info("select_cowatches threshold:%d unique:%s. Selected cowatches num:%d"%(threshold, unique, len(cowatches)))
   logging.debug("unique_guids in cowatches:"+str(len(exe_time(get_unique_watched_guids)(cowatches))))
   return cowatches
 
