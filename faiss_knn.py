@@ -104,21 +104,41 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
 
 
 def intersection(eI, fI):
-  # 取 eI 和 fI 的交集在 eI 中的索引置 True
+  """取 eI 和 fI 的交集，对 eI 中存在交集的元素位置置 True
+  Arg:
+    eI, fI: int. 二维索引矩阵
+  Return:
+    mask: eI fI 每行元素集的交集在 eI 中的位置蒙版
+  """
   mask = np.zeros(eI.shape).astype('bool')
   for i, (e, f) in enumerate(zip(eI, fI)):
     mask[i] = np.isin(e,f)
   return mask
 
 
-def intersection_iter(eI, fI):
-  # 对 eI 中的每列元素，依次找出其在 fI 对应元素的交集，跳过，对交集在 eI 中的索引位置置 True
-  pass
-
 def diff(eD, eI, fI):
-  # 对 eD 中 eI 和 fI 交集位置的元素置 0
+  """对 eD 中 eI 和 fI 交集位置的元素置 0"""
   mask = intersection(eI, fI)
   eD[mask] = 0.0  # 会修改原始eD
+  return eD
+
+
+def iter_diff(eD, eI, fI):
+  """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
+     对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
+  """
+  for e_row in eI:
+    e_keep_row = []
+    f_chk_row = [e_row[0]]
+    for ei in e_row:
+      if ei in f_chk_row:
+        continue
+      else:
+        f_chk_row.append(f[ei][1:])
+        e_keep_row.append(ei)
+    mask_keep_row = np.isin(e_row,e_keep_row)
+    mask_drop_row = (1-mask_keep_row).astype('bool')
+    eD[i][mask_drop_row] = 0.0
   return eD
 
 
