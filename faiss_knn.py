@@ -123,7 +123,7 @@ def diff(eD, eI, fI):
   return eD
 
 
-def iter_diff(eD, eI, fI):
+def iter_diff(eD, eI, fI, f_end=20):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   """
@@ -134,7 +134,7 @@ def iter_diff(eD, eI, fI):
       if ei in f_chk_row:
         continue
       else:
-        f_chk_row.append(f[ei][1:])
+        f_chk_row.append(f[ei][1:f_end])
         e_keep_row.append(ei)
     mask_keep_row = np.isin(e_row,e_keep_row)
     mask_drop_row = (1-mask_keep_row).astype('bool')
@@ -142,7 +142,7 @@ def iter_diff(eD, eI, fI):
   return eD
 
 
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=31):
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=51):
   """
   Arg:
     eD, eI: 模型输出向量的 faiss search 结果
