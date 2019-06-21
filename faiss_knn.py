@@ -123,10 +123,11 @@ def diff(eD, eI, fI):
   return eD
 
 
-def iter_diff(eD, eI, fI, f_end=20):
+def iter_diff(eD, eI, fI, f_end=10):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   """
+  begin = time.time()
   for e_row in eI:
     e_keep_row = []
     f_chk_row = [e_row[0]]
@@ -134,11 +135,40 @@ def iter_diff(eD, eI, fI, f_end=20):
       if ei in f_chk_row:
         continue
       else:
-        f_chk_row.append(f[ei][1:f_end])
+        f_chk_row.append(fI[ei][1:f_end])
+        f_chk_row = list(set(f_chk_row))
         e_keep_row.append(ei)
     mask_keep_row = np.isin(e_row,e_keep_row)
     mask_drop_row = (1-mask_keep_row).astype('bool')
     eD[i][mask_drop_row] = 0.0
+  print('faiss_knn iter_diff cost time', time.time()-begin)
+  return eD
+
+
+def diff_progress(e_row, fI, eD, f_end):
+  e_keep_row = []
+  f_chk_row = [e_row[0]]
+  for ei in e_row:
+    if ei in f_chk_row:
+      continue
+    else:
+      f_chk_row.append(fI[ei][1:f_end])
+      e_keep_row.append(ei)
+  mask_keep_row = np.isin(e_row,e_keep_row)
+  mask_drop_row = (1-mask_keep_row).astype('bool')
+  eD[i][mask_drop_row] = 0.0
+
+def iter_diff_mp(eD, eI, fI, f_end=10):
+  """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
+     对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
+  """
+  begin = time.time()
+  pool = Pool(processes=None, maxtasksperchild=6) # 使用最大进程
+  for e_row in eI:
+    result = pool.apply_async(diff_progress, args=(e_row, fI, eD))
+  pool_my.close()
+  pool_my.join()
+  print('iter_diff_mp cost: %fs'%(end - begin))
   return eD
 
 
@@ -154,11 +184,11 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   print('calc features knn...')
   desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
-  fD, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
-  # np.save(FLAGS.topk_dir+'/fI.npy',fI)
-  # np.save(FLAGS.topk_dir+'/fD.npy',fD)
+  _, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
+  np.save(FLAGS.topk_dir+'/fI.npy',fI)
   print('features knn done. fD.shape: ',eD.shape)
-  eD = diff(eD, eI, fI)
+  # eD = diff(eD, eI, fI)
+  eD = iter_diff_mp(eD, eI, fI)
   print('knn diff done. eD.shape: ',eD.shape)
   return  eD, eI
 
@@ -200,7 +230,7 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   pool_my.close()
   pool_my.join()
   end = time.time()
-  print('multiprocessing pool:%f s'%(end - begin))
+  print('write_knn cost:%f s'%(end - begin))
 
 def main(args):
   # TODO logging FLAGS
