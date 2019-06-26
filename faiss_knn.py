@@ -29,7 +29,7 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
-flags.DEFINE_integer("nearest_num",51,
+flags.DEFINE_integer("nearest_num",101,
     "返回的近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
     "Top-k 结果保存地址")
@@ -102,61 +102,60 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   print('whole set query time cost:', end1 - end)
   return D, I
 
-
-def intersection(eI, fI):
-  """取 eI 和 fI 的交集，对 eI 中存在交集的元素位置置 True
-  Arg:
-    eI, fI: int. 二维索引矩阵
-  Return:
-    mask: eI fI 每行元素集的交集在 eI 中的位置蒙版
-  """
-  mask = np.zeros(eI.shape).astype('bool')
-  for i, (e, f) in enumerate(zip(eI, fI)):
-    mask[i] = np.isin(e,f)
-  return mask
-
-
+# ============================ de-similarity  ============================
 def diff(eD, eI, fI):
-  """对 eD 中 eI 和 fI 交集位置的元素置 0"""
-  mask = intersection(eI, fI)
-  eD[mask] = 0.0  # 会修改原始eD
+  """取 eI 和 fI 的交集，对 eI 中存在交集的元素位置置 True
+  对 eD 中 eI 和 fI 交集位置的元素置 0
+  Arg:
+    eD: 召回索引距离首元素的距离
+    eI, fI: int. 二维索引矩阵
+  """
+  drop_mask = np.zeros(eI.shape).astype('bool')
+  for i, (e, f) in enumerate(zip(eI, fI)):
+    drop_mask[i] = np.isin(e,f)
+  eD[drop_mask] = 0.0  # 会修改原始eD
   return eD
 
 
-def iter_diff(eD, eI, fI, f_end=10):
+def add_invalid_row(eI, fI)：
+  """fI 首行增加无效结果，0向量"""
+  begin = time.time()
+  # eI fI 索引暂时 + 1，最后访问 eD 时须 -1
+  print("插入无效行前 fI[:2]", fI[:2])
+  eI += 1
+  fI += 1
+  # fI 首行插入无效结果 0 向量
+  first_fI_row = np.zeros((1,fI.shape[1]))-1
+  fI = np.concatenate((first_fI_row, fI), axis=0)
+  print("插入无效行后 fI[:2]", fI[:2])
+  return eI, fI
+
+
+def get_next_fI(col_mask, col_eI, fI, f_end):
+  """fI 首行已插入 0 向量"""
+  col_eI = col_mask * col_eI
+  return fI[col_eI][:,1:f_end]
+
+
+def iter_diff(eD, eI, fI, f_end=20):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   """
-  begin = time.time()
-  for e_row in eI:
-    e_keep_row = []
-    f_chk_row = [e_row[0]]
-    for ei in e_row:
-      if ei in f_chk_row:
-        continue
-      else:
-        f_chk_row.append(fI[ei][1:f_end])
-        f_chk_row = list(set(f_chk_row))
-        e_keep_row.append(ei)
-    mask_keep_row = np.isin(e_row,e_keep_row)
-    mask_drop_row = (1-mask_keep_row).astype('bool')
-    eD[i][mask_drop_row] = 0.0
-  print('faiss_knn iter_diff cost time', time.time()-begin)
-  return eD
+  eI, fI = add_invalid_row(eI, fI)
+  keep_mask = np.ones(eI.shape).astype('bool')
+  for col_i in eI.shape[0]:
+    col_keep_mask = keep_mask[:, col_i]
+    col_eI = eI[:, col_i]
+    next_fI = get_next_fI(col_keep_mask, col_eI, fI, f_end)
+    for i, (e, f) in enumerate(zip(eI[:, col_i:], next_fI)):
+      keep_mask[:,col_i:][i] = 1 - np.isin(e,f)
+    print(eI[:, col_i:])
+    print(next_fI)
+    print(keep_mask)
+  drop_mask = (1 - keep_mask).astype('bool')[1:]
 
-
-def diff_progress(e_row, fI, eD, f_end):
-  e_keep_row = []
-  f_chk_row = [e_row[0]]
-  for ei in e_row:
-    if ei in f_chk_row:
-      continue
-    else:
-      f_chk_row.append(fI[ei][1:f_end])
-      e_keep_row.append(ei)
-  mask_keep_row = np.isin(e_row,e_keep_row)
-  mask_drop_row = (1-mask_keep_row).astype('bool')
-  eD[i][mask_drop_row] = 0.0
+  except Exception as e:
+    print('diff_progress Error: ',traceback.format_exc())
 
 def iter_diff_mp(eD, eI, fI, f_end=10):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
@@ -164,15 +163,15 @@ def iter_diff_mp(eD, eI, fI, f_end=10):
   """
   begin = time.time()
   pool = Pool(processes=None, maxtasksperchild=6) # 使用最大进程
-  for e_row in eI:
-    result = pool.apply_async(diff_progress, args=(e_row, fI, eD))
+  for i, e_row in enumerate(eI):
+    result = pool.apply_async(diff_progress, args=(e_row, i, fI, eD))
   pool.close()
   pool.join()
-  print('iter_diff_mp cost: %fs'%(end - begin))
+  print('iter_diff_mp cost: %fs'%(time.time() - begin))
   return eD
 
 
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=51):
+def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=41):
   """
   Arg:
     eD, eI: 模型输出向量的 faiss search 结果
@@ -188,13 +187,17 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   # np.save(FLAGS.topk_dir+'/fI.npy',fI)
   # np.save(FLAGS.topk_dir+'/eD.npy',eD)
   # np.save(FLAGS.topk_dir+'/eI.npy',eI)
+  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
+  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
+  # eI = np.load(FLAGS.topk_dir+'/eI.npy')
   print('features knn done. fD.shape: ',eD.shape)
   # eD = diff(eD, eI, fI)
-  eD = iter_diff_mp(eD, eI, fI)
+  eD = iter_diff(eD, eI, fI)
   print('knn diff done. eD.shape: ',eD.shape)
   return  eD, eI
 
 
+# ============================ write result ============================
 def write_process(path, index, begin_index, D, I):
   try:
     with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
