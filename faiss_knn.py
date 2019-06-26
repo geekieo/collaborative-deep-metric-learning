@@ -166,8 +166,8 @@ def iter_diff_mp(eD, eI, fI, f_end=10):
   pool = Pool(processes=None, maxtasksperchild=6) # 使用最大进程
   for e_row in eI:
     result = pool.apply_async(diff_progress, args=(e_row, fI, eD))
-  pool_my.close()
-  pool_my.join()
+  pool.close()
+  pool.join()
   print('iter_diff_mp cost: %fs'%(end - begin))
   return eD
 
@@ -185,7 +185,9 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
   _, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
-  np.save(FLAGS.topk_dir+'/fI.npy',fI)
+  # np.save(FLAGS.topk_dir+'/fI.npy',fI)
+  # np.save(FLAGS.topk_dir+'/eD.npy',eD)
+  # np.save(FLAGS.topk_dir+'/eI.npy',eI)
   print('features knn done. fD.shape: ',eD.shape)
   # eD = diff(eD, eI, fI)
   eD = iter_diff_mp(eD, eI, fI)
@@ -239,9 +241,7 @@ def main(args):
   print("FLAGS.embedding_file " + str(embedding_file))
 
   subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
-  global DECODE_MAP
-  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("faiss_knn decode_map len", len(DECODE_MAP))
+
   embeddings = load_embedding(FLAGS.embedding_file)
   print("faiss_knn embedding_file shape", embeddings.shape)
   features = load_embedding(FLAGS.pred_feature_file)
@@ -254,7 +254,11 @@ def main(args):
   # np.save(FLAGS.topk_dir+'/I.npy',I)
   # D = np.load(FLAGS.topk_dir+'/D.npy')
   # I = np.load(FLAGS.topk_dir+'/I.npy')
-    
+  
+  global DECODE_MAP
+  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
+  print("faiss_knn decode_map len", len(DECODE_MAP))
+
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
