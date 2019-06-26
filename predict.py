@@ -116,8 +116,9 @@ def main(args):
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
+    begin = time.time()
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
-    logging.info("predict read_features_txt success!")
+    logging.info("predict read_features_txt success! Cost: %fs"%(time.time()-begin))
     # predict and write
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     predictor.run_features(features=features, batch_size=FLAGS.pred_batch_size, output_dir=FLAGS.output_dir)
