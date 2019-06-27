@@ -71,6 +71,8 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   if l2_norm:
     norm_data = np.linalg.norm(embeddings, axis=1, keepdims=True)
     embeddings /= norm_data
+    norm_data = np.linalg.norm(q_embeddings, axis=1, keepdims=True)
+    q_embeddings /= norm_data
   factors = embeddings.shape[1]
   begin = time.time()
   single_gpu = True
@@ -117,15 +119,14 @@ def diff(eD, eI, fI):
   return eD
 
 
-def add_invalid_row(eI, fI)：
+def add_invalid_row(eI, fI):
   """fI 首行增加无效结果，0向量"""
-  begin = time.time()
   # eI fI 索引暂时 + 1，最后访问 eD 时须 -1
   print("插入无效行前 fI[:2]", fI[:2])
   eI += 1
   fI += 1
   # fI 首行插入无效结果 0 向量
-  first_fI_row = np.zeros((1,fI.shape[1]))-1
+  first_fI_row = np.zeros((1,fI.shape[1]))
   fI = np.concatenate((first_fI_row, fI), axis=0)
   print("插入无效行后 fI[:2]", fI[:2])
   return eI, fI
@@ -137,37 +138,29 @@ def get_next_fI(col_mask, col_eI, fI, f_end):
   return fI[col_eI][:,1:f_end]
 
 
-def iter_diff(eD, eI, fI, f_end=20):
+def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=20):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
+  Arg:
+    eD,fD: 近邻距离。若向量经 L2 归一化，其值等于 2(1-余弦距离)。
+    eI,fI: 近邻索引。
+    fD_threshold： 若 f 经 L2 归一化，其范围为[0,2], 越小越接近。
+    fI_end: fI 截取数量。
   """
   eI, fI = add_invalid_row(eI, fI)
   keep_mask = np.ones(eI.shape).astype('bool')
-  for col_i in eI.shape[0]:
+  for col_i in range(eI.shape[0]):
     col_keep_mask = keep_mask[:, col_i]
     col_eI = eI[:, col_i]
     next_fI = get_next_fI(col_keep_mask, col_eI, fI, f_end)
     for i, (e, f) in enumerate(zip(eI[:, col_i:], next_fI)):
       keep_mask[:,col_i:][i] = 1 - np.isin(e,f)
-    print(eI[:, col_i:])
-    print(next_fI)
-    print(keep_mask)
+    print(col_i, eI[:, col_i:])
+    print(col_i, next_fI)
+    print(col_i, keep_mask)
   drop_mask = (1 - keep_mask).astype('bool')[1:]
-
-  except Exception as e:
-    print('diff_progress Error: ',traceback.format_exc())
-
-def iter_diff_mp(eD, eI, fI, f_end=10):
-  """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
-     对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
-  """
-  begin = time.time()
-  pool = Pool(processes=None, maxtasksperchild=6) # 使用最大进程
-  for i, e_row in enumerate(eI):
-    result = pool.apply_async(diff_progress, args=(e_row, i, fI, eD))
-  pool.close()
-  pool.join()
-  print('iter_diff_mp cost: %fs'%(time.time() - begin))
+  print(drop_mask.shape)
+  eD[mask] = 0.0  # 会修改原始eD
   return eD
 
 
@@ -192,7 +185,7 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   # eI = np.load(FLAGS.topk_dir+'/eI.npy')
   print('features knn done. fD.shape: ',eD.shape)
   # eD = diff(eD, eI, fI)
-  eD = iter_diff(eD, eI, fI)
+  eD = iter_diff(eD, eI, fI, fD)
   print('knn diff done. eD.shape: ',eD.shape)
   return  eD, eI
 
