@@ -14,13 +14,13 @@ from tensorflow import flags
 from utils import get_latest_folder
 
 
-train_dir = "/data/wengjy1/cdml_1_unique"  # NOTE 路径是 data
-ckpt_dir = train_dir+"/checkpoints/"
+serving_dir = "/data/wengjy1/cdml/serving_dir/"  # NOTE 路径是 data
+ckpt_dir = serving_dir+"/predict_result/"
 # ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
 embedding_file = ckpt_dir+'/output.npy'
 decode_map_file = ckpt_dir+'/decode_map.json'
 pred_feature_file = ckpt_dir+'features.npy'
-topk_dir = ckpt_dir+'/knn_result'
+topk_dir = serving_dir+'/knn_result'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
@@ -119,17 +119,27 @@ def diff(eD, eI, fI):
   return eD
 
 
-def add_invalid_row(eI, fI):
-  """fI 首行增加无效结果，0向量"""
+def fliter_fI(fI, fD, fD_threshold):
+  """对于 fD 超过 fD_threshold 的索引，fI对应位置元素置-1
+  这里认为 fD 超过 fD_threshold 的向量不相似"""
+  fI_drop_mask = np.zeros(fI.shape).astype('bool')
+  fI_drop_index = np.where(fD>fD_threshold)
+  fI_drop_mask[fI_drop_index] = True
+  fI[fI_drop_mask] = -1
+  return fI
+
+    
+def add_invalid_row(eD, eI, fI):
+  """首行增加无效结果，0向量"""
   # eI fI 索引暂时 + 1，最后访问 eD 时须 -1
-  print("插入无效行前 fI[:2]", fI[:2])
   eI += 1
   fI += 1
   # fI 首行插入无效结果 0 向量
-  first_fI_row = np.zeros((1,fI.shape[1]))
-  fI = np.concatenate((first_fI_row, fI), axis=0)
-  print("插入无效行后 fI[:2]", fI[:2])
-  return eI, fI
+  zero_row = np.zeros((1, fI.shape[1]),dtype=np.int)
+  eI = np.concatenate((zero_row, eI), axis=0)
+  fI = np.concatenate((zero_row, fI), axis=0)
+  eD = np.concatenate((zero_row, eD), axis=0)
+  return eD, eI, fI
 
 
 def get_next_fI(col_mask, col_eI, fI, f_end):
@@ -138,7 +148,11 @@ def get_next_fI(col_mask, col_eI, fI, f_end):
   return fI[col_eI][:,1:f_end]
 
 
-def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=20):
+def keep_progress():
+  pass
+
+
+def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   Arg:
@@ -147,17 +161,33 @@ def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=20):
     fD_threshold： 若 f 经 L2 归一化，其范围为[0,2], 越小越接近。
     fI_end: fI 截取数量。
   """
-  eI, fI = add_invalid_row(eI, fI)
+  fI = fliter_fI(fI, fD, fD_threshold)
+  eD, eI, fI = add_invalid_row(eD, eI, fI)
+  
   keep_mask = np.ones(eI.shape).astype('bool')
-  for col_i in range(eI.shape[0]):
+  for col_i in range(eI.shape[1]):
     col_keep_mask = keep_mask[:, col_i]
     col_eI = eI[:, col_i]
-    next_fI = get_next_fI(col_keep_mask, col_eI, fI, f_end)
+    next_fI = get_next_fI(col_keep_mask, col_eI, fI, fI_end)
     for i, (e, f) in enumerate(zip(eI[:, col_i:], next_fI)):
-      keep_mask[:,col_i:][i] = 1 - np.isin(e,f)
-    print(col_i, eI[:, col_i:])
+      if e[0]==0:
+        # 此时 f==[0,0,0,0,...]
+        continue
+      else:
+        keep_mask[:,col_i:][i] = (1 - np.isin(e,f)) * keep_mask[:,col_i:][i]
+    drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
+    eI[:, col_i:][drop_mask] = 0
     print(col_i, next_fI)
-    print(col_i, keep_mask)
+    print(col_i, eI[1])
+    print(col_i, keep_mask[1])
+    print(col_i, eI[2])
+    print(col_i, keep_mask[2])
+    print(col_i, eI[3])
+    print(col_i, keep_mask[3])
+    print(col_i, eI[4])
+    print(col_i, keep_mask[4])
+    print(col_i, eI[5])
+    print(col_i, keep_mask[5])
   drop_mask = (1 - keep_mask).astype('bool')[1:]
   print(drop_mask.shape)
   eD[mask] = 0.0  # 会修改原始eD
@@ -176,14 +206,17 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   print('calc features knn...')
   desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
-  _, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
-  # np.save(FLAGS.topk_dir+'/fI.npy',fI)
-  # np.save(FLAGS.topk_dir+'/eD.npy',eD)
-  # np.save(FLAGS.topk_dir+'/eI.npy',eI)
-  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
-  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
+  fD, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
+  # KNN 直出结果
+  np.save(FLAGS.topk_dir+'/eI.npy',eI)
+  np.save(FLAGS.topk_dir+'/eD.npy',eD)
+  np.save(FLAGS.topk_dir+'/fI.npy',fI)
+  np.save(FLAGS.topk_dir+'/fD.npy',fD)
   # eI = np.load(FLAGS.topk_dir+'/eI.npy')
-  print('features knn done. fD.shape: ',eD.shape)
+  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
+  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
+  # fD = np.load(FLAGS.topk_dir+'/fD.npy')
+  
   # eD = diff(eD, eI, fI)
   eD = iter_diff(eD, eI, fI, fD)
   print('knn diff done. eD.shape: ',eD.shape)
@@ -246,15 +279,20 @@ def main(args):
   D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
   D, I = calc_knn_desim(D, I, features, method='hnsw',nearest_num=FLAGS.nearest_num)
 
-  # np.save(FLAGS.topk_dir+'/D.npy',D)
-  # np.save(FLAGS.topk_dir+'/I.npy',I)
+  # 保留最终结果
+  np.save(FLAGS.topk_dir+'/D.npy',D)
+  np.save(FLAGS.topk_dir+'/I.npy',I)
   # D = np.load(FLAGS.topk_dir+'/D.npy')
   # I = np.load(FLAGS.topk_dir+'/I.npy')
   
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
   print("faiss_knn decode_map len", len(DECODE_MAP))
+  # 保留 decode_map
+  with open(FLAGS.topk_dir+'/decode_map.json', 'w') as file:
+    json.dump(DECODE_MAP, file, ensure_ascii=False)
 
+  # 解析并保存最终结果
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
