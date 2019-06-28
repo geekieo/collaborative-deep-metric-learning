@@ -3,7 +3,7 @@ import sys
 import os
 import time
 import faiss
-from multiprocessing import Pool
+import multiprocessing as mp
 import subprocess
 import traceback
 import numpy as np
@@ -105,18 +105,16 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   return D, I
 
 # ============================ de-similarity  ============================
-def diff(eD, eI, fI):
+def desim(eI, fI):
   """取 eI 和 fI 的交集，对 eI 中存在交集的元素位置置 True
-  对 eD 中 eI 和 fI 交集位置的元素置 0
   Arg:
-    eD: 召回索引距离首元素的距离
     eI, fI: int. 二维索引矩阵
   """
   drop_mask = np.zeros(eI.shape).astype('bool')
   for i, (e, f) in enumerate(zip(eI, fI)):
     drop_mask[i] = np.isin(e,f)
-  eD[drop_mask] = 0.0  # 会修改原始eD
-  return eD
+  eI[drop_mask] = -1
+  return eI
 
 
 def fliter_fI(fI, fD, fD_threshold):
@@ -148,11 +146,7 @@ def get_next_fI(col_mask, col_eI, fI, f_end):
   return fI[col_eI][:,1:f_end]
 
 
-def keep_progress():
-  pass
-
-
-def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
+def iter_desim(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   Arg:
@@ -169,30 +163,70 @@ def iter_diff(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
     col_keep_mask = keep_mask[:, col_i]
     col_eI = eI[:, col_i]
     next_fI = get_next_fI(col_keep_mask, col_eI, fI, fI_end)
-    for i, (e, f) in enumerate(zip(eI[:, col_i:], next_fI)):
+    next_eI = eI[:, col_i:]
+    for i, (e, f) in enumerate(zip(next_eI, next_fI)):
       if e[0]==0:
-        # 此时 f==[0,0,0,0,...]
-        continue
+        continue  # fI[0]==[0,0,0,0,...]
       else:
         keep_mask[:,col_i:][i] = (1 - np.isin(e,f)) * keep_mask[:,col_i:][i]
-    drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
-    eI[:, col_i:][drop_mask] = 0
-    print(col_i, next_fI)
-    print(col_i, eI[1])
-    print(col_i, keep_mask[1])
-    print(col_i, eI[2])
-    print(col_i, keep_mask[2])
-    print(col_i, eI[3])
-    print(col_i, keep_mask[3])
-    print(col_i, eI[4])
-    print(col_i, keep_mask[4])
-    print(col_i, eI[5])
-    print(col_i, keep_mask[5])
+    iter_drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
+    eI[:, col_i:][iter_drop_mask] = 0
+    # print(col_i, eI[1])
+    # print(col_i, keep_mask[1])
+    # print(col_i, eI[2])
+    # print(col_i, keep_mask[2])
+    # print(col_i, eI[3])
+    # print(col_i, keep_mask[3])
   drop_mask = (1 - keep_mask).astype('bool')[1:]
   print(drop_mask.shape)
-  eD[mask] = 0.0  # 会修改原始eD
-  return eD
+  return eI
 
+
+def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
+  for i, (e, f) in enumerate(eI_patch, fI_patch)):
+    if e[0]==0:
+      continue  # fI[0]==[0,0,0,0,...]
+    else:
+      mask_patch =  (1 - np.isin(e,f))
+  mask_dict[progress_i] = mask_patch
+
+def iter_desim_mp(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
+  fI = fliter_fI(fI, fD, fD_threshold)
+  eD, eI, fI = add_invalid_row(eD, eI, fI)
+  keep_mask = np.ones(eI.shape).astype('bool')
+  
+  manager = mp.Manager()
+  mask_dict = manager.dict()
+  pool = mp.Pool(processes=process_num, maxtasksperchild=6)
+
+  for col_i in range(eI.shape[1]):
+    col_keep_mask = keep_mask[:, col_i]
+    col_eI = eI[:, col_i]
+    next_fI = get_next_fI(col_keep_mask, col_eI, fI, fI_end)
+    next_eI = eI[:, col_i:]
+
+    patch_num = eI.shape[0]//process_num
+    for progress_i in range(process_num - 1):
+      patch_begin = progress_i * patch_num
+      patch_end = (progress_i + 1) * patch_num
+      pool.apply_async(desim_progress, args=(progress_i, mask_dict, next_eI[patch_begin, patch_end],
+                       next_fI[patch_begin, patch_end]))
+    pool.apply_async(desim_progress, args=(process_num-1, mask_dict, next_eI[(process_num-1)*patch_num:],
+                     next_fI[(process_num-1)*patch_num:]))
+    # 多进程 dict -> ndarray
+    for i in len(mask_dict):
+      next_keep_mask.append(mask_dict[i])
+    # 刷新 mask
+    keep_mask[:,col_i:] = keep_mask[:,col_i:] * next_keep_mask
+    drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
+    eI[:, col_i:][drop_mask] = 0
+    # print(col_i, eI[1])
+    # print(col_i, keep_mask[1])
+    # print(col_i, eI[2])
+    # print(col_i, keep_mask[2])
+    # print(col_i, eI[3])
+    # print(col_i, keep_mask[3])
+  return eI
 
 def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=41):
   """
@@ -217,14 +251,15 @@ def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest
   # fI = np.load(FLAGS.topk_dir+'/fI.npy')
   # fD = np.load(FLAGS.topk_dir+'/fD.npy')
   
-  # eD = diff(eD, eI, fI)
-  eD = iter_diff(eD, eI, fI, fD)
-  print('knn diff done. eD.shape: ',eD.shape)
+  # eI = desim(eD, eI, fI)
+  eD = iter_desim(eD, eI, fI, fD)
+  print('knn desim done. eD.shape: ',eD.shape)
   return  eD, eI
 
 
 # ============================ write result ============================
-def write_process(path, index, begin_index, D, I):
+def write_by_D_process(path, index, begin_index, D, I):
+  """丢弃ID在D中值为 0.0"""
   try:
     with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
       for i in range(I.shape[0]):
@@ -243,6 +278,23 @@ def write_process(path, index, begin_index, D, I):
     raise
 
 
+def write_process(path, index, begin_index, D, I):
+  """丢弃ID在I中值为-1"""
+  try:
+    with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
+      for i in range(I.shape[0]):
+        query_id = DECODE_MAP[begin_index+i]
+        nearest_ids = I[i][1:]
+        nearest_scores = D[i][1:]
+        topks = ''.join(map(
+          lambda x: DECODE_MAP[x[1][0]] + "#" + str(x[1][1]) + '<' if  x[1][0] > 0 else "",
+          enumerate(zip(nearest_ids, nearest_scores)))) # 
+        string = query_id + ',' + topks + '\n'
+        fp.write(string)
+  except Exception as e:
+    print(traceback.format_exc())
+    raise
+
 def write_knn(topk_dir, split_num=10, D=None, I=None):
   if not os.path.exists(topk_dir):
     os.makedirs(topk_dir)
@@ -251,11 +303,11 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
 
   ## Pool method
   begin = time.time()
-  pool_my = Pool(processes=split_num, maxtasksperchild=6)
+  pool_my = mp.Pool(processes=split_num, maxtasksperchild=6)
   for i in range(split_num - 1):
-    batch_begin = i * patch_num
-    batch_end = (i + 1) * patch_num
-    pool_my.apply_async(write_process, args=(topk_dir, i, batch_begin, D[batch_begin:batch_end], I[batch_begin:batch_end]))
+    patch_begin = i * patch_num
+    patch_end = (i + 1) * patch_num
+    pool_my.apply_async(write_process, args=(topk_dir, i, patch_begin, D[patch_begin:patch_end], I[patch_begin:patch_end]))
   pool_my.apply_async(write_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
                                          D[(split_num-1)*patch_num:], I[(split_num-1)*patch_num:]))
   pool_my.close()
