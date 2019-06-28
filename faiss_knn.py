@@ -29,8 +29,10 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
-flags.DEFINE_integer("nearest_num",101,
-    "返回的近邻个数")
+flags.DEFINE_integer("nearest_num",81,
+    "embedding 的近邻个数")
+flags.DEFINE_integer("desim_nearest_num",41,
+    "原始特征向量近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
     "Top-k 结果保存地址")
 
@@ -127,7 +129,7 @@ def fliter_fI(fI, fD, fD_threshold):
   return fI
 
     
-def add_invalid_row(eD, eI, fI):
+def add_invalid_row(eI, fI):
   """首行增加无效结果，0向量"""
   # eI fI 索引暂时 + 1，最后访问 eD 时须 -1
   eI += 1
@@ -136,8 +138,7 @@ def add_invalid_row(eD, eI, fI):
   zero_row = np.zeros((1, fI.shape[1]),dtype=np.int)
   eI = np.concatenate((zero_row, eI), axis=0)
   fI = np.concatenate((zero_row, fI), axis=0)
-  eD = np.concatenate((zero_row, eD), axis=0)
-  return eD, eI, fI
+  return eI, fI
 
 
 def get_next_fI(col_mask, col_eI, fI, f_end):
@@ -146,7 +147,7 @@ def get_next_fI(col_mask, col_eI, fI, f_end):
   return fI[col_eI][:,1:f_end]
 
 
-def iter_desim(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
+def iter_desim(eI, fD, fI, fD_threshold=1.4, fI_end=30):
   """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
      对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
   Arg:
@@ -156,7 +157,7 @@ def iter_desim(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
     fI_end: fI 截取数量。
   """
   fI = fliter_fI(fI, fD, fD_threshold)
-  eD, eI, fI = add_invalid_row(eD, eI, fI)
+  eI, fI = add_invalid_row(eI, fI)
   
   keep_mask = np.ones(eI.shape).astype('bool')
   for col_i in range(eI.shape[1]):
@@ -177,22 +178,21 @@ def iter_desim(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30):
     # print(col_i, keep_mask[2])
     # print(col_i, eI[3])
     # print(col_i, keep_mask[3])
-  drop_mask = (1 - keep_mask).astype('bool')[1:]
-  print(drop_mask.shape)
+  eI[:,0] = -1 
   return eI
 
 
 def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
-  for i, (e, f) in enumerate(eI_patch, fI_patch)):
+  for i, (e, f) in enumerate(zip(eI_patch, fI_patch)):
     if e[0]==0:
       continue  # fI[0]==[0,0,0,0,...]
     else:
       mask_patch =  (1 - np.isin(e,f))
   mask_dict[progress_i] = mask_patch
 
-def iter_desim_mp(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
+def iter_desim_mp(eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
   fI = fliter_fI(fI, fD, fD_threshold)
-  eD, eI, fI = add_invalid_row(eD, eI, fI)
+  eI, fI = add_invalid_row(eI, fI)
   keep_mask = np.ones(eI.shape).astype('bool')
   
   manager = mp.Manager()
@@ -209,13 +209,15 @@ def iter_desim_mp(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
     for progress_i in range(process_num - 1):
       patch_begin = progress_i * patch_num
       patch_end = (progress_i + 1) * patch_num
-      pool.apply_async(desim_progress, args=(progress_i, mask_dict, next_eI[patch_begin, patch_end],
-                       next_fI[patch_begin, patch_end]))
-    pool.apply_async(desim_progress, args=(process_num-1, mask_dict, next_eI[(process_num-1)*patch_num:],
+      pool.apply(desim_progress, args=(progress_i, mask_dict, next_eI[patch_begin:patch_end],
+                       next_fI[patch_begin:patch_end]))
+    pool.apply(desim_progress, args=(process_num-1, mask_dict, next_eI[(process_num-1)*patch_num:],
                      next_fI[(process_num-1)*patch_num:]))
-    # 多进程 dict -> ndarray
-    for i in len(mask_dict):
+    # dict -> ndarray
+    next_keep_mask=[]
+    for i in range(process_num): # len(mask_dict) == process_num
       next_keep_mask.append(mask_dict[i])
+    next_keep_mask = np.asarray(next_keep_mask)
     # 刷新 mask
     keep_mask[:,col_i:] = keep_mask[:,col_i:] * next_keep_mask
     drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
@@ -226,35 +228,10 @@ def iter_desim_mp(eD, eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
     # print(col_i, keep_mask[2])
     # print(col_i, eI[3])
     # print(col_i, keep_mask[3])
+  pool.close()
+  pool.join()
+  eI[:,0] = -1 
   return eI
-
-def calc_knn_desim(eD, eI, features, method='hnsw',nearest_num=51, desim_nearest_num=41):
-  """
-  Arg:
-    eD, eI: 模型输出向量的 faiss search 结果
-    features: 原始特征向量
-    method: the same as the argument method in calc_knn
-    nearest_num: the same as the argument nearest_num in calc_knn
-    disim_gap: nearest_num of embeddings - nearest_num of features
-  """
-  print('calc features knn...')
-  desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
-  print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
-  fD, fI = calc_knn(features, features, method, desim_nearest_num, l2_norm=True)
-  # KNN 直出结果
-  np.save(FLAGS.topk_dir+'/eI.npy',eI)
-  np.save(FLAGS.topk_dir+'/eD.npy',eD)
-  np.save(FLAGS.topk_dir+'/fI.npy',fI)
-  np.save(FLAGS.topk_dir+'/fD.npy',fD)
-  # eI = np.load(FLAGS.topk_dir+'/eI.npy')
-  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
-  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
-  # fD = np.load(FLAGS.topk_dir+'/fD.npy')
-  
-  # eI = desim(eD, eI, fI)
-  eD = iter_desim(eD, eI, fI, fD)
-  print('knn desim done. eD.shape: ',eD.shape)
-  return  eD, eI
 
 
 # ============================ write result ============================
@@ -269,7 +246,7 @@ def write_by_D_process(path, index, begin_index, D, I):
         ## larger than 0.5 for cosine and less than 1.0 for Euclidean distance under L2 norm
         ## 2(1-cosine) = e_dist
         topks = ''.join(map(
-          lambda x: x[1][0] + "#" + str(x[1][1]) + '<' if  x[1][1] > 0.0 and x[1][1] <2.0 else "",
+          lambda x: x[1][0] + "#" + str(x[1][1]) + '<' if  x[1][1] > 0.0 and x[1][1] <1.4 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
         string = query_id + ',' + topks + '\n'
         fp.write(string)
@@ -287,13 +264,14 @@ def write_process(path, index, begin_index, D, I):
         nearest_ids = I[i][1:]
         nearest_scores = D[i][1:]
         topks = ''.join(map(
-          lambda x: DECODE_MAP[x[1][0]] + "#" + str(x[1][1]) + '<' if  x[1][0] > 0 else "",
-          enumerate(zip(nearest_ids, nearest_scores)))) # 
+          lambda x: DECODE_MAP[x[1][0]] + "#" + str(x[1][1]) + '<' if  x[1][0] > 0 and x[1][1] > 0.0 and x[1][1] <1.4 else "",
+          enumerate(zip(nearest_ids, nearest_scores)))) # x[1][0]为近邻索引, x[1][1]为近邻距离
         string = query_id + ',' + topks + '\n'
         fp.write(string)
   except Exception as e:
     print(traceback.format_exc())
     raise
+
 
 def write_knn(topk_dir, split_num=10, D=None, I=None):
   if not os.path.exists(topk_dir):
@@ -315,6 +293,8 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   end = time.time()
   print('write_knn cost:%f s'%(end - begin))
 
+
+# ============================ main ============================
 def main(args):
   # TODO logging FLAGS
   print("FLAGS.topk_dir " + str(FLAGS.topk_dir))
@@ -327,15 +307,29 @@ def main(args):
   print("faiss_knn embedding_file shape", embeddings.shape)
   features = load_embedding(FLAGS.pred_feature_file)
   print("faiss_knn pred_feature_file shape", features.shape)
-  print("calc_knn ...")
-  D, I = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
-  D, I = calc_knn_desim(D, I, features, method='hnsw',nearest_num=FLAGS.nearest_num)
 
-  # 保留最终结果
-  np.save(FLAGS.topk_dir+'/D.npy',D)
-  np.save(FLAGS.topk_dir+'/I.npy',I)
-  # D = np.load(FLAGS.topk_dir+'/D.npy')
-  # I = np.load(FLAGS.topk_dir+'/I.npy')
+  print("faiss_knn calc_knn embeddings...")
+  eD, eI = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
+  np.save(FLAGS.topk_dir+'/eD.npy',eD)
+  np.save(FLAGS.topk_dir+'/eI.npy',eI)
+
+  print('faiss_knn calc_knn features...')
+  desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
+  print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
+  fD, fI = calc_knn(features, features, method='hnsw', nearest_num=FLAGS.desim_nearest_num, l2_norm=True)
+  np.save(FLAGS.topk_dir+'/fD.npy',fD)
+  np.save(FLAGS.topk_dir+'/fI.npy',fI)
+
+  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
+  # eI = np.load(FLAGS.topk_dir+'/eI.npy')
+  # fD = np.load(FLAGS.topk_dir+'/fD.npy')
+  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
+
+  ## 去重
+  # eI = desim(eI, fI)
+  # eI = iter_desim(eI, fI, fD)
+  eI = iter_desim_mp(eI, fI, fD)
+  np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
   
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
@@ -345,7 +339,7 @@ def main(args):
     json.dump(DECODE_MAP, file, ensure_ascii=False)
 
   # 解析并保存最终结果
-  write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=D, I=I)
+  write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
 
 if __name__ == '__main__':
