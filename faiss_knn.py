@@ -138,8 +138,9 @@ def add_invalid_row(eI, fI):
   eI += 1
   fI += 1
   # fI 首行插入无效结果 0 向量
-  zero_row = np.zeros((1, fI.shape[1]),dtype=np.int)
+  zero_row = np.zeros((1, eI.shape[1]),dtype=np.int)
   eI = np.concatenate((zero_row, eI), axis=0)
+  zero_row = np.zeros((1, fI.shape[1]),dtype=np.int)
   fI = np.concatenate((zero_row, fI), axis=0)
   return eI, fI
 
