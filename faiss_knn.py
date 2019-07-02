@@ -120,18 +120,20 @@ def desim(eI, fI):
 
 
 def fliter_fI(fI, fD, fD_threshold):
-  """对于 fD 超过 fD_threshold 的索引，fI对应位置元素置-1
+  """对于 fD 超过 fD_threshold 的索引，fI 对应位置元素置-1
   这里认为 fD 超过 fD_threshold 的向量不相似"""
-  fI_drop_mask = np.zeros(fI.shape).astype('bool')
+  # 使用 fD 过滤距离较远的 fI
   fI_drop_index = np.where(fD>fD_threshold)
-  fI_drop_mask[fI_drop_index] = True
-  fI[fI_drop_mask] = -1
+  fI[fI_drop_index] = -1
+  # 过滤自身
+  for i, indexes in enumerate(fI):
+    indexes[np.where(indexes==i)]=-1
   return fI
 
     
 def add_invalid_row(eI, fI):
   """首行增加无效结果，0向量"""
-  # eI fI 索引暂时 + 1，最后访问 eD 时须 -1
+  # eI fI 索引暂时 + 1，最后须 -1
   eI += 1
   fI += 1
   # fI 首行插入无效结果 0 向量
@@ -144,93 +146,73 @@ def add_invalid_row(eI, fI):
 def get_next_fI(col_mask, col_eI, fI, f_end):
   """fI 首行已插入 0 向量"""
   col_eI = col_mask * col_eI
-  return fI[col_eI][:,1:f_end]
-
-
-def iter_desim(eI, fD, fI, fD_threshold=1.4, fI_end=30):
-  """对 eI 中每行每列元素，找出其在 fI 近邻和当前行元素集的交集，
-     对 eI 中存在交集的元素位置,在 eD 对应位置元素置 0
-  Arg:
-    eD,fD: 近邻距离。若向量经 L2 归一化，其值等于 2(1-余弦距离)。
-    eI,fI: 近邻索引。
-    fD_threshold： 若 f 经 L2 归一化，其范围为[0,2], 越小越接近。
-    fI_end: fI 截取数量。
-  """
-  fI = fliter_fI(fI, fD, fD_threshold)
-  eI, fI = add_invalid_row(eI, fI)
-  
-  keep_mask = np.ones(eI.shape).astype('bool')
-  for col_i in range(eI.shape[1]):
-    col_keep_mask = keep_mask[:, col_i]
-    col_eI = eI[:, col_i]
-    next_fI = get_next_fI(col_keep_mask, col_eI, fI, fI_end)
-    next_eI = eI[:, col_i:]
-    for i, (e, f) in enumerate(zip(next_eI, next_fI)):
-      if e[0]==0:
-        continue  # fI[0]==[0,0,0,0,...]
-      else:
-        keep_mask[:,col_i:][i] = (1 - np.isin(e,f)) * keep_mask[:,col_i:][i]
-    iter_drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
-    eI[:, col_i:][iter_drop_mask] = 0
-    # print(col_i, eI[1])
-    # print(col_i, keep_mask[1])
-    # print(col_i, eI[2])
-    # print(col_i, keep_mask[2])
-    # print(col_i, eI[3])
-    # print(col_i, keep_mask[3])
-  eI[:,0] = -1 
-  return eI
+  return fI[col_eI][:,:f_end]
 
 
 def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
+  mask_patch = np.ones(eI_patch.shape).astype('bool') #默认True
   for i, (e, f) in enumerate(zip(eI_patch, fI_patch)):
     if e[0]==0:
       continue  # fI[0]==[0,0,0,0,...]
     else:
-      mask_patch =  (1 - np.isin(e,f))
+      mask_patch[i] =  (1 - np.isin(e,f))             #交集置False
   mask_dict[progress_i] = mask_patch
 
-def iter_desim_mp(eI, fD, fI, fD_threshold=1.4, fI_end=30, process_num=32):
+
+def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=30, process_num=32):
+  begin = time.time()
   fI = fliter_fI(fI, fD, fD_threshold)
   eI, fI = add_invalid_row(eI, fI)
   keep_mask = np.ones(eI.shape).astype('bool')
-  
   manager = mp.Manager()
   mask_dict = manager.dict()
-  pool = mp.Pool(processes=process_num, maxtasksperchild=6)
 
   for col_i in range(eI.shape[1]):
+    pool = mp.Pool(processes=process_num, maxtasksperchild=6)
+    # print('col_i: ',col_i)
     col_keep_mask = keep_mask[:, col_i]
     col_eI = eI[:, col_i]
     next_fI = get_next_fI(col_keep_mask, col_eI, fI, fI_end)
+    # print('next_fI[1:4]', next_fI[1:4])
     next_eI = eI[:, col_i:]
-
+    # print('next_eI[1:4]', next_eI[1:4])
     patch_num = eI.shape[0]//process_num
+    results = []
     for progress_i in range(process_num - 1):
       patch_begin = progress_i * patch_num
       patch_end = (progress_i + 1) * patch_num
-      pool.apply(desim_progress, args=(progress_i, mask_dict, next_eI[patch_begin:patch_end],
+      result = pool.apply_async(desim_progress, args=(progress_i, mask_dict, next_eI[patch_begin:patch_end],
                        next_fI[patch_begin:patch_end]))
-    pool.apply(desim_progress, args=(process_num-1, mask_dict, next_eI[(process_num-1)*patch_num:],
+      results.append(result)
+    result = pool.apply_async(desim_progress, args=(process_num-1, mask_dict, next_eI[(process_num-1)*patch_num:],
                      next_fI[(process_num-1)*patch_num:]))
+
+    results.append(result)
+    # 等待所有进程函数执行完毕
+    for result in results:
+      result.wait() 
+    pool.close()
+    pool.join()
+
     # dict -> ndarray
     next_keep_mask=[]
     for i in range(process_num): # len(mask_dict) == process_num
-      next_keep_mask.append(mask_dict[i])
+      next_keep_mask.extend(mask_dict[i])
     next_keep_mask = np.asarray(next_keep_mask)
-    # 刷新 mask
+    # print('iter_desim_mp next_keep_mask',next_keep_mask[1:4],' shape ',next_keep_mask.shape)
+    # 刷新 eI
     keep_mask[:,col_i:] = keep_mask[:,col_i:] * next_keep_mask
+    # print('keep_mask', keep_mask[1:4])
     drop_mask = (1 - keep_mask[:, col_i:]).astype('bool')
     eI[:, col_i:][drop_mask] = 0
-    # print(col_i, eI[1])
-    # print(col_i, keep_mask[1])
-    # print(col_i, eI[2])
-    # print(col_i, keep_mask[2])
-    # print(col_i, eI[3])
-    # print(col_i, keep_mask[3])
-  pool.close()
-  pool.join()
-  eI[:,0] = -1 
+    # print('desimed eI', eI[1:4])
+
+  # 过滤自身
+  for i, indexes in enumerate(eI):
+    indexes[np.where(indexes==i)] = 0
+  # 恢复 eI ，去除首行无效0向量，同时索引-1
+  eI = eI[1:] - 1
+  print('faiss_knn iter_desim_mp cost: ',time.time()-begin)
   return eI
 
 
@@ -243,8 +225,7 @@ def write_by_D_process(path, index, begin_index, D, I):
         query_id = DECODE_MAP[begin_index+i]
         nearest_ids = map(lambda x: DECODE_MAP[x], I[i][1:])
         nearest_scores = D[i][1:]
-        ## larger than 0.5 for cosine and less than 1.0 for Euclidean distance under L2 norm
-        ## 2(1-cosine) = e_dist
+        ## 向量在L2归一化后 2(1-cosine_dist) = euclid_dist 
         topks = ''.join(map(
           lambda x: x[1][0] + "#" + str(x[1][1]) + '<' if  x[1][1] > 0.0 and x[1][1] <1.4 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
@@ -271,7 +252,6 @@ def write_process(path, index, begin_index, D, I):
   except Exception as e:
     print(traceback.format_exc())
     raise
-
 
 def write_knn(topk_dir, split_num=10, D=None, I=None):
   if not os.path.exists(topk_dir):
@@ -324,20 +304,23 @@ def main(args):
   # eI = np.load(FLAGS.topk_dir+'/eI.npy')
   # fD = np.load(FLAGS.topk_dir+'/fD.npy')
   # fI = np.load(FLAGS.topk_dir+'/fI.npy')
+  # print('load eD eI fD fI')
 
   ## 去重
   # eI = desim(eI, fI)
+  # np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
   # eI = iter_desim(eI, fI, fD)
+  
   eI = iter_desim_mp(eI, fI, fD)
-  np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
+  np.save(FLAGS.topk_dir+'/eI_iter_desim.npy',eI)
   
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
   print("faiss_knn decode_map len", len(DECODE_MAP))
-  # 保留 decode_map
-  with open(FLAGS.topk_dir+'/decode_map.json', 'w') as file:
-    json.dump(DECODE_MAP, file, ensure_ascii=False)
-
+  # 备份 decode_map 置 topk_dir
+  res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
+  print("faiss_knn backup decode_map us os.popen: ", res)
+  
   # 解析并保存最终结果
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
