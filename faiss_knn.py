@@ -277,6 +277,7 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
 # ============================ main ============================
 def main(args):
   # TODO logging FLAGS
+  global_begin=time.time()
   print("FLAGS.topk_dir " + str(FLAGS.topk_dir))
   print("FLAGS.decode_map_file " + str(decode_map_file))
   print("FLAGS.embedding_file " + str(embedding_file))
@@ -295,8 +296,8 @@ def main(args):
 
   print('faiss_knn calc_knn features...')
   desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
-  print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
-  fD, fI = calc_knn(features, features, method='hnsw', nearest_num=FLAGS.desim_nearest_num, l2_norm=True)
+  print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
+  fD, fI = calc_knn(features, features, method='hnsw', nearest_num=desim_nearest_num, l2_norm=True)
   np.save(FLAGS.topk_dir+'/fD.npy',fD)
   np.save(FLAGS.topk_dir+'/fI.npy',fI)
 
@@ -324,6 +325,7 @@ def main(args):
   # 解析并保存最终结果
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
+  print("faiss_knn cost: %fs", time.time()-global_begin)
 
 if __name__ == '__main__':
   tf.app.run()
