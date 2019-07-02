@@ -294,7 +294,7 @@ def main(args):
   np.save(FLAGS.topk_dir+'/eI.npy',eI)
 
   print('faiss_knn calc_knn features...')
-  desim_nearest_num = desim_nearest_num if FLAGS.nearest_num > desim_nearest_num else FLAGS.nearest_num
+  desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(nearest_num, desim_nearest_num))
   fD, fI = calc_knn(features, features, method='hnsw', nearest_num=FLAGS.desim_nearest_num, l2_norm=True)
   np.save(FLAGS.topk_dir+'/fD.npy',fD)
