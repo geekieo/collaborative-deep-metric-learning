@@ -31,7 +31,7 @@ flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
 flags.DEFINE_integer("nearest_num",81,
     "embedding 的近邻个数")
-flags.DEFINE_integer("desim_nearest_num",41,
+flags.DEFINE_integer("desim_nearest_num",31,
     "原始特征向量近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
     "Top-k 结果保存地址")
@@ -64,7 +64,8 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
             'gpuivf': inverted file index, low time cost with lossing little precision
     l2_norm: NOTE embeddings should be L2 normalized, otherwise it will get wrong result in HNSW method! 
   Return:
-    D: D for distance. 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引
+    D: D for distance. 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引 
+       向量在L2归一化后 euclid_dist = 2(1-cosine_dist)
     I：I for index. 与 D 对应的每个近邻的与 query 向量的距离
   """
   if method not in ['hnsw', 'L2', 'gpuivf']:
@@ -159,7 +160,7 @@ def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
   mask_dict[progress_i] = mask_patch
 
 
-def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=30, process_num=32):
+def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=32):
   begin = time.time()
   fI = fliter_fI(fI, fD, fD_threshold)
   eI, fI = add_invalid_row(eI, fI)
@@ -225,7 +226,6 @@ def write_by_D_process(path, index, begin_index, D, I):
         query_id = DECODE_MAP[begin_index+i]
         nearest_ids = map(lambda x: DECODE_MAP[x], I[i][1:])
         nearest_scores = D[i][1:]
-        ## 向量在L2归一化后 2(1-cosine_dist) = euclid_dist 
         topks = ''.join(map(
           lambda x: x[1][0] + "#" + str(x[1][1]) + '<' if  x[1][1] > 0.0 and x[1][1] <1.4 else "",
           enumerate(zip(nearest_ids, nearest_scores))))
@@ -320,7 +320,7 @@ def main(args):
   # 备份 decode_map 置 topk_dir
   res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
   print("faiss_knn backup decode_map us os.popen: ", res)
-  
+
   # 解析并保存最终结果
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
   print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
