@@ -42,15 +42,27 @@ def load_embedding(filename):
   return embeddings
 
 
+# def load_decode_map(filename):
+#   """读取结果用 dict 返回"""
+#   decode_map = {}
+#   encode_map = {}
+#   with open(filename, 'r') as f:
+#     index2guid_str = json.load(f)
+#   for k,v in index2guid_str.items():
+#     decode_map[int(k)] = v
+#     encode_map[v] = int(k)
+#   return decode_map, encode_map
+
+
 def load_decode_map(filename):
-  decode_map = {}
-  encode_map = {}
+  """读取结果用 ndarray 返回"""
   with open(filename, 'r') as f:
     index2guid_str = json.load(f)
+  decode_list = [None]*len(index2guid_str)
   for k,v in index2guid_str.items():
-    decode_map[int(k)] = v
-    encode_map[v] = int(k)
-  return decode_map, encode_map
+    decode_list[int(k)] = v
+  decode_map = np.asarray(decode_list)
+  return decode_map
 
 
 def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=True):
@@ -273,7 +285,7 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   pool_my.join()
   end = time.time()
   print('write_knn cost: %fs'%(end - begin))
-  
+
 # ============================ main ============================
 def main(args):
   # TODO logging FLAGS
@@ -311,16 +323,20 @@ def main(args):
   # eI = desim(eI, fI)
   # np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
   # eI = iter_desim(eI, fI, fD)
-  
   eI = iter_desim_mp(eI, fI, fD)
   np.save(FLAGS.topk_dir+'/eI_iter_desim.npy',eI)
   
   global DECODE_MAP
-  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("faiss_knn decode_map len", len(DECODE_MAP))
-  # 备份 decode_map 置 topk_dir
-  res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
-  print("faiss_knn backup decode_map us os.popen: ", res)
+  # DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
+  # print("faiss_knn decode_map len", len(DECODE_MAP))
+  # 使用 ndarray 代替 dict 并未见到加速效果，但可以方便线上 badcase 寻根溯源
+  DECODE_MAP = load_decode_map(FLAGS.decode_map_file)
+  print("faiss_knn decode_map shape", DECODE_MAP.shape)
+
+  ## 备份 decode_map 置 topk_dir
+  # res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
+  # print("faiss_knn backup decode_map by os.popen: ", res)
+  np.save(FLAGS.topk_dir+'/decode_map.npy', DECODE_MAP)
 
   # 解析并保存最终结果
   write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
