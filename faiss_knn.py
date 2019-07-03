@@ -272,9 +272,8 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   pool_my.close()
   pool_my.join()
   end = time.time()
-  print('write_knn cost:%f s'%(end - begin))
-
-
+  print('write_knn cost: %fs'%(end - begin))
+  
 # ============================ main ============================
 def main(args):
   # TODO logging FLAGS
