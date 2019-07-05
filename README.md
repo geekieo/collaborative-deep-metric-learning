@@ -1,16 +1,16 @@
-# Collaborative Deep Metric Learning for Video Understanding
+# Collaborative Deep Metric Learning for Video Recommendation
 
 ## requirement
 
-tensorflow-gpu    1.13.1  conda install tensorflow-gpu
+tensorflow-gpu    1.13.1  conda install tensorflow-gpu  
 faiss-gpu         1.5.1   conda install faiss-gpu cudatoolkit=9.0 -c pytorch  
-  numpy           1.6.3
+  numpy           1.6.3  
 
 ### optional
 
-opencv-python     4.1
-matplotlib
-pillow
+opencv-python     4.1  
+matplotlib  
+pillow  
   
 ## Overview of Files
 
