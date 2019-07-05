@@ -334,7 +334,7 @@ def main(args):
   # DECODE_MAP = load_decode_map(FLAGS.decode_map_file)
   # print("faiss_knn decode_map shape", DECODE_MAP.shape)
 
-  # 备份 decode_map 置 topk_dir
+  # 备份 decode_map 至 topk_dir
   res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
   print("faiss_knn backup decode_map by os.popen: ", res)
   # np.save(FLAGS.topk_dir+'/decode_map.npy', DECODE_MAP)
