@@ -324,7 +324,6 @@ def main(args):
   ## 去重
   # eI = desim(eI, fI)
   # np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
-  # eI = iter_desim(eI, fI, fD)
   eI = iter_desim_mp(eI, fI, fD)
   np.save(FLAGS.topk_dir+'/eI_iter_desim.npy',eI)
   

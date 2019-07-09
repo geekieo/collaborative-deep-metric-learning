@@ -16,6 +16,7 @@ pillow
 
 ### Data
 
+* `training_dir`
 * `online_data.py`
 * `parse_data.py`
 * `imitation_data.py`
@@ -78,3 +79,5 @@ pillow
 # clean old models which generated 7 days ago
 30 01 * * * /bin/bash /data/service/cdml/deleteOldData.sh
 ```
+
+
