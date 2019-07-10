@@ -6,7 +6,7 @@ source /data/bigdata/env.sh
 
 python_env=/data/anaconda2/envs/wengjy1/bin/python
 week=`date +"%w"`
-project_dir=/data/service/cdml
+project_dir=/data/service/ai-algorithm-cdml
 training_dir=$project_dir/training_dir
 serving_dir=$project_dir/serving_dir
 predict_dir=$serving_dir/predict_result
