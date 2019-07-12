@@ -175,13 +175,16 @@ def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
   mask_dict[progress_i] = mask_patch
 
 
-def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=32):
+def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=None):
   begin = time.time()
   fI = fliter_fI(fI, fD, fD_threshold)
   eI, fI = add_invalid_row(eI, fI)
   keep_mask = np.ones(eI.shape).astype('bool')
   manager = mp.Manager()
   mask_dict = manager.dict()
+  cpu_num = mp.cpu_count()
+  process_num = cpu_num if process_num is None or process_num>cpu_num or process_num<=0 else process_num
+  print('faiss_knn iter_desim_mp process_num: ',process_num)
 
   for col_i in range(eI.shape[1]):
     pool = mp.Pool(processes=process_num, maxtasksperchild=6)
