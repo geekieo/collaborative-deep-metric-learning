@@ -164,7 +164,7 @@ class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate, margin,
                checkpoint_dir, optimizer_class, config, eval_cowatches, test_cowatches,
-               best_eval_dist=1.0, eval_per_epoch=100 ,require_improve_num=10,
+               check_stop_epoch, best_eval_dist=1.0, eval_per_epoch=100 ,require_improve_num=10,
                loglevel=tf.logging.INFO):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
@@ -184,6 +184,7 @@ class Trainer():
     # 验证早停及模型选取依据
     self.total_eval_num = 0
     self.last_improve_num = 0
+    self.check_stop_epoch = check_stop_epoch
     self.best_eval_dist = best_eval_dist
     self.eval_dist = 0.0
     self.eval_per_epoch = eval_per_epoch
@@ -270,7 +271,7 @@ class Trainer():
       predictor = Prediction(sess=sess)
 
       global_step_np = 0
-      check_stop_step = int(self.pipe.cowatch_num/self.batch_size) # 1个epoch后才开始验证
+      check_stop_step = int(self.pipe.cowatch_num/self.batch_size * self.check_stop_epoch)  # 1个epoch后才开始验证
       eval_step = int(self.pipe.cowatch_num/self.batch_size/self.eval_per_epoch)
       show_step = int(eval_step/10)
       logging.info("check_stop_step: "+str(check_stop_step))
@@ -339,7 +340,7 @@ def main(args):
   config.gpu_options.allow_growth=True
 
   trainer = Trainer(pipe=pipe,
-                    num_epochs=3,
+                    num_epochs=8,
                     batch_size=1024,
                     model=model,
                     loss_fn=loss_fn,
@@ -350,6 +351,7 @@ def main(args):
                     config=config,
                     eval_cowatches=eval_cowatches,
                     test_cowatches=test_cowatches,
+                    check_stop_epoch=4,
                     best_eval_dist=1.0,
                     eval_per_epoch = 100,
                     require_improve_num=40,
