@@ -38,7 +38,7 @@ flags.DEFINE_string("base_save_dir", '/data/wengjy1/',
     "训练文件保存的根目录")
 flags.DEFINE_integer("split_num", 10,
     "训练文件中 cowatch 文件的切分个数")
-flags.DEFINE_boolean("unique", True,
+flags.DEFINE_boolean("unique", False,
     "是否对 cowatch 训练集做唯一化处理，即一种 cowatch 仅出现一次，这种唯一化不区分内部元素的顺序")
 
 

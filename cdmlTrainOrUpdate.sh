@@ -66,7 +66,7 @@ if [ $? -eq 0 ];then
     # 删除旧模型
     rm -rf $training_dir/checkpoints/*
     # 训练新模型
-    $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
+    $python_env train.py --train_dir $training_dir/dataset/cdml_1 \
                          --checkpoint_dir $training_dir/checkpoints
     check_training_task "TRAIN: train"
     # TODO 新旧模型测试 看测试结果给部署信号，旧模型数<2 直接给部署信号
