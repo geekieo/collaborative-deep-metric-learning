@@ -29,9 +29,9 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
-flags.DEFINE_integer("nearest_num",81,
+flags.DEFINE_integer("nearest_num",71,
     "embedding 的近邻个数")
-flags.DEFINE_integer("desim_nearest_num",31,
+flags.DEFINE_integer("desim_nearest_num",26,
     "原始特征向量近邻个数")
 flags.DEFINE_string("topk_dir", ckpt_dir, 
     "Top-k 结果保存地址")
@@ -95,7 +95,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 60)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 55)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
     index.hnsw.efSearch = 16        # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
