@@ -133,6 +133,7 @@ def main(args):
     logging.info("predict write decode_map.json to "+str(decode_map_path))
   except Exception as e:
     logging.error(traceback.format_exc())
+    raise
 
 if __name__ == "__main__":
   tf.app.run()
