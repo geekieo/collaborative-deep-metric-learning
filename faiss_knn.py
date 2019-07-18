@@ -337,8 +337,11 @@ def main(args):
   # print("faiss_knn decode_map shape", DECODE_MAP.shape)
 
   # 备份 decode_map 至 topk_dir
-  res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
-  print("faiss_knn backup decode_map by os.popen: ", res)
+  res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'),
+    shell=True,close_fds=True,bufsize=-1,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  # res = os.popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'))
+  print("faiss_knn backup decode_map by subprocess.Popen: ", res)
+  res.wait()
   # np.save(FLAGS.topk_dir+'/decode_map.npy', DECODE_MAP)
 
   # 解析并保存最终结果
