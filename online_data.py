@@ -4,6 +4,7 @@ Features are dict. Guids are list.
 """
 import sys
 import os
+import subprocess
 import numpy as np
 import json
 import tensorflow as tf
@@ -50,7 +51,11 @@ def read_features_txt(filename, drop_record=10):
   Arg:
     filename: string
   """
-  line_num = int(os.popen('wc -l '+filename).read().split()[0])
+  # line_num = int(os.popen('wc -l '+filename).read().split()[0])
+  res = subprocess.Popen('wc -l '+filename,shell=True,close_fds=True,bufsize=-1,
+    stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  line_num = int(res.stdout.readline().split()[0])
+  res.wait()
   logging.debug('read_features_txt line_num:'+str(line_num))
   features = np.zeros((line_num, 1500), np.float32)
   encode_map = {}
