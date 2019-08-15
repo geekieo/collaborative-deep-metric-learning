@@ -1,3 +1,9 @@
+<!--
+ * @Description: Readme
+ * @Date: 2019-07-10 17:31:26
+ * @Author: Weng Jingyu
+ -->  
+
 # Collaborative Deep Metric Learning for Video Recommendation
 
 ## requirement
@@ -28,13 +34,10 @@ pillow
 * `models.py`
 * `losses.py`
 * `train.py`
-* `utils.py`
 
 ### Evaluation
 
 * `evaluate.py`
-* `average_precision_calculator.py`（useless）
-* `mean_average_precision_calculator.py`（useless）
 
 ### Prediction
 
@@ -47,7 +50,6 @@ pillow
 * `get_guid_title.py`
 * `show_knn.py`
 * `README.md`
-* `流程表.md`
 
 ## 部署
 
@@ -72,12 +74,11 @@ pillow
 ### 添加定时任务
 
 `crontab -e`  添加以下任务
-```
+
+```bash
 # CDML Train or Update
 */5 * * * * /bin/bash /data/service/cdml/cdmlTrainOrUpdate.sh
 
 # clean old models which generated 7 days ago
 30 01 * * * /bin/bash /data/service/cdml/deleteOldData.sh
 ```
-
-
