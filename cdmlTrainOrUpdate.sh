@@ -1,6 +1,9 @@
-# 切到 prod 用户
 #!/usr/bin/env bash
-# author @zhoukang
+### 
+# @Description: 切到 prod 用户
+# @Date: 2019-07-10 17:31:26
+# @Author: Weng Jingyu
+###
 source /etc/profile
 source /data/bigdata/env.sh
 
@@ -18,32 +21,46 @@ signal_file=/user/zhoukang/videoknn/cdml/signal.txt
 update_signal_file=/user/zhoukang/video_clicks/cdml_update_signal.txt
 training_signal_file=/user/zhoukang/video_clicks/cdml_training_signal.txt
 
-
+ip=`/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`
 dayHour=`date +'%d%H'`
 logfile=$project_dir/logs/cdmlTrainOrUpdate.log_$dayHour
 
 getDate(){ echo `date +"%Y-%m-%d|%H:%M:%S"`; }
 
-check_training_task()
-{
+check_training_task(){
     if [ $? -eq 0 ]; then
         printf "%s INFO $1 success.\n" $(getDate) >>$logfile
     else
-        printf "%s INFO $1 failed.\n" $(getDate) >>$logfile
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"training failed. check log and training_dir","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
+        printf "%s WARNING $1 failed.\n" $(getDate) >>$logfile
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Training failed. Check log and serving_dir","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
         exit 0
     fi
 }
 
-check_update_task()
-{
+check_update_task(){
     if [ $? -eq 0 ]; then
         printf "%s INFO $1 success.\n" $(getDate) >>$logfile
     else
-        printf "%s INFO $1 failed.\n" $(getDate) >>$logfile
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"update failed. check log and serving_dir","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
+        printf "%s WARNING $1 failed.\n" $(getDate) >>$logfile
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Update failed. Check log and serving_dir","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send
         exit 0
     fi
+}
+
+check_timeout(){
+    pid=`ps -aux|grep "python predict.py"|grep "Rl"|awk '{print $2}'`
+    if [ $pid ]; then
+        printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
+        kill -9 $pid
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
+    fi
+    pid=`ps -aux|grep "python faiss_knn.py"|grep "Rl"|awk '{print $2}'`
+    if [ $pid ]; then
+        printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
+        kill -9 $pid
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout faiss task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
+    fi
+    
 }
 
 hadoop fs -test -e $training_signal_file
@@ -81,6 +98,7 @@ if [ $? -eq 0 ];then
     check_training_task "TRAIN: copy ckpt -> serving_dir"
 
 else
+    check_timeout
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
         printf "%s INFO UPDATE:Start processing .\n" $(getDate) >$logfile

@@ -29,7 +29,7 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
-flags.DEFINE_integer("nearest_num",71,
+flags.DEFINE_integer("nearest_num",81,
     "embedding 的近邻个数")
 flags.DEFINE_integer("desim_nearest_num",26,
     "原始特征向量近邻个数")
