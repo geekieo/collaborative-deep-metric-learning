@@ -1,5 +1,9 @@
-# -*- coding:utf-8 -*-
-"""Provides input pipe, which can get input data tensors for models."""
+# -*- coding: utf-8 -*-
+'''
+@Description: Provides input pipe, which can get input data tensors for models.
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import subprocess
 import time
 from multiprocessing import Pool
@@ -112,17 +116,6 @@ class MPTripletPipe(object):
               logging.debug('subprocess readline fail. thread_index: '+str(thread_index)+'; runtimes: '+str(runtimes))
               runtimes += 1
               if runtimes < num_epochs:
-                # global FINISHED_NUM
-                # added = False
-                # while True:
-                #   with FINISHED_NUM.get_lock():
-                #     if added == False:
-                #       added = True
-                #       FINISHED_NUM.value += 1
-                #     if FINISHED_NUM.value == ALL_FILES_NUM * runtimes:
-                #       break
-                #   logging.debug('thread_index: ' + str(thread_index) + ' waiting partners...')
-                #   time.sleep(2)
                 file.seek(0)
                 line = file.readline()
               else:

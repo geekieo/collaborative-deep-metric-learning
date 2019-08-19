@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+@Description: 
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import time
 import os
 import tensorflow as tf
@@ -147,8 +152,6 @@ def build_graph(input_batch,
   tf.add_to_collection("loss", loss)
   tf.add_to_collection("train_op", train_op)
   #debug
-  tf.add_to_collection("layer_1", result["layer_1"])
-  tf.add_to_collection("layer_2", result["layer_2"])
   # tf.add_to_collection("gradients", gradients) 
   tf.add_to_collection("anchors",loss_result["anchors"])
   tf.add_to_collection("positives",loss_result["positives"])
@@ -322,7 +325,7 @@ class Trainer():
 
 
 def main(args):
-  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第 2 块GPU
+  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第 1 块GPU
   # TODO Prepare distributed arguments here. 
   logging.info("Tensorflow version: %s.",tf.__version__)
   checkpoint_dir = FLAGS.checkpoint_dir

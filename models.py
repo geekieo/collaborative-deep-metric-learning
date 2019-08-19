@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+@Description: Model modual
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
@@ -36,7 +41,7 @@ class VENet(BaseModel):
       # model_input = tf.cast(model_input, tf.float32)
       model_input = tf.nn.l2_normalize(model_input, axis=-1,name='model_input')
       layer_1 = slim.fully_connected(
-          model_input, 4000, activation_fn=tf.nn.leaky_relu,
+          model_input, 5000, activation_fn=tf.nn.leaky_relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       layer_2 = slim.fully_connected(
           layer_1, output_size, activation_fn=tf.nn.leaky_relu,
@@ -44,3 +49,34 @@ class VENet(BaseModel):
       l2_norm = tf.nn.l2_normalize(layer_2, axis=-1,name='model_output')
       return {"layer_1":layer_1, "layer_2":layer_2,"l2_norm": l2_norm}
 
+class VedeNet():
+  """Visual Embedding and Doc Embedding Network"""
+  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
+    """
+    Args:
+      model_input: matrix of input features.dimension: [batch, channel, feature].
+          a feature is concatenate visual feature with doc feature ,and it's float.
+      output_size: size of output embedding. """
+    with tf.name_scope("VedeNet"):
+      # visual module
+      visual_input = model_input[:,:,:1500]   # visual feature vector
+      visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
+      layer_visual_1 = slim.fully_connected(
+          visual_input, 5000, activation_fn=tf.nn.leaky_relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      layer_visual_2 = slim.fully_connected(
+          layer_visual_1, 256, activation_fn=tf.nn.leaky_relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      # doc module
+      doc_input = model_input[:,:,1500:]   # doc feature vector
+      doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input') 
+      layer_doc_1 = slim.fully_connected(
+          doc_input, 400, activation_fn=tf.nn.leaky_relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      layer_doc_2 = slim.fully_connected(
+          layer_doc_1, 256, activation_fn=tf.nn.leaky_relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      # fusion by multiply
+      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
+      l2_norm = tf.nn.l2_normalize(layer_funsion, axis=-1,name='model_output')
+      return {"l2_norm": l2_norm}

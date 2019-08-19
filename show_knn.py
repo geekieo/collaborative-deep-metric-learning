@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+'''
+@Description: 
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import sys
 import os
 import cv2
@@ -113,6 +119,7 @@ if __name__ == '__main__':
   if not os.path.exists(result_file):
     os.mkdir(result_file)
   # print 写入文件
+  f_handler=open('./logs/show_knn.log', 'w')
   sys.stdout=f_handler
   np.random.seed(1234)
   ## calc knn
