@@ -1,7 +1,10 @@
-# -*- coding:utf-8 -*-
-"""Parses the online data (stroed locally) into trainable data.
-Features are dict. Guids are list.
-"""
+# -*- coding: utf-8 -*-
+'''
+@Description: Parses the online data (stroed locally) into trainable data.
+  Features are dict. Guids are list.
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import sys
 import os
 import subprocess
@@ -15,11 +18,6 @@ import traceback
 
 from utils import exe_time
 from parse_data import get_unique_watched_guids
-# from parse_data import filter_features
-# from parse_data import filter_watched_guids
-# from parse_data import encode_base_features
-# from parse_data import encode_features
-# from parse_data import encode_all_watched_guids
 from parse_data import filter_training_data
 from parse_data import get_all_cowatch
 from parse_data import get_cowatch_graph
@@ -30,9 +28,10 @@ logging.set_verbosity(logging.DEBUG)
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("watch_file", "/data/wengjy1/1905cdml/watch_history",
-    "用户观看视频的 guid 历史文件")
+    "用于训练的用户点击新闻id文件")
 flags.DEFINE_string("watch_feature_file", "/data/wengjy1/1905cdml/features",
-    "用户观看视频对应的视频特征向量文件")
+    "用于训练的特征向量文件")
+flags.DEFINE_integer("feature_size", 1628)
 flags.DEFINE_integer("threshold", 1,
     "生成训练文件的 cowatch 阈值")
 flags.DEFINE_string("base_save_dir", '/data/wengjy1/', 
@@ -43,7 +42,7 @@ flags.DEFINE_boolean("unique", False,
     "是否对 cowatch 训练集做唯一化处理，即一种 cowatch 仅出现一次，这种唯一化不区分内部元素的顺序")
 
 
-def read_features_txt(filename, drop_record=10):
+def read_features_txt(filename):
   """读取 feature txt 文件，解析并返回 dict。
   文件内容参考 tests/features.txt。
   对于每行样本，分号前是 guid, 分号后是 visual feature。
@@ -57,7 +56,7 @@ def read_features_txt(filename, drop_record=10):
   line_num = int(res.stdout.readline().split()[0])
   res.wait()
   logging.debug('read_features_txt line_num:'+str(line_num))
-  features = np.zeros((line_num, 1500), np.float32)
+  features = np.zeros((line_num, FLAGS.feature_size), np.float32)
   encode_map = {}
   decode_map = {}
   i = 0 # feature index
@@ -68,14 +67,13 @@ def read_features_txt(filename, drop_record=10):
         str_guid, str_feature = line.split('#')
         try:
           feature = list(map(float, (str_feature.split(','))))
-          if len(feature) == 1500:
+          if len(feature) == FLAGS.feature_size:
             features[i] = feature
             encode_map[str_guid] = i
             decode_map[i] = str_guid
             i += 1
         except Exception as e:
-          if drop_record > 0:
-            drop_record -= 1
+
             logging.warning('read_features_txt: drop feature. '+str(e))
       except Exception as e:
         logging.warning(traceback.format_exc())
@@ -91,12 +89,6 @@ def read_features_npy(filename):
   features = np.load(filename)
   return features
   
-
-# def read_features_json(filename):
-#   with open(filename, 'r') as file:
-#     features = json.load(file)
-#     return features
-
 
 def read_watched_guids(filename):
   """读取 watched_guids txt 文件, 返回 list
