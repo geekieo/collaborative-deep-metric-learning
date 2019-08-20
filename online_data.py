@@ -31,7 +31,8 @@ flags.DEFINE_string("watch_file", "/data/wengjy1/1905cdml/watch_history",
     "用于训练的用户点击新闻id文件")
 flags.DEFINE_string("watch_feature_file", "/data/wengjy1/1905cdml/features",
     "用于训练的特征向量文件")
-flags.DEFINE_integer("feature_size", 1628)
+flags.DEFINE_integer("feature_size", 1628,
+    "特征尺寸")
 flags.DEFINE_integer("threshold", 1,
     "生成训练文件的 cowatch 阈值")
 flags.DEFINE_string("base_save_dir", '/data/wengjy1/', 

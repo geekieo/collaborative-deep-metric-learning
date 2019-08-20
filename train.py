@@ -6,9 +6,9 @@
 '''
 import time
 import os
+import logging
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow import logging
 from tensorflow import flags
 # from tensorflow.python.client import device_lib
 import numpy as np
@@ -25,9 +25,16 @@ from utils import find_class_by_name
 from utils import get_local_time
 # from utils import get_latest_folder
 
-logging.set_verbosity(logging.DEBUG)
-FLAGS = flags.FLAGS
+data= time.strftime("%Y%m%d", time.localtime())
+logname="/logs/training."+data+".log"
+logging.basicConfig(
+  filename=logname,
+  filemode="w",
+  format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
+  datefmt="%d-%M-%Y %H:%M:%S",
+  level=logging.DEBUG)
 
+FLAGS = flags.FLAGS
 flags.DEFINE_string("train_dir", "/data/wengjy1/cdml_1_unique",
     "训练文件根目录，包括验证集和测试集")
 flags.DEFINE_string("checkpoint_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
