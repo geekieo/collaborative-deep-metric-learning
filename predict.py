@@ -1,11 +1,14 @@
-# -*- coding:utf-8 -*-
-""" Generates an output npy file containing predictions of
-the model over a set of video features.
-"""
+# -*- coding: utf-8 -*-
+'''
+@Description: Generates an output npy file containing predictions of
+  the model over a set of video features.
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow import logging
+import logging
 from tensorflow import flags
 import json
 import time
@@ -14,7 +17,15 @@ import traceback
 from online_data import read_features_txt
 from utils import get_latest_folder
 
-logging.set_verbosity(tf.logging.INFO)
+data= time.strftime("%Y%m%d", time.localtime())
+logname="/logs/update."+data+".log"
+logging.basicConfig(
+  filename=logname,
+  filemode="w",
+  format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
+  datefmt="%d-%M-%Y %H:%M:%S",
+  level=logging.DEBUG)
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第2块GPU
 config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
@@ -30,8 +41,7 @@ flags.DEFINE_integer("pred_batch_size",100000,
     "每次预测的向量数")
 
 class Prediction():
-  def __init__(self, sess=None, ckpt=None, config=None, loglevel=tf.logging.INFO):
-    logging.set_verbosity(loglevel)
+  def __init__(self, sess=None, ckpt=None, config=None):
     self.sess = sess
     self.ckpt = ckpt
     self.config = config
