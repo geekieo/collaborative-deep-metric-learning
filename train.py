@@ -35,9 +35,9 @@ logging.basicConfig(
   level=logging.DEBUG)
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("train_dir", "/data/wengjy1/cdml_1_unique",
+flags.DEFINE_string("train_dir", "/data/service/ai-algorithm-cdml/training_dir/dataset/cdml_1",
     "训练文件根目录，包括验证集和测试集")
-flags.DEFINE_string("checkpoint_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
+flags.DEFINE_string("checkpoint_dir", "/data/service/ai-algorithm-cdml/training_dir/checkpoints",
     "存储每次训练产生的模型文件，包含 tensorboard")
 
 def clip_gradient_norms(gradients_to_variables, max_norm):

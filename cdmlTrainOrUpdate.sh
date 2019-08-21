@@ -77,7 +77,7 @@ if [ $? -eq 0 ];then
     # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
-                               --watch_feature_file $training_dir/dataset/feature \
+                               --watch_feature_file $training_dir/dataset/features \
                                --watch_file $training_dir/dataset/click_records
     check_training_task "TRAIN: online_data"
     # 删除旧模型
