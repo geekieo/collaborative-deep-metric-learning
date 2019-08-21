@@ -27,16 +27,16 @@ from parse_data import mine_triplets
 logging.set_verbosity(logging.DEBUG)
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("watch_file", "/data/wengjy1/1905cdml/watch_history",
+flags.DEFINE_string("base_save_dir", '/data/service/ai-algorithm-cdml/training_dir/', 
+    "训练文件保存的根目录")
+flags.DEFINE_string("watch_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/click_records",
     "用于训练的用户点击新闻id文件")
-flags.DEFINE_string("watch_feature_file", "/data/wengjy1/1905cdml/features",
+flags.DEFINE_string("watch_feature_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/features",
     "用于训练的特征向量文件")
 flags.DEFINE_integer("feature_size", 1628,
-    "特征尺寸")
+    "特征长度")
 flags.DEFINE_integer("threshold", 1,
     "生成训练文件的 cowatch 阈值")
-flags.DEFINE_string("base_save_dir", '/data/wengjy1/', 
-    "训练文件保存的根目录")
 flags.DEFINE_integer("split_num", 10,
     "训练文件中 cowatch 文件的切分个数")
 flags.DEFINE_boolean("unique", False,
