@@ -70,8 +70,8 @@ if [ $? -eq 0 ];then
     hadoop fs -rm -r $training_signal_file
     check_training_task "TRAIN: delete training signal file"
     # hadoop fs 
-    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $training_dir/dataset/watch_history
-    check_training_task "TRAIN: get training_dir/dataset/watch_history"
+    hadoop fs -getmerge /user/zhoukang/video_clicks/uid2records_cdml $training_dir/dataset/click_records
+    check_training_task "TRAIN: get training_dir/dataset/click_records"
     hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/features
     check_training_task "TRAIN: get training_dir/dataset/features"
     # train model
