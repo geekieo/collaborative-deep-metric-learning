@@ -48,13 +48,13 @@ check_update_task(){
 }
 
 check_timeout(){
-    pid=`ps -aux|grep "python predict.py --model_dir"|grep "Rl"|awk '{print $2}'`
+    pid=`ps -aux|grep "$python_env predict.py --model_dir"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
         printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
         kill -9 $pid
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
     fi
-    pid=`ps -aux|grep "python faiss_knn.py --embedding_file"|grep "Rl"|awk '{print $2}'`
+    pid=`ps -aux|grep "$python_env faiss_knn.py --embedding_file"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
         printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
         kill -9 $pid
