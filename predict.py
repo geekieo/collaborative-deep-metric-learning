@@ -18,9 +18,9 @@ from online_data import read_features_txt
 from utils import get_latest_folder
 
 data= time.strftime("%Y%m%d", time.localtime())
-logname="/logs/update."+data+".log"
+logfile="./logs/update."+data+".log"
 logging.basicConfig(
-  filename=logname,
+  filename=logfile,
   filemode="w",
   format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
   datefmt="%d-%M-%Y %H:%M:%S",
@@ -31,12 +31,12 @@ config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("model_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
+flags.DEFINE_string("model_dir", "/data/service/ai-algorithm-cdml/serving_dir/models",
     "服务模型的目录，含备份模型")
-flags.DEFINE_string("feature_file", "/home/wengjy1/cdml/tests/visual_features.txt",# "/data/wengjy1/20190522/features"
+flags.DEFINE_string("feature_file", "data/service/ai-algorithm-cdml/serving_dir/dataset/features",# "/data/wengjy1/20190522/features"
     "待预测的原始向量文件")
-flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
-    "模型输出向量的保存路径")
+flags.DEFINE_string("output_dir", "data/service/ai-algorithm-cdml/serving_dir/predict_result",
+    "模型输出的保存路径,存放编码后的原始特征文件、编码隐射文件和模型输出文件")
 flags.DEFINE_integer("pred_batch_size",100000,
     "每次预测的向量数")
 

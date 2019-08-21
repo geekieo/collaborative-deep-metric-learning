@@ -10,9 +10,10 @@
 
 |lib |command |
 |-|-|
-|cudatoolkit=9.0        |conda install cudatoolkit|
-|tensorflow-gpu=1.13.1  |conda install tensorflow-gpu  |
-|faiss-gpu=1.5.1        |conda install faiss-gpu cudatoolkit=9.0 -c pytorch |
+|python=3.7.3           |conda create -n wengjy1 python=3.7.3|
+|cudatoolkit=9.0        |conda install cudatoolkit=9.0|
+|tensorflow-gpu=1.13.1  |conda install tensorflow-gpu=1.13.1  |
+|faiss-gpu=1.5.x        |conda install faiss-gpu cudatoolkit=9.0 -c pytorch |
 
 ### optional
 
