@@ -361,8 +361,7 @@ def main(args):
                     check_stop_epoch=4,
                     best_eval_dist=1.0,
                     eval_per_epoch = 100,
-                    require_improve_num=40,
-                    loglevel=tf.logging.INFO)
+                    require_improve_num=40)
   # TODO model test and backup. new model vs last model
   
   trainer.run()
