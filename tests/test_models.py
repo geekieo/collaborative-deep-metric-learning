@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+'''
+@Description: 
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 # -*- coding:utf-8 -*-
 import sys
 sys.path.append("..")
@@ -44,7 +50,7 @@ class test_model():
 
 
 def test_VENet():
-  test_model("VENet")
+  test_model("VeNet")
 
 if __name__ == "__main__":
   test_VENet()
