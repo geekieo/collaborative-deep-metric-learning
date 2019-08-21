@@ -26,9 +26,9 @@ from utils import get_local_time
 # from utils import get_latest_folder
 
 data= time.strftime("%Y%m%d", time.localtime())
-logname="/logs/training."+data+".log"
+logfile="./logs/training."+data+".log"
 logging.basicConfig(
-  filename=logname,
+  filename=logfile,
   filemode="w",
   format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
   datefmt="%d-%M-%Y %H:%M:%S",

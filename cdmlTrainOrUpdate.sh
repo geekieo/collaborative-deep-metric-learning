@@ -22,8 +22,8 @@ update_signal_file=/user/zhoukang/video_clicks/cdml_update_signal.txt
 training_signal_file=/user/zhoukang/video_clicks/cdml_training_signal.txt
 
 ip=`/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`
-dayHour=`date +'%d%H'`
-logfile=$project_dir/logs/cdmlTrainOrUpdate.log_$dayHour
+date=`date +"%Y%m%d"`
+logfile=$project_dir/logs/cdmlTrainOrUpdate.$date.log
 
 getDate(){ echo `date +"%Y-%m-%d|%H:%M:%S"`; }
 

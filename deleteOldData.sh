@@ -6,8 +6,9 @@
  ###
 # 删除旧模型和旧结果
 source /etc/profile
-data=`date -d "7 days ago" +"%Y%m%d"`
-rm -rf /data/service/ai-algorithm-cdml/serving_dir/knn_result/$data??
-rm -rf /data/service/ai-algorithm-cdml/serving_dir/models/$data??
-rm -rf /data/service/ai-algorithm-cdml/logs/update.$data.log
-rm -rf /data/service/ai-algorithm-cdml/logs/training.$data.log
+date=`date -d "7 days ago" +"%Y%m%d"`
+rm -rf /data/service/ai-algorithm-cdml/serving_dir/knn_result/$date??
+rm -rf /data/service/ai-algorithm-cdml/serving_dir/models/$date??
+rm -rf /data/service/ai-algorithm-cdml/logs/update.$date.log
+rm -rf /data/service/ai-algorithm-cdml/logs/training.$date.log
+rm -rf /data/service/ai-algorithm-cdml/logs/cdmlTrainOrUpdate.$date.log
