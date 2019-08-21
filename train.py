@@ -258,7 +258,7 @@ class Trainer():
     self.pipe.create_pipe(self.num_epochs, self.batch_size)
 
     logging.info("Building model graph.")
-    input_batch = tf.placeholder(tf.float32, shape=(None,flags.feature_size), name="input_batch")
+    input_batch = tf.placeholder(tf.float32, shape=(None,FLAGS.feature_size), name="input_batch")
     self._build_model(input_batch)
 
     global_step = tf.train.get_or_create_global_step()
@@ -299,7 +299,7 @@ class Trainer():
           if self.total_eval_num - self.last_improve_num  > self.require_improve_num and global_step_np > check_stop_step:
             logging.info("total_eval_num %s. last_improve_num %s. early stop" % (self.total_eval_num,self.last_improve_num))
             break
-          if not input_triplets_np.shape[1:] == (3, flags.feature_size):
+          if not input_triplets_np.shape[1:] == (3, FLAGS.feature_size):
             continue
           # print('input_triplets_np.shape: ',input_triplets_np.shape) #debug
           input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
