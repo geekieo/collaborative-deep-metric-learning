@@ -59,7 +59,8 @@ class Prediction():
     # Get the tensors by their variable name
     graph = tf.get_default_graph()
     self.input_batch = graph.get_operation_by_name('input_batch').outputs[0]
-    self.output_batch = graph.get_operation_by_name('VENet/model_output').outputs[0]
+    # self.output_batch = graph.get_operation_by_name('VeNet/model_output').outputs[0]
+    self.output_batch = graph.get_operation_by_name('VedeNet/model_output').outputs[0]
     logging.info('Prediction __init__ Load predictor!')
 
   def predict(self, input_batch_np):

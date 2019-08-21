@@ -87,7 +87,7 @@ def build_graph(input_batch,
   Args:
     model: The core model (e.g. logistic or neural net). It should inherit
            from BaseModel.
-    input_batch: tf.placehoder. tf.float32. shape(batch_size, 1500)
+    input_batch: tf.placehoder. tf.float32. shape(batch_size, feature_size)
     loss_fn: What kind of loss to apply to the model. It should inherit
                 from BaseLoss.
     base_learning_rate: What learning rate to initialize the optimizer with.
@@ -258,7 +258,7 @@ class Trainer():
     self.pipe.create_pipe(self.num_epochs, self.batch_size)
 
     logging.info("Building model graph.")
-    input_batch = tf.placeholder(tf.float32, shape=(None,1500), name="input_batch")
+    input_batch = tf.placeholder(tf.float32, shape=(None,flags.feature_size), name="input_batch")
     self._build_model(input_batch)
 
     global_step = tf.train.get_or_create_global_step()
@@ -299,7 +299,7 @@ class Trainer():
           if self.total_eval_num - self.last_improve_num  > self.require_improve_num and global_step_np > check_stop_step:
             logging.info("total_eval_num %s. last_improve_num %s. early stop" % (self.total_eval_num,self.last_improve_num))
             break
-          if not input_triplets_np.shape[1:] == (3,1500):
+          if not input_triplets_np.shape[1:] == (3, flags.feature_size):
             continue
           # print('input_triplets_np.shape: ',input_triplets_np.shape) #debug
           input_batch_np = np.reshape(input_triplets_np, (-1,input_triplets_np.shape[-1])) # 3-D to 2-D
@@ -329,42 +329,47 @@ class Trainer():
 
 
 def main(args):
-  os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第 1 块GPU
-  # TODO Prepare distributed arguments here. 
-  logging.info("Tensorflow version: %s.",tf.__version__)
-  checkpoint_dir = FLAGS.checkpoint_dir
-  pipe = inputs.MPTripletPipe(cowatch_file_patten = FLAGS.train_dir + "/*.train",
-                              feature_file = FLAGS.train_dir + "/features.npy",
-                              wait_times=20)
-  eval_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.eval")
-  test_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.test")
+  try:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"    # 使用第 1 块GPU
+    # TODO Prepare distributed arguments here. 
+    logging.info("Tensorflow version: %s.",tf.__version__)
+    checkpoint_dir = FLAGS.checkpoint_dir
+    pipe = inputs.MPTripletPipe(cowatch_file_patten = FLAGS.train_dir + "/*.train",
+                                feature_file = FLAGS.train_dir + "/features.npy",
+                                wait_times=20)
+    eval_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.eval")
+    test_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.test")
 
-  model = find_class_by_name("VENet", [models])()
-  loss_fn = find_class_by_name("HingeLoss", [losses])()
-  # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
-  optimizer_class = tf.contrib.opt.LARSOptimizer
-  config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
-  config.gpu_options.allow_growth=True
+    # model = find_class_by_name("VeNet", [models])()
+    model = find_class_by_name("VedeNet", [models])()
+    loss_fn = find_class_by_name("HingeLoss", [losses])()
+    # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
+    optimizer_class = tf.contrib.opt.LARSOptimizer
+    config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
+    config.gpu_options.allow_growth=True
 
-  trainer = Trainer(pipe=pipe,
-                    num_epochs=8,
-                    batch_size=1024,
-                    model=model,
-                    loss_fn=loss_fn,
-                    learning_rate=1.0,
-                    margin=0.8,
-                    checkpoint_dir=checkpoint_dir,
-                    optimizer_class=optimizer_class,
-                    config=config,
-                    eval_cowatches=eval_cowatches,
-                    test_cowatches=test_cowatches,
-                    check_stop_epoch=4,
-                    best_eval_dist=1.0,
-                    eval_per_epoch = 100,
-                    require_improve_num=40)
-  # TODO model test and backup. new model vs last model
-  
-  trainer.run()
+    trainer = Trainer(pipe=pipe,
+                      num_epochs=8,
+                      batch_size=1024,
+                      model=model,
+                      loss_fn=loss_fn,
+                      learning_rate=1.0,
+                      margin=0.8,
+                      checkpoint_dir=checkpoint_dir,
+                      optimizer_class=optimizer_class,
+                      config=config,
+                      eval_cowatches=eval_cowatches,
+                      test_cowatches=test_cowatches,
+                      check_stop_epoch=4,
+                      best_eval_dist=1.0,
+                      eval_per_epoch = 100,
+                      require_improve_num=40)
+    # TODO model test and backup. new model vs last model
+    
+    trainer.run()
+  except:
+    logging.error(traceback.format_exc())
+    raise
 
 
 if __name__ == "__main__":
