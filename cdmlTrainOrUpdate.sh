@@ -48,13 +48,13 @@ check_update_task(){
 }
 
 check_timeout(){
-    pid=`ps -aux|grep "python predict.py"|grep "Rl"|awk '{print $2}'`
+    pid=`ps -aux|grep "python predict.py --model_dir"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
         printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
         kill -9 $pid
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
     fi
-    pid=`ps -aux|grep "python faiss_knn.py"|grep "Rl"|awk '{print $2}'`
+    pid=`ps -aux|grep "python faiss_knn.py --embedding_file"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
         printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
         kill -9 $pid
@@ -77,8 +77,8 @@ if [ $? -eq 0 ];then
     # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
-                               --feature_file $training_dir/dataset/features \
-                               --click_file $training_dir/dataset/click_records
+                               --watch_feature_file $training_dir/dataset/features \
+                               --watch_file $training_dir/dataset/click_records
     check_training_task "TRAIN: online_data"
     # 删除旧模型
     rm -rf $training_dir/checkpoints/*
