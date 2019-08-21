@@ -31,7 +31,7 @@ flags.DEFINE_string("base_save_dir", '/data/service/ai-algorithm-cdml/training_d
     "训练文件保存的根目录")
 flags.DEFINE_string("watch_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/click_records",
     "用于训练的用户点击新闻id文件")
-flags.DEFINE_string("watch_feature_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/features",
+flags.DEFINE_string("watch_feature_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/feature",
     "用于训练的特征向量文件")
 flags.DEFINE_integer("feature_size", 1628,
     "特征长度")
