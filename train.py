@@ -174,8 +174,7 @@ class Trainer():
 
   def __init__(self, pipe, num_epochs, batch_size, model, loss_fn, learning_rate, margin,
                checkpoint_dir, optimizer_class, config, eval_cowatches, test_cowatches,
-               check_stop_epoch, best_eval_dist=1.0, eval_per_epoch=100 ,require_improve_num=10,
-               loglevel=tf.logging.INFO):
+               check_stop_epoch, best_eval_dist=1.0, eval_per_epoch=100 ,require_improve_num=10):
     # self.is_master = (task.type == "master" and task.index == 0)
     # self.is_master = True 
     self.pipe = pipe
@@ -203,8 +202,6 @@ class Trainer():
     self.evaluater = Evaluation(inputs.FEATURES, eval_cowatches)
     # 准备测试对象
     self.tester = Evaluation(inputs.FEATURES, test_cowatches)
-
-    logging.set_verbosity(loglevel)
 
   def _build_model(self,input_batch):
     """Find the model and build the graph."""
