@@ -8,9 +8,11 @@
 
 ## requirement
 
-tensorflow-gpu    1.13.1  conda install tensorflow-gpu  
-faiss-gpu         1.5.1   conda install faiss-gpu cudatoolkit=9.0 -c pytorch  
-  numpy           1.6.3  
+|lib |command |
+|-|-|
+|cudatoolkit=9.0        |conda install cudatoolkit|
+|tensorflow-gpu=1.13.1  |conda install tensorflow-gpu  |
+|faiss-gpu=1.5.1        |conda install faiss-gpu cudatoolkit=9.0 -c pytorch |
 
 ### optional
 
