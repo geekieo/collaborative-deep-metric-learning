@@ -37,7 +37,7 @@ class VeNet(BaseModel):
       A dictionary with a tensor containing the output of the
       model in the 'output' key. The dimensions of the tensor are
       [batch_size, output_size]."""
-    with tf.name_scope("VeNet"):
+    with tf.name_scope(self.__class__.__name__):
       # model_input = tf.cast(model_input, tf.float32)
       model_input = tf.nn.l2_normalize(model_input, axis=-1,name='model_input')
       layer_1 = slim.fully_connected(
@@ -57,7 +57,7 @@ class VedeNet():
       model_input: matrix of input features.dimension: [batch, channel, feature].
           a feature is concatenate visual feature with doc feature ,and it's float.
       output_size: size of output embedding. """
-    with tf.name_scope("VedeNet"):
+    with tf.name_scope(self.__class__.__name__):
       # visual module
       visual_input = model_input[:,:1500]   # visual feature vector
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')

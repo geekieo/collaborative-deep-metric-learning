@@ -39,6 +39,9 @@ flags.DEFINE_string("train_dir", "/data/service/ai-algorithm-cdml/training_dir/d
     "训练文件根目录，包括验证集和测试集")
 flags.DEFINE_string("checkpoint_dir", "/data/service/ai-algorithm-cdml/training_dir/checkpoints",
     "存储每次训练产生的模型文件，包含 tensorboard")
+flags.DEFINE_string("model","VedeNet",
+    "从 models 模块中确定模型名")
+
 
 def clip_gradient_norms(gradients_to_variables, max_norm):
   """Clips the gradients by the given value.
@@ -340,8 +343,7 @@ def main(args):
     eval_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.eval")
     test_cowatches =  load_cowatches(FLAGS.train_dir + "/cowatches.test")
 
-    # model = find_class_by_name("VeNet", [models])()
-    model = find_class_by_name("VedeNet", [models])()
+    model = find_class_by_name(FLAGS.model, [models])()
     loss_fn = find_class_by_name("HingeLoss", [losses])()
     # optimizer_class = find_class_by_name("AdamOptimizer", [tf.train])
     optimizer_class = tf.contrib.opt.LARSOptimizer
