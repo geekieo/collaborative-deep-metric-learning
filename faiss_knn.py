@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+'''
+@Description: 计算 knn 和结果去重
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
+# -*- coding: utf-8 -*-
 import sys
 import os
 import time
@@ -13,6 +19,8 @@ from tensorflow import flags
 
 from utils import get_latest_folder
 
+# 系统异步多线程并发线程数
+os.environ['OMP_NUM_THREADS'] = '1'
 
 serving_dir = "/data/wengjy1/cdml/serving_dir/"  # NOTE 路径是 data
 ckpt_dir = serving_dir+"/predict_result/"
@@ -72,8 +80,7 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   Arg:
     embeddings
     nearest_num: 51 = 50 个近邻 + query 自身
-    method: ['hnsw', 'L2', 'gpuivf'] supported
-            'hnws': hnsw get high precision with low probes
+    method: 'hnws': hnsw get high precision with low probes
             'L2': The only index that can guarantee exact results
             'gpuivf': inverted file index, low time cost with lossing little precision
     l2_norm: NOTE embeddings should be L2 normalized, otherwise it will get wrong result in HNSW method! 
