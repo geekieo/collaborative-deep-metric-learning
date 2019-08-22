@@ -63,19 +63,23 @@ class VedeNet():
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
       layer_visual_1 = slim.fully_connected(
           visual_input, 5000, activation_fn=tf.nn.leaky_relu,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
+          weights_regularizer=slim.l2_regularizer(l2_penalty),
+          biases_initializer=tf.constant_initializer(0.1))
       layer_visual_2 = slim.fully_connected(
           layer_visual_1, 256, activation_fn=tf.nn.leaky_relu,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
+          weights_regularizer=slim.l2_regularizer(l2_penalty),
+          biases_initializer=tf.constant_initializer(0.1))
       # doc module
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input') 
       layer_doc_1 = slim.fully_connected(
           doc_input, 400, activation_fn=tf.nn.leaky_relu,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
+          weights_regularizer=slim.l2_regularizer(l2_penalty),
+          biases_initializer=tf.constant_initializer(0.1))
       layer_doc_2 = slim.fully_connected(
           layer_doc_1, 256, activation_fn=tf.nn.leaky_relu,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
+          weights_regularizer=slim.l2_regularizer(l2_penalty),
+          biases_initializer=tf.constant_initializer(0.1))
       # fusion by multiply
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       l2_norm = tf.nn.l2_normalize(layer_funsion, axis=-1,name='model_output')
