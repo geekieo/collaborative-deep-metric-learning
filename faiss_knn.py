@@ -19,8 +19,8 @@ from tensorflow import flags
 
 from utils import get_latest_folder
 
-# 系统异步多线程并发线程数
-os.environ['OMP_NUM_THREADS'] = '1'
+# OpenMP 并发线程数
+os.environ['OMP_NUM_THREADS'] = '16'
 
 serving_dir = "/data/wengjy1/cdml/serving_dir/"  # NOTE 路径是 data
 ckpt_dir = serving_dir+"/predict_result/"
