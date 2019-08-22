@@ -33,7 +33,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("model_dir", "/data/service/ai-algorithm-cdml/serving_dir/models",
     "服务模型的目录，含备份模型")
-flags.DEFINE_string("feature_file", "data/service/ai-algorithm-cdml/serving_dir/dataset/features",# "/data/wengjy1/20190522/features"
+flags.DEFINE_string("feature_file", "data/service/ai-algorithm-cdml/serving_dir/dataset/features",
     "待预测的原始向量文件")
 flags.DEFINE_string("output_dir", "data/service/ai-algorithm-cdml/serving_dir/predict_result",
     "模型输出的保存路径,存放编码后的原始特征文件、编码隐射文件和模型输出文件")
