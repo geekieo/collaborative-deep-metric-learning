@@ -22,13 +22,12 @@ from utils import get_latest_folder
 # OpenMP 并发线程数
 os.environ['OMP_NUM_THREADS'] = '16'
 
-serving_dir = "/data/wengjy1/cdml/serving_dir/"  # NOTE 路径是 data
-ckpt_dir = serving_dir+"/predict_result/"
-# ckpt_dir = get_latest_folder(checkpoints_dir, nst_latest=1)
-embedding_file = ckpt_dir+'/output.npy'
-decode_map_file = ckpt_dir+'/decode_map.json'
-pred_feature_file = ckpt_dir+'features.npy'
-topk_dir = serving_dir+'/knn_result'
+serving_dir = "/data/service/ai-algorithm-cdml/serving_dir/"
+predict_result = serving_dir+"/predict_result/"
+embedding_file = predict_result+'/output.npy'
+decode_map_file = predict_result+'/decode_map.json'
+pred_feature_file = predict_result+'features.npy'
+knn_result = serving_dir+'/knn_result'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
@@ -41,7 +40,7 @@ flags.DEFINE_integer("nearest_num",81,
     "embedding 的近邻个数")
 flags.DEFINE_integer("desim_nearest_num",26,
     "原始特征向量近邻个数")
-flags.DEFINE_string("topk_dir", ckpt_dir, 
+flags.DEFINE_string("knn_result", knn_result, 
     "Top-k 结果保存地址")
 
 
@@ -278,9 +277,9 @@ def write_process(path, index, begin_index, D, I):
     print(traceback.format_exc())
     raise
 
-def write_knn(topk_dir, split_num=10, D=None, I=None):
-  if not os.path.exists(topk_dir):
-    os.makedirs(topk_dir)
+def write_knn(knn_result, split_num=10, D=None, I=None):
+  if not os.path.exists(knn_result):
+    os.makedirs(knn_result)
   total_num = D.shape[0]
   patch_num = total_num // split_num
 
@@ -290,8 +289,8 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
   for i in range(split_num - 1):
     patch_begin = i * patch_num
     patch_end = (i + 1) * patch_num
-    pool_my.apply_async(write_process, args=(topk_dir, i, patch_begin, D[patch_begin:patch_end], I[patch_begin:patch_end]))
-  pool_my.apply_async(write_process, args=(topk_dir, split_num-1, (split_num-1)*patch_num,
+    pool_my.apply_async(write_process, args=(knn_result, i, patch_begin, D[patch_begin:patch_end], I[patch_begin:patch_end]))
+  pool_my.apply_async(write_process, args=(knn_result, split_num-1, (split_num-1)*patch_num,
                                          D[(split_num-1)*patch_num:], I[(split_num-1)*patch_num:]))
   pool_my.close()
   pool_my.join()
@@ -302,11 +301,11 @@ def write_knn(topk_dir, split_num=10, D=None, I=None):
 def main(args):
   # TODO logging FLAGS
   global_begin=time.time()
-  print("FLAGS.topk_dir " + str(FLAGS.topk_dir))
+  print("FLAGS.knn_result " + str(FLAGS.knn_result))
   print("FLAGS.decode_map_file " + str(decode_map_file))
   print("FLAGS.embedding_file " + str(embedding_file))
 
-  subprocess.call('mkdir -p {}'.format(FLAGS.topk_dir), shell=True)
+  subprocess.call('mkdir -p {}'.format(FLAGS.knn_result), shell=True)
 
   embeddings = load_embedding(FLAGS.embedding_file)
   print("faiss_knn embedding_file shape", embeddings.shape)
@@ -315,27 +314,27 @@ def main(args):
 
   print("faiss_knn calc_knn embeddings...")
   eD, eI = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
-  np.save(FLAGS.topk_dir+'/eD.npy',eD)
-  np.save(FLAGS.topk_dir+'/eI.npy',eI)
+  np.save(FLAGS.knn_result+'/eD.npy',eD)
+  np.save(FLAGS.knn_result+'/eI.npy',eI)
 
   print('faiss_knn calc_knn features...')
   desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
   print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
   fD, fI = calc_knn(features, features, method='hnsw', nearest_num=desim_nearest_num, l2_norm=True)
-  np.save(FLAGS.topk_dir+'/fD.npy',fD)
-  np.save(FLAGS.topk_dir+'/fI.npy',fI)
+  np.save(FLAGS.knn_result+'/fD.npy',fD)
+  np.save(FLAGS.knn_result+'/fI.npy',fI)
 
-  # eD = np.load(FLAGS.topk_dir+'/eD.npy')
-  # eI = np.load(FLAGS.topk_dir+'/eI.npy')
-  # fD = np.load(FLAGS.topk_dir+'/fD.npy')
-  # fI = np.load(FLAGS.topk_dir+'/fI.npy')
+  # eD = np.load(FLAGS.knn_result+'/eD.npy')
+  # eI = np.load(FLAGS.knn_result+'/eI.npy')
+  # fD = np.load(FLAGS.knn_result+'/fD.npy')
+  # fI = np.load(FLAGS.knn_result+'/fI.npy')
   # print('load eD eI fD fI')
 
   ## 去重
   # eI = desim(eI, fI)
-  # np.save(FLAGS.topk_dir+'/eI_desim.npy',eI)
+  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
   eI = iter_desim_mp(eI, fI, fD)
-  np.save(FLAGS.topk_dir+'/eI_iter_desim.npy',eI)
+  np.save(FLAGS.knn_result+'/eI_iter_desim.npy',eI)
   
   global DECODE_MAP
   DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
@@ -343,16 +342,16 @@ def main(args):
   # DECODE_MAP = load_decode_map(FLAGS.decode_map_file)
   # print("faiss_knn decode_map shape", DECODE_MAP.shape)
 
-  # 备份 decode_map 至 topk_dir
-  res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.topk_dir+'/decode_map.json'),
+  # 备份 decode_map 至 knn_result
+  res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.knn_result+'/decode_map.json'),
     shell=True,close_fds=True,bufsize=-1,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
   print("faiss_knn backup decode_map by subprocess.Popen: ", res)
   res.wait()
-  # np.save(FLAGS.topk_dir+'/decode_map.npy', DECODE_MAP)
+  # np.save(FLAGS.knn_result+'/decode_map.npy', DECODE_MAP)
 
   # 解析并保存最终结果
-  write_knn(topk_dir=FLAGS.topk_dir, split_num=10, D=eD, I=eI)
-  print("faiss_knn knn_result have saved to FLAGS.topk_dir", FLAGS.topk_dir)
+  write_knn(knn_result=FLAGS.knn_result, split_num=10, D=eD, I=eI)
+  print("faiss_knn knn_result have saved to FLAGS.knn_result", FLAGS.knn_result)
   print("faiss_knn cost: %fs", time.time()-global_begin)
 
 if __name__ == '__main__':
