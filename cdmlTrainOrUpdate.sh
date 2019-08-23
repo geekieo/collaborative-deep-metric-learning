@@ -50,15 +50,15 @@ check_update_task(){
 check_timeout(){
     pid=`ps -aux|grep "$python_env predict.py --model_dir"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
-        printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
+        printf "%s WARNING $pid predict timeout.Try to kill it.\n" $(getDate) >>$logfile
         kill -9 $pid
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
     fi
     pid=`ps -aux|grep "$python_env faiss_knn.py --embedding_file"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
-        printf "%s WARNING $pid timeout.\n" $(getDate) >>$logfile
-        kill -9 $pid
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout faiss task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
+        printf "%s WARNING $pid faiss_knn timeout. update canceled.\n" $(getDate) >>$logfile
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"上次 knn 计算未结束，本次计算取消。","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
+        exit 0
     fi
     
 }

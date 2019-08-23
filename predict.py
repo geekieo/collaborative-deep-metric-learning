@@ -33,9 +33,9 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("model_dir", "/data/service/ai-algorithm-cdml/serving_dir/models",
     "服务模型的目录，含备份模型")
-flags.DEFINE_string("feature_file", "data/service/ai-algorithm-cdml/serving_dir/dataset/features",
+flags.DEFINE_string("feature_file", "/data/service/ai-algorithm-cdml/serving_dir/dataset/features",
     "待预测的原始向量文件")
-flags.DEFINE_string("output_dir", "data/service/ai-algorithm-cdml/serving_dir/predict_result",
+flags.DEFINE_string("output_dir", "/data/service/ai-algorithm-cdml/serving_dir/predict_result",
     "模型输出的保存路径,存放编码后的原始特征文件、编码隐射文件和模型输出文件")
 flags.DEFINE_integer("pred_batch_size",100000,
     "每次预测的向量数")
@@ -132,7 +132,7 @@ def main(args):
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
     logging.info("predict read_features_txt success! Cost: %fs"%(time.time()-begin))
     # predict and write
-    predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
+    predictor = Prediction(ckpt=ckpt, config=config)
     predictor.run_features(features=features, batch_size=FLAGS.pred_batch_size, output_dir=FLAGS.output_dir)
     # write features and decode_map
     features_path = os.path.join(FLAGS.output_dir, 'features.npy')
