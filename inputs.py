@@ -79,7 +79,6 @@ class MPTripletPipe(object):
   def _get_cowatch_num(self):
     cowatch_num = 0
     for file in self.cowatch_files:
-      # cowatch_num += int(os.popen('wc -l '+file).read().split()[0])
       res = subprocess.Popen('wc -l '+file,shell=True,close_fds=True,bufsize=-1,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
       cowatch_num += int(res.stdout.readline().split()[0])
