@@ -92,8 +92,6 @@ class Prediction():
         logging.info('Saved to '+save_dir)
       except Exception as e:
         logging.error('Prediction.run_features save error'+str(e))
-    else:
-      logging.debug('No save.')
     return output_np
 
 
