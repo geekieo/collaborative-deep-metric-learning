@@ -101,9 +101,9 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 55)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
+    index = faiss.IndexHNSWFlat(factors, 64)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
     index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
-    index.hnsw.efSearch = 16        # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
+    index.hnsw.efSearch = 32       # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
   elif method == 'L2':
     res = faiss.StandardGpuResources()
     index_flat = faiss.IndexFlatL2(factors) # L2 计算精准的索引
