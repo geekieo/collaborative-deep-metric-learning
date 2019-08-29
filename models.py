@@ -86,6 +86,7 @@ class VedeNet():
           scope="layer_doc_2")
       # fusion by multiply
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
+      # residual MLP
       layer_funsion_1 = slim.fully_connected(
           layer_funsion, 600, activation_fn=tf.nn.leaky_relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty),
@@ -96,5 +97,17 @@ class VedeNet():
           weights_regularizer=slim.l2_regularizer(l2_penalty),
           biases_initializer=tf.constant_initializer(0.1),
           scope="layer_funsion_2")
-      l2_norm = tf.nn.l2_normalize(layer_funsion, axis=-1,name='model_output')
+      # layer_res_1 = layer_funsion + layer_visual_2 + layer_doc_2
+      # layer_funsion_1 = slim.fully_connected(
+      #     layer_res_1, 256, activation_fn=tf.nn.leaky_relu,
+      #     weights_regularizer=slim.l2_regularizer(l2_penalty),
+      #     biases_initializer=tf.constant_initializer(0.1),
+      #     scope="layer_funsion_1")
+      # layer_res_2 = layer_res_1 + layer_funsion_1
+      # layer_funsion_2 = slim.fully_connected(
+      #     layer_res_2, 256, activation_fn=tf.nn.leaky_relu,
+      #     weights_regularizer=slim.l2_regularizer(l2_penalty),
+      #     biases_initializer=tf.constant_initializer(0.1),
+      #     scope="layer_funsion_2")
+      l2_norm = tf.nn.l2_normalize(layer_funsion_2, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}

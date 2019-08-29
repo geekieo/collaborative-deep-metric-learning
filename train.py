@@ -282,11 +282,15 @@ class Trainer():
 
       global_step_np = 0
       check_stop_step = int(self.pipe.cowatch_num/self.batch_size * self.check_stop_epoch)  # 1个epoch后才开始验证
+      step_per_epoch = int(self.pipe.cowatch_num/self.batch_size)
       eval_step = int(self.pipe.cowatch_num/self.batch_size/self.eval_per_epoch)
       show_step = int(eval_step/10)
+      logging.info("check_stop_epoch: "+str(self.check_stop_epoch))
       logging.info("check_stop_step: "+str(check_stop_step))
+      logging.info("step_per_epoch: "+str(step_per_epoch))
       logging.info("eval_step: "+str(eval_step))
       logging.info("show_step: "+str(show_step))
+
 
       # 迭代拟合
       while True:
@@ -313,8 +317,8 @@ class Trainer():
                 feed_dict={input_batch: input_batch_np})
           trian_time = time.time() - batch_start_time
           if global_step_np % show_step == 0:
-            logging.debug("Step " + str(global_step_np) + " | Loss: " + ("%.8f" % loss_np) +
-                " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
+            logging.debug("Epoch " + str(int(global_step_np/step_per_epoch)) + " Step " + str(global_step_np)
+                + " | Loss: " + ("%.8f" % loss_np) + " | Time: fetch: " + ("%.4f" % fetch_time) + "sec"
                 " train: " + ("%.4f" % trian_time)+"sec")
           if global_step_np % eval_step == 0:
             self._eval(predictor, saver, sess, global_step_np, summary_writer, check_stop_step)

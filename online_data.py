@@ -158,21 +158,6 @@ def get_cowatches(watch_file, feature_file):
   all_watched_guids = exe_time(read_watched_guids)(watch_file) #215.065s
   logging.info("all_watched_guids num:"+str(len(all_watched_guids)))
 
-  # # filter and all_watched_guids and features
-  # feature, no_feature_guids = exe_time(filter_features)(features, all_watched_guids) #41.599s
-  # logging.info("features num:"+str(len(features))+"no_feature_guids num:"+str(len(no_feature_guids)))
-
-  # all_watched_guids = exe_time(filter_watched_guids)(all_watched_guids, no_feature_guids) #94.864s
-  # logging.info("all_watched_guids num:"+str(len(all_watched_guids)))
-
-  # # encode guid to sequential integer, to save memory and speed up processing
-  # encode_map, decode_map = exe_time(encode_base_features)(features) #1.134s
-  # features = exe_time(encode_features)(features, decode_map)  #422.296s #TODO
-  # logging.info("features num:"+str(len(features)))
-  
-  # all_watched_ids = exe_time(encode_all_watched_guids)(all_watched_guids, encode_map) #146.209s
-  # logging.info("all_watched_ids num:"+str(len(all_watched_ids)))
-
   # filter and re-encode
   features, encode_map, decode_map, all_watched_ids = exe_time(filter_training_data)(features, encode_map, decode_map, all_watched_guids)
   logging.info("features num:"+str(len(features)))
