@@ -27,7 +27,7 @@ predict_result = serving_dir+"/predict_result/"
 embedding_file = predict_result+'/output.npy'
 decode_map_file = predict_result+'/decode_map.json'
 pred_feature_file = predict_result+'features.npy'
-knn_result = serving_dir+'/knn_result'
+knn_result = serving_dir+'/knn_result/newresult'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("embedding_file",embedding_file,
