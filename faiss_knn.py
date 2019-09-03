@@ -101,13 +101,16 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    index = faiss.IndexHNSWFlat(factors, 64)  # M 越大，精准率增加，查询响应时间降低，索引时间增加，默认 32
-    index.hnsw.efConstruction = 40  # efConstruction 越大，构建图的质量增加，搜索的精度增加，索引时间增加，默认 40
-    index.hnsw.efSearch = 32       # efSearch 越大，精准率增加，查询的响应时间增加，默认 16
+    # HNSW 需要调节的参数有：M, efConstruction, levelMult, M_max0
+    index = faiss.IndexHNSWFlat(factors, 64)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，推荐范围5-100
+    index.hnsw.efConstruction = 100  # efConstruction 越大，构建图的质量越高，搜索的精度越高，但同时索引的时间变长，推荐范围100-2000
+    index.hnsw.efSearch = 1000       # efSearch 越大，召回率增加，查询的响应时间增加，，推荐范围100-2000
+  
   elif method == 'L2':
     res = faiss.StandardGpuResources()
     index_flat = faiss.IndexFlatL2(factors) # L2 计算精准的索引
     index = faiss.index_cpu_to_gpu(res, 0, index_flat)    # make it into a gpu index
+    index.nprobe = 256      # 搜索聚类中心的个数
   elif method == 'gpuivf':
     if single_gpu:
       res = faiss.StandardGpuResources()
@@ -115,13 +118,13 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
       index = faiss.GpuIndexIVFFlat(res, factors, 400, faiss.METRIC_INNER_PRODUCT)
     else:
       cpu_index = faiss.IndexFlat(factors)
-      index = faiss.index_cpu_to_all_gpus(cpu_index)
+      index = faiss.index_cpu_to_all_gpus(cpu_index) 
+    index.nprobe = 256      # 搜索聚类中心的个数
     index.train(embeddings)
 
   index.add(embeddings)   # 待召回向量
   end = time.time()
   print('create index time cost:', end - begin)
-  index.nprobe = 256      # 搜索聚类中心的个数
   D, I = index.search(q_embeddings, nearest_num)  # actual search , 全部缓存（训练+增量）作为query 
   end1 = time.time()
   print('whole set query time cost:', end1 - end)
