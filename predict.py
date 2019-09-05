@@ -31,8 +31,10 @@ config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 config.gpu_options.allow_growth=True
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string("ckpt_dir", "",
+    "checkpoint 所在目录")
 flags.DEFINE_string("model_dir", "/data/service/ai-algorithm-cdml/serving_dir/models",
-    "服务模型的目录，含备份模型")
+    "服务模型的目录，含备份模型，checkpoint上层目录")
 flags.DEFINE_string("feature_file", "/data/service/ai-algorithm-cdml/serving_dir/dataset/features",
     "待预测的原始向量文件")
 flags.DEFINE_string("output_dir", "/data/service/ai-algorithm-cdml/serving_dir/predict_result",
@@ -115,14 +117,19 @@ def test_predict():
 def main(args):
   # TODO logging.info("FLAGS")
   try:
-    ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
-    ckpt = tf.train.latest_checkpoint(ckpt_dir)
-    if not os.path.exists(ckpt + ".meta"):
-      ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
-      ckpt_2 = tf.train.latest_checkpoint(ckpt_dir_2)
-      ckpt = ckpt_2
+    if not FLAGS.ckpt_dir:
+      ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
+      ckpt = tf.train.latest_checkpoint(ckpt_dir)
       if not os.path.exists(ckpt + ".meta"):
-        raise IOError("Prediction main Cannot find %s.meta or %s.meta" % (ckpt, ckpt_2))
+        ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
+        ckpt_2 = tf.train.latest_checkpoint(ckpt_dir_2)
+        ckpt = ckpt_2
+        if not os.path.exists(ckpt + ".meta"):
+          raise IOError("Prediction main Cannot find %s.meta or %s.meta" % (ckpt, ckpt_2))
+    else:
+      ckpt = tf.train.latest_checkpoint(ckpt_dir)
+      if not os.path.exists(ckpt + ".meta"):
+          raise IOError("Prediction main Cannot find %s.meta" % (ckpt))
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
