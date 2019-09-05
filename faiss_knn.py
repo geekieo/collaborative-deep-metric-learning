@@ -20,7 +20,7 @@ from tensorflow import flags
 from utils import get_latest_folder
 
 # OpenMP 并发线程数
-os.environ['OMP_NUM_THREADS'] = '16'
+os.environ['OMP_NUM_THREADS'] = '22'
 
 serving_dir = "/data/service/ai-algorithm-cdml/serving_dir/"
 predict_result = serving_dir+"/predict_result/"
@@ -101,10 +101,17 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
   single_gpu = True
   index = None
   if method == 'hnsw':
-    # HNSW 需要调节的参数有：M, efConstruction, levelMult, M_max0
-    index = faiss.IndexHNSWFlat(factors, 64)  # M 越大，召回率增加，查询响应时间降低，索引时间增加，推荐范围5-100
-    index.hnsw.efConstruction = 100  # efConstruction 越大，构建图的质量越高，搜索的精度越高，但同时索引的时间变长，推荐范围100-2000
-    index.hnsw.efSearch = 1000       # efSearch 越大，召回率增加，查询的响应时间增加，，推荐范围100-2000
+    # M 每个点需要与图中其他的点建立的连接数
+    # 越大，召回率增加，查询响应时间降低，索引时间略微增加
+    # 推荐范围5-100，初始值60
+    index = faiss.IndexHNSWFlat(factors, 80)  
+    # efConstruction 动态候选元素集合大小
+    # 越大，构建图的质量越高，搜索的精度越高，索引时间线性增长
+    # 推荐范围32-100，初始值32
+    index.hnsw.efConstruction = 64 
+    # efSearch 动态候选元素集合大小。
+    # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值32。
+    index.hnsw.efSearch = 32
   
   elif method == 'L2':
     res = faiss.StandardGpuResources()
