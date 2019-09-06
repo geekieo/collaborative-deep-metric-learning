@@ -20,7 +20,7 @@ from tensorflow import flags
 from utils import get_latest_folder
 
 # OpenMP 并发线程数
-os.environ['OMP_NUM_THREADS'] = '22'
+# os.environ['OMP_NUM_THREADS'] = '22'
 
 serving_dir = "/data/service/ai-algorithm-cdml/serving_dir/"
 predict_result = serving_dir+"/predict_result/"
@@ -108,11 +108,10 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
     # efConstruction 动态候选元素集合大小
     # 越大，构建图的质量越高，搜索的精度越高，索引时间线性增长
     # 推荐范围32-100，初始值32
-    index.hnsw.efConstruction = 64 
+    index.hnsw.efConstruction = 60 
     # efSearch 动态候选元素集合大小。
     # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值32。
-    index.hnsw.efSearch = 32
-  
+    index.hnsw.efSearch = 30
   elif method == 'L2':
     res = faiss.StandardGpuResources()
     index_flat = faiss.IndexFlatL2(factors) # L2 计算精准的索引
