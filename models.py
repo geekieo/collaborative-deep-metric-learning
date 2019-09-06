@@ -17,16 +17,16 @@ def prelu(_x, name=None):
 
 
 def fully_connected(input_tensor,
-          output_size,
-          activation_fn=tf.nn.leaky_relu,
-          l2_penalty=1e-8,
-          bias_init=0.1,
-          name=None):
+                    output_size,
+                    activation_fn=tf.nn.leaky_relu,
+                    l2_penalty=1e-8,
+                    bias_init=0.1,
+                    name=None):
   # bias_init一般为0，但这里不能为0，否则融合模型无法学习
   return slim.fully_connected(input_tensor, output_size, 
                               activation_fn=activation_fn,
                               weights_regularizer=slim.l2_regularizer(l2_penalty),
-                              bias_initializer=tf.constant_initializer(bias_init),
+                              biases_initializer=tf.constant_initializer(bias_init),
                               scope=name)
 
 
