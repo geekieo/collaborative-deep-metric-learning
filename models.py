@@ -112,7 +112,7 @@ class VedeMlpNet():
       # multiply fusion
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # MLP
-      layer_funsion_1 = fully_connected(layer_funsion, 600, bias_init=0.1, name="layer_funsion_2")
+      layer_funsion_1 = fully_connected(layer_funsion, 600, bias_init=0.1, name="layer_funsion_1")
       layer_funsion_2 = fully_connected(layer_funsion_1, 256, bias_init=0.1, name="layer_funsion_2")
       l2_norm = tf.nn.l2_normalize(layer_funsion_2, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
@@ -144,7 +144,7 @@ class VedeResNet():
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # residual MLP
       layer_res_1 = layer_funsion + layer_visual_2 + layer_doc_2
-      layer_funsion_1 = fully_connected(layer_res_1, 256, bias_init=0.1, name="layer_funsion_2")
+      layer_funsion_1 = fully_connected(layer_res_1, 256, bias_init=0.1, name="layer_funsion_1")
       layer_res_2 = layer_res_1 + layer_funsion_1
       layer_funsion_2 = fully_connected(layer_res_2, 256, bias_init=0.1, name="layer_funsion_2")
       layer_res_3 = layer_res_2 + layer_funsion_2
@@ -178,9 +178,9 @@ class VedeDenseNet():
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # after funsion
       layer_dense_0_c = tf.concat([layer_visual_2, layer_doc_2, layer_funsion],1,name="layer_dense_concat")
-      layer_dense_1 = fully_connected(layer_dense_0_c, 256, name="layer_dense_mlp") #shape should be: BCW
+      layer_dense_1 = fully_connected(layer_dense_0_c, 256, name="layer_dense_1") #shape should be: BCW
       layer_dense_1_c = tf.concat([layer_dense_0_c, layer_dense_1],1,name="layer_dense_concat")
-      layer_dense_2 = fully_connected(layer_dense_1_c, 256, name="layer_dense_mlp")
+      layer_dense_2 = fully_connected(layer_dense_1_c, 256, name="layer_dense_2")
       layer_dense_2_c = tf.concat([layer_dense_0_c,layer_dense_1_c, layer_dense_1],1,name="layer_dense_concat")
       # transition
       layer_dense_2_c = tf.transpose(layer_dense_2_c,[0,2,1])   # BCW->BWC
@@ -217,17 +217,17 @@ class VedeResNetV2():
       layer_doc_1_2 = fully_connected(layer_doc_1_1, 256, bias_init=.1, name="layer_doc_1_2")
       layer_doc_2_1 = fully_connected(doc_input, 256, bias_init=.1, name="layer_doc_2_1")
       # multiply funsion
-      layer_funsion_1 = tf.multiply(layer_visual_1_2, layer_doc_1_2,"multiply_funsion")
-      layer_funsion_2 = tf.multiply(layer_visual_1_2, layer_doc_2_1,"multiply_funsion")
-      layer_funsion_3 = tf.multiply(layer_visual_2_1, layer_doc_1_2,"multiply_funsion")
-      layer_funsion_4 = tf.multiply(layer_visual_2_1, layer_doc_2_1,"multiply_funsion")
+      layer_funsion_1 = tf.multiply(layer_visual_1_2, layer_doc_1_2,"multiply_funsion_1")
+      layer_funsion_2 = tf.multiply(layer_visual_1_2, layer_doc_2_1,"multiply_funsion_2")
+      layer_funsion_3 = tf.multiply(layer_visual_2_1, layer_doc_1_2,"multiply_funsion_3")
+      layer_funsion_4 = tf.multiply(layer_visual_2_1, layer_doc_2_1,"multiply_funsion_4")
       # residual block
       layer_res_1 = layer_funsion_1 + layer_funsion_2 + layer_funsion_3 + layer_funsion_4 +\
                     layer_visual_1_2 + layer_visual_2_1 + layer_doc_1_2 + layer_doc_2_1
-      layer_mlp_1 = fully_connected(layer_res_1, 256, name="layer_2")
-      layer_res_2 = layer_res_1 + layer_mlp_1
-      layer_mlp_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
-      layer_res_3 = layer_res_2 + layer_mlp_2
+      layer_funsion_1 = fully_connected(layer_res_1, 256, name="layer_funsion_1")
+      layer_res_2 = layer_res_1 + layer_funsion_1
+      layer_funsion_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
+      layer_res_3 = layer_res_2 + layer_funsion_2
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
