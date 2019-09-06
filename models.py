@@ -235,4 +235,5 @@ class VedeResNetV2():
 class VedeNet():
   """Visual Embedding and Doc Embedding Network"""
   def create_model(self, model_input, output_size=256):
-    VedeDenseNet(self, model_input, output_size=256)
+    model = VedeDenseNet()
+    model.create_model(model_input, output_size=256)
