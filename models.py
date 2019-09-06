@@ -178,14 +178,18 @@ class VedeDenseNet():
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # after funsion
       layer_dense_0_c = tf.concat([layer_visual_2, layer_doc_2, layer_funsion],1,name="layer_dense_concat")
+      print(layer_dense_0_c)
       layer_dense_1 = fully_connected(layer_dense_0_c, 256, name="layer_dense_1") #shape should be: BCW
       layer_dense_1_c = tf.concat([layer_dense_0_c, layer_dense_1],1,name="layer_dense_concat")
+      print(layer_dense_1_c)
       layer_dense_2 = fully_connected(layer_dense_1_c, 256, name="layer_dense_2")
       layer_dense_2_c = tf.concat([layer_dense_0_c,layer_dense_1_c, layer_dense_1],1,name="layer_dense_concat")
+      print(layer_dense_2_c)
       # transition
       layer_dense_2_c = tf.transpose(layer_dense_2_c,[0,2,1])   # BCW->BWC
-      layer_dense_2_c = tf.expand_dims(layer_dense_2_c,1)       # BWC->BHWC: [batch_size,1,256,8]
-      kernel  = tf.get_variable("reduice_channel_kernel", [1, 1, 8, 1],
+      layer_dense_2_c = tf.expand_dims(layer_dense_2_c,1)       # BWC->BHWC: [batch_size,1,256,12]
+      channel_num = tf.shape(layer_dense_2_c)
+      kernel  = tf.get_variable("reduice_channel_kernel", [1, 1, channel_num, 1],
                 initializer=tf.truncated_normal_initializer(stddev=0.1, dtype=tf.float32))
       layer_trans = tf.nn.conv2d(layer_dense_2_c, kernel,[1, 1, 1, 1],'SAME',name="layer_transition") # input:BHWC. kernel: HWiCoC
       layer_trans = tf.squeeze(layer_trans,[1,3])
