@@ -231,9 +231,3 @@ class VedeResNetV2():
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
-
-class VedeNet():
-  """Visual Embedding and Doc Embedding Network"""
-  def create_model(self, model_input, output_size=256):
-    model = VedeDenseNet()
-    model.create_model(model_input, output_size=256)
