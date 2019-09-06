@@ -73,12 +73,12 @@ class VedeFusionNet():
           a feature is concatenate visual feature with doc feature ,and it's float.
       output_size: size of output embedding. """
     with tf.name_scope(self.__class__.__name__):
-      # visual module
+      # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1, bias_init=0.1, name='visual_input')
       layer_visual_1 = fully_connected(visual_input, 5000, bias_init=0.1, name="layer_visual_1")
       layer_visual_2 = fully_connected(layer_visual_1, 256, name="layer_visual_2")
-      # doc module
+      # doc block
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input') 
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
@@ -99,17 +99,17 @@ class VedeMlpNet():
           a feature is concatenate visual feature with doc feature ,and it's float.
       output_size: size of output embedding. """
     with tf.name_scope(self.__class__.__name__):
-      # visual module
+      # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
       layer_visual_1 = fully_connected(visual_input, 5000, bias_init=0.1, name="layer_visual_1")
       layer_visual_2 = fully_connected(layer_visual_1, 256, bias_init=0.1, name="layer_visual_2")
-      # doc module
+      # doc block
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input')
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
-      # fusion by multiply
+      # multiply fusion
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # MLP
       layer_funsion_1 = fully_connected(layer_funsion, 600, bias_init=0.1, name="layer_funsion_2")
@@ -130,59 +130,23 @@ class VedeResNet():
           a feature is concatenate visual feature with doc feature ,and it's float.
       output_size: size of output embedding. """
     with tf.name_scope(self.__class__.__name__):
-      # visual module
+      # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
       layer_visual_1 = fully_connected(visual_input, 5000, bias_init=0.1, name="layer_visual_1")
       layer_visual_2 = fully_connected(layer_visual_1, 256, bias_init=0.1, name="layer_visual_2")
-      # doc module
+      # doc block
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input')
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
-      # fusion by multiply
+      # multiply fusion
       layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
       # residual MLP
       layer_res_1 = layer_funsion + layer_visual_2 + layer_doc_2
       layer_funsion_1 = fully_connected(layer_res_1, 256, bias_init=0.1, name="layer_funsion_2")
       layer_res_2 = layer_res_1 + layer_funsion_1
       layer_funsion_2 = fully_connected(layer_res_2, 256, bias_init=0.1, name="layer_funsion_2")
-      layer_res_3 = layer_res_2 + layer_funsion_2
-      l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
-      return {"l2_norm": l2_norm}
-
-
-class VedeResNetV2():
-  """Visual Embedding and Doc Embedding Network
-  高层网络相同节点的各层之间使用残差连接
-  近邻结果相关度很好
-  """
-  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
-    """
-    Args:
-      model_input: matrix of input features.dimension: [batch_size*channel_num, feature_size].
-          a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
-    with tf.name_scope(self.__class__.__name__):
-      # visual module
-      visual_input = model_input[:,:1500]   # visual feature vector
-      visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
-      layer_visual_1_1 = fully_connected(visual_input, 5000, bias_init=1, name="layer_visual_1_1")
-      layer_visual_1_2 = fully_connected(layer_visual_1_1, 256, bias_init=1, name="layer_visual_1_2")
-      layer_visual_2_1 = fully_connected(visual_input, 256, bias_init=1, name="layer_visual_2_1")
-      # doc module
-      doc_input = model_input[:,1500:]   # doc feature vector
-      doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input')
-      layer_doc_1_1 = fully_connected(doc_input, 400,  bias_init=1, name="layer_doc_1_1")
-      layer_doc_1_2 = fully_connected(layer_doc_1_1, 256, bias_init=1, name="layer_doc_1_2")
-      layer_doc_2_1 = fully_connected(doc_input, 256, bias_init=1, name="layer_doc_2_1")
-      # dense funsion
-      layer_funsion_m = layer_visual_1_2 * layer_visual_2_1 * layer_doc_1_2 * layer_doc_2_1
-      # residual MLP
-      layer_res_1 = layer_funsion_m + layer_visual_1_2 + layer_visual_2_1 + layer_doc_1_2 + layer_doc_2_1
-      layer_funsion_1 = fully_connected(layer_res_1, 256, name="layer_funsion_2")
-      layer_res_2 = layer_res_1 + layer_funsion_1
-      layer_funsion_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
       layer_res_3 = layer_res_2 + layer_funsion_2
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
@@ -199,30 +163,74 @@ class VedeDenseNet():
           a feature is concatenate visual feature with doc feature ,and it's float.
       output_size: size of output embedding. """
     with tf.name_scope(self.__class__.__name__):
-      # visual module
+      model_input = tf.expand_dims(model_input,1) #增加通道维度，用于融合时通道叠加
+      # visual block
+      visual_input = model_input[:,:,:1500]   # visual feature vector
+      visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
+      layer_visual_1 = fully_connected(visual_input, 5000, bias_init=0.1, name="layer_visual_1")
+      layer_visual_2 = fully_connected(layer_visual_1, 256, bias_init=0.1, name="layer_visual_2")
+      # doc block
+      doc_input = model_input[:,:,1500:]   # doc feature vector
+      doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input')
+      layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
+      layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
+      # multiply fusion
+      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
+      # after funsion
+      layer_dense_0_c = tf.concat([layer_visual_2, layer_doc_2, layer_funsion],1,name="layer_dense_concat")
+      layer_dense_1 = fully_connected(layer_dense_0_c, 256, name="layer_dense_mlp") #shape should be: BCW
+      layer_dense_1_c = tf.concat([layer_dense_0_c, layer_dense_1],1,name="layer_dense_concat")
+      layer_dense_2 = fully_connected(layer_dense_1_c, 256, name="layer_dense_mlp")
+      layer_dense_2_c = tf.concat([layer_dense_0_c,layer_dense_1_c, layer_dense_1],1,name="layer_dense_concat")
+      # transition
+      layer_dense_2_c = tf.transpose(layer_dense_2_c,[0,2,1])   # BCW->BWC
+      layer_dense_2_c = tf.expand_dims(layer_dense_2_c,1)       # BWC->BHWC: [batch_size,1,256,8]
+      kernel  = tf.get_variable("reduice_channel_kernel", [1, 1, 8, 1],
+                initializer=tf.truncated_normal_initializer(stddev=0.1, dtype=tf.float32))
+      layer_trans = tf.nn.conv2d(layer_dense_2_c, kernel,[1, 1, 1, 1],'SAME',name="layer_transition") # input:BHWC. kernel: HWiCoC
+      layer_trans = tf.squeeze(layer_trans,[1,3])
+      l2_norm = tf.nn.l2_normalize(layer_trans, axis=-1,name='model_output')
+      return {"l2_norm": l2_norm}
+      
+class VedeResNetV2():
+  """Visual Embedding and Doc Embedding Network
+  与V1对比，底层增加2路浅层网络，4路输出交叉融合，
+  高层网络相同节点的各层之间使用残差连接
+  """
+  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
+    """
+    Args:
+      model_input: matrix of input features.dimension: [batch_size*channel_num, feature_size].
+          a feature is concatenate visual feature with doc feature ,and it's float.
+      output_size: size of output embedding. """
+    with tf.name_scope(self.__class__.__name__):
+      # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
       visual_input = tf.nn.l2_normalize(visual_input, axis=-1,name='visual_input')
       layer_visual_1_1 = fully_connected(visual_input, 5000, bias_init=.1, name="layer_visual_1_1")
       layer_visual_1_2 = fully_connected(layer_visual_1_1, 256, bias_init=.1, name="layer_visual_1_2")
       layer_visual_2_1 = fully_connected(visual_input, 256, bias_init=.1, name="layer_visual_2_1")
-      # doc module
+      # doc block
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input')
       layer_doc_1_1 = fully_connected(doc_input, 400,  bias_init=.1, name="layer_doc_1_1")
       layer_doc_1_2 = fully_connected(layer_doc_1_1, 256, bias_init=.1, name="layer_doc_1_2")
       layer_doc_2_1 = fully_connected(doc_input, 256, bias_init=.1, name="layer_doc_2_1")
-      # dense connect
-      
-
-      layer_funsion_m = layer_visual_1_2 * layer_visual_2_1 * layer_doc_1_2 * layer_doc_2_1
-      # residual MLP
-      layer_res_1 = layer_funsion_m + layer_visual_1_2 + layer_visual_2_1 + layer_doc_1_2 + layer_doc_2_1
-      layer_funsion_1 = fully_connected(layer_res_1, 600, name="layer_funsion_2")
-      layer_res_2 = layer_res_1 + layer_funsion_1
-      layer_funsion_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
-      layer_res_3 = layer_res_2 + layer_funsion_2
+      # multiply funsion
+      layer_funsion_1 = tf.multiply(layer_visual_1_2, layer_doc_1_2,"multiply_funsion")
+      layer_funsion_2 = tf.multiply(layer_visual_1_2, layer_doc_2_1,"multiply_funsion")
+      layer_funsion_3 = tf.multiply(layer_visual_2_1, layer_doc_1_2,"multiply_funsion")
+      layer_funsion_4 = tf.multiply(layer_visual_2_1, layer_doc_2_1,"multiply_funsion")
+      # residual block
+      layer_res_1 = layer_funsion_1 + layer_funsion_2 + layer_funsion_3 + layer_funsion_4 +\
+                    layer_visual_1_2 + layer_visual_2_1 + layer_doc_1_2 + layer_doc_2_1
+      layer_mlp_1 = fully_connected(layer_res_1, 256, name="layer_2")
+      layer_res_2 = layer_res_1 + layer_mlp_1
+      layer_mlp_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
+      layer_res_3 = layer_res_2 + layer_mlp_2
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
+
 
 class VedeNet():
   """Visual Embedding and Doc Embedding Network"""
