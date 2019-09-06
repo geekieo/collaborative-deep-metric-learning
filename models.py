@@ -123,7 +123,7 @@ class VedeResNet():
   高层网络相同节点的各层之间使用残差连接
   近邻结果相关度很好
   """
-  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
+  def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
@@ -156,7 +156,7 @@ class VedeDenseNet():
   """Visual Embedding and Doc Embedding Network
   高层网络相同节点的各层之间使用稠密连接
   """
-  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
+  def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
@@ -197,7 +197,7 @@ class VedeResNetV2():
   与V1对比，底层增加2路浅层网络，4路输出交叉融合，
   高层网络相同节点的各层之间使用残差连接
   """
-  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
+  def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension: [batch_size*channel_num, feature_size].
@@ -234,5 +234,5 @@ class VedeResNetV2():
 
 class VedeNet():
   """Visual Embedding and Doc Embedding Network"""
-  def create_model(self, model_input, output_size=256, l2_penalty=1e-8):
-    VedeDenseNet(self, model_input, output_size=256, l2_penalty=1e-8)
+  def create_model(self, model_input, output_size=256):
+    VedeDenseNet(self, model_input, output_size=256)
