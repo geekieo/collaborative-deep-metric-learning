@@ -26,8 +26,6 @@ from utils import get_local_time
 # from utils import get_latest_folder
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"    # 使用第2块GPU
-
 data= time.strftime("%Y%m%d", time.localtime())
 logfile="./logs/training."+data+".log"
 logging.basicConfig(
