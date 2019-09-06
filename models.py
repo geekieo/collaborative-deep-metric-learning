@@ -75,9 +75,9 @@ class VedeFusionNet():
     with tf.name_scope(self.__class__.__name__):
       # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
-      visual_input = tf.nn.l2_normalize(visual_input, axis=-1, bias_init=0.1, name='visual_input')
+      visual_input = tf.nn.l2_normalize(visual_input, axis=-1, name='visual_input')
       layer_visual_1 = fully_connected(visual_input, 5000, bias_init=0.1, name="layer_visual_1")
-      layer_visual_2 = fully_connected(layer_visual_1, 256, name="layer_visual_2")
+      layer_visual_2 = fully_connected(layer_visual_1, 256, bias_init=0.1, name="layer_visual_2")
       # doc block
       doc_input = model_input[:,1500:]   # doc feature vector
       doc_input = tf.nn.l2_normalize(doc_input, axis=-1,name='doc_input') 
