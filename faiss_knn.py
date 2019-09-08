@@ -44,10 +44,6 @@ flags.DEFINE_string("knn_result", knn_result,
     "Top-k 结果保存地址")
 
 
-def load_embedding(filename):
-  embeddings = np.load(filename)
-  return embeddings
-
 
 def load_decode_map(filename):
   """读取结果用 dict 返回"""
@@ -59,6 +55,11 @@ def load_decode_map(filename):
     decode_map[int(k)] = v
     encode_map[v] = int(k)
   return decode_map, encode_map
+
+
+def load_embedding(filename):
+  embeddings = np.load(filename)
+  return embeddings
 
 
 # def load_decode_map(filename):
@@ -74,7 +75,7 @@ def load_decode_map(filename):
 #   return decode_map
 
 
-def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=True):
+def calc_knn(embeddings, q_embeddings=None, nearest_num=51, l2_norm=True, M=80, efConstruction=60,efSearch=30):
   """use faiss to calculate knn for recall online
   Arg:
     embeddings
@@ -88,45 +89,32 @@ def calc_knn(embeddings, q_embeddings, method='hnsw',nearest_num=51, l2_norm=Tru
        向量在L2归一化后 euclid_dist = 2(1-cosine_dist)
     I：I for index. 与 D 对应的每个近邻的与 query 向量的距离
   """
-  if method not in ['hnsw', 'L2', 'gpuivf']:
-    raise(ValueError, 'Unsupported method:%s'%(method))
   embeddings = embeddings.astype(np.float32)
   if l2_norm:
     norm_data = np.linalg.norm(embeddings, axis=1, keepdims=True)
     embeddings /= norm_data
-    norm_data = np.linalg.norm(q_embeddings, axis=1, keepdims=True)
-    q_embeddings /= norm_data
+    if q_embeddings is not None:
+      norm_data = np.linalg.norm(q_embeddings, axis=1, keepdims=True)
+      q_embeddings /= norm_data
+    else:
+      q_embeddings = embeddings
   factors = embeddings.shape[1]
   begin = time.time()
   single_gpu = True
   index = None
-  if method == 'hnsw':
-    # M 每个点需要与图中其他的点建立的连接数
-    # 越大，召回率增加，查询响应时间降低，索引时间略微增加
-    # 推荐范围5-100，初始值60
-    index = faiss.IndexHNSWFlat(factors, 80)  
-    # efConstruction 动态候选元素集合大小
-    # 越大，构建图的质量越高，搜索的精度越高，索引时间线性增长
-    # 推荐范围32-100，初始值32
-    index.hnsw.efConstruction = 60 
-    # efSearch 动态候选元素集合大小。
-    # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值32。
-    index.hnsw.efSearch = 30
-  elif method == 'L2':
-    res = faiss.StandardGpuResources()
-    index_flat = faiss.IndexFlatL2(factors) # L2 计算精准的索引
-    index = faiss.index_cpu_to_gpu(res, 0, index_flat)    # make it into a gpu index
-    index.nprobe = 256      # 搜索聚类中心的个数
-  elif method == 'gpuivf':
-    if single_gpu:
-      res = faiss.StandardGpuResources()
-      ## nlist=400, somewhat like cluster centroids, todo: search a good value pair (nlist, nprobes)!!!!
-      index = faiss.GpuIndexIVFFlat(res, factors, 400, faiss.METRIC_INNER_PRODUCT)
-    else:
-      cpu_index = faiss.IndexFlat(factors)
-      index = faiss.index_cpu_to_all_gpus(cpu_index) 
-    index.nprobe = 256      # 搜索聚类中心的个数
-    index.train(embeddings)
+
+  # HNSW 调参
+  # M 每个点需要与图中其他的点建立的连接数
+  # 越大，召回率增加，查询响应时间降低，索引时间略微增加
+  # 推荐范围5-100，初始值80
+  index = faiss.IndexHNSWFlat(factors, M)  
+  # efConstruction 动态候选元素集合大小
+  # 越大，构建图的质量越高，搜索的精度越高，索引时间线性增长
+  # 推荐范围32-100，初始值60
+  index.hnsw.efConstruction = efConstruction 
+  # efSearch 动态候选元素集合大小。
+  # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值30。
+  index.hnsw.efSearch = efSearch
 
   index.add(embeddings)   # 待召回向量
   end = time.time()
@@ -251,13 +239,13 @@ def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=None):
 
 
 # ============================ write result ============================
-def write_by_D_process(path, index, begin_index, D, I):
+def write_by_D_process(path, index, begin_index, D, I, decode_map):
   """丢弃ID在D中值为 0.0"""
   try:
     with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
       for i in range(I.shape[0]):
-        query_id = DECODE_MAP[begin_index+i]
-        nearest_ids = map(lambda x: DECODE_MAP[x], I[i][1:])
+        query_id = decode_map[begin_index+i]
+        nearest_ids = map(lambda x: decode_map[x], I[i][1:])
         nearest_scores = D[i][1:]
         topks = ''.join(map(
           lambda x: x[1][0] + "#" + str(x[1][1]) + '<' if  x[1][1] > 0.0 and x[1][1] <1.4 else "",
@@ -269,16 +257,16 @@ def write_by_D_process(path, index, begin_index, D, I):
     raise
 
 
-def write_process(path, index, begin_index, D, I):
+def write_process(path, index, begin_index, D, I, decode_map, prefix='knn_split'):
   """丢弃ID在I中值为-1"""
   try:
-    with open(os.path.join(path, 'knn_split'+str(index)), 'w') as fp:
+    with open(os.path.join(path, prefix+str(index)), 'w') as fp:
       for i in range(I.shape[0]):
-        query_id = DECODE_MAP[begin_index+i]
+        query_id = decode_map[begin_index+i]
         nearest_ids = I[i][1:]
         nearest_scores = D[i][1:]
         topks = ''.join(map(
-          lambda x: DECODE_MAP[x[1][0]] + "#" + str(x[1][1]) + '<' if  x[1][0] > 0 and x[1][1] > 0.0 and x[1][1] <1.4 else "",
+          lambda x: decode_map[x[1][0]] + "#" + str(x[1][1]) + '<' if  x[1][0] > 0 and x[1][1] > 0.0 and x[1][1] <1.4 else "",
           enumerate(zip(nearest_ids, nearest_scores)))) # x[1][0]为近邻索引, x[1][1]为近邻距离
         string = query_id + ',' + topks + '\n'
         fp.write(string)
@@ -286,7 +274,7 @@ def write_process(path, index, begin_index, D, I):
     print(traceback.format_exc())
     raise
 
-def write_knn(knn_result, split_num=10, D=None, I=None):
+def write_knn(knn_result, decode_map, split_num=10, D=None, I=None, prefix='knn_result'):
   if not os.path.exists(knn_result):
     os.makedirs(knn_result)
   total_num = D.shape[0]
@@ -298,21 +286,75 @@ def write_knn(knn_result, split_num=10, D=None, I=None):
   for i in range(split_num - 1):
     patch_begin = i * patch_num
     patch_end = (i + 1) * patch_num
-    pool_my.apply_async(write_process, args=(knn_result, i, patch_begin, D[patch_begin:patch_end], I[patch_begin:patch_end]))
+    pool_my.apply_async(write_process, args=(knn_result, i, patch_begin, D[patch_begin:patch_end],
+                                             I[patch_begin:patch_end], decode_map, prefix))
   pool_my.apply_async(write_process, args=(knn_result, split_num-1, (split_num-1)*patch_num,
-                                         D[(split_num-1)*patch_num:], I[(split_num-1)*patch_num:]))
+                                           D[(split_num-1)*patch_num:], I[(split_num-1)*patch_num:],
+                                           decode_map, prefix))
   pool_my.close()
   pool_my.join()
   end = time.time()
   print('write_knn cost: %fs'%(end - begin))
 
+
+def strict_knn(embeddings, fI, fD, decode_map):
+  """
+  直接对 e 求近邻
+  """
+  print("strict_knn calc_knn embeddings...")
+  eD, eI = calc_knn(embeddings, nearest_num=FLAGS.nearest_num)
+  np.save(FLAGS.knn_result+'/eD.npy',eD)
+  np.save(FLAGS.knn_result+'/eI.npy',eI)
+  
+  ## 去重
+  # eI = desim(eI, fI)
+  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
+  eI = iter_desim_mp(eI, fI, fD)
+  np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
+  
+  print("strict_knn decode_map len", len(decode_map))
+
+  # 解析并保存最终结果
+  write_knn(FLAGS.knn_result, decode_map, split_num=10, D=eD, I=eI)
+  print("strict_knn knn_result have saved to FLAGS.knn_result", FLAGS.knn_result)
+
+
+def cross_knn(embeddings, doc_location, fI, fD, decode_map):
+  video_vec = embeddings[:doc_location]
+  doc_vec = embeddings[doc_location:]
+
+  print("cross_knn calc video doc knn ...")
+  vdD, vdI = calc_knn(doc_vec, video_vec, nearest_num=FLAGS.nearest_num, M=80,efConstruction=60,efSearch=30)
+  vdI = vdI+doc_location
+  print("cross_knn calc doc video knn ...")  
+  dvD, dvI = calc_knn(video_vec, doc_vec, nearest_num=FLAGS.nearest_num, M=80,efConstruction=60,efSearch=30)
+  crossI = np.concatenate((dvI, vdI),axis=0)
+  crossD = np.concatenate((dvD, vdD),axis=0)
+
+  write_knn(FLAGS.knn_result, decode_map, split_num=10, D=crossD, I=crossI, prefix='crossknn')
+  print("cross_knn crossknn have saved to FLAGS.knn_result", FLAGS.knn_result)
+
+  ## 去重
+  # eI = desim(eI, fI)
+  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
+  crossI = iter_desim_mp(crossI, fI, fD)
+  np.save(FLAGS.knn_result+'/crossI_desim.npy',crossI)
+
+  print("cross_knn decode_map len", len(decode_map))
+
+  # 解析并保存最终结果 TODO 检查 crossD 是否正确
+  write_knn(FLAGS.knn_result, decode_map, split_num=10, D=crossD, I=crossI, prefix='crossknndesim')
+  print("cross_knn crossknn have saved to FLAGS.knn_result", FLAGS.knn_result)
+
+
 # ============================ main ============================
 def main(args):
-  # TODO logging FLAGS
   global_begin=time.time()
   print("FLAGS.knn_result " + str(FLAGS.knn_result))
   print("FLAGS.decode_map_file " + str(decode_map_file))
   print("FLAGS.embedding_file " + str(embedding_file))
+
+  decode_map, _ = load_decode_map(FLAGS.decode_map_file)
 
   subprocess.call('mkdir -p {}'.format(FLAGS.knn_result), shell=True)
 
@@ -321,47 +363,37 @@ def main(args):
   features = load_embedding(FLAGS.pred_feature_file)
   print("faiss_knn pred_feature_file shape", features.shape)
 
-  print("faiss_knn calc_knn embeddings...")
-  eD, eI = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
-  np.save(FLAGS.knn_result+'/eD.npy',eD)
-  np.save(FLAGS.knn_result+'/eI.npy',eI)
+  # print("faiss_knn calc_knn embeddings...")
+  # eD, eI = calc_knn(embeddings, embeddings, method='hnsw', nearest_num=FLAGS.nearest_num)
+  # np.save(FLAGS.knn_result+'/eD.npy',eD)
+  # np.save(FLAGS.knn_result+'/eI.npy',eI)
 
-  print('faiss_knn calc_knn features...')
-  desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
-  print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
-  fD, fI = calc_knn(features, features, method='hnsw', nearest_num=desim_nearest_num, l2_norm=True)
-  np.save(FLAGS.knn_result+'/fD.npy',fD)
-  np.save(FLAGS.knn_result+'/fI.npy',fI)
+  # print('faiss_knn calc_knn features...')
+  # desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
+  # print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
+  # fD, fI = calc_knn(features, nearest_num=desim_nearest_num, l2_norm=True, M=80, efConstruction=60, efSearch=30)
+  # np.save(FLAGS.knn_result+'/fD.npy',fD)
+  # np.save(FLAGS.knn_result+'/fI.npy',fI)
 
   # eD = np.load(FLAGS.knn_result+'/eD.npy')
   # eI = np.load(FLAGS.knn_result+'/eI.npy')
-  # fD = np.load(FLAGS.knn_result+'/fD.npy')
-  # fI = np.load(FLAGS.knn_result+'/fI.npy')
+  fD = np.load(FLAGS.knn_result+'/fD.npy')
+  fI = np.load(FLAGS.knn_result+'/fI.npy')
   # print('load eD eI fD fI')
 
-  ## 去重
-  # eI = desim(eI, fI)
-  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
-  eI = iter_desim_mp(eI, fI, fD)
-  np.save(FLAGS.knn_result+'/eI_iter_desim.npy',eI)
-  
-  global DECODE_MAP
-  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("faiss_knn decode_map len", len(DECODE_MAP))
-  # DECODE_MAP = load_decode_map(FLAGS.decode_map_file)
-  # print("faiss_knn decode_map shape", DECODE_MAP.shape)
 
+  # strict_knn(embeddings, fI, fD)
+  doc_location = 343455 #TODO 从文件读它
+  if doc_location > 0 and doc_location<embeddings.shape[0]:
+    cross_knn(embeddings, doc_location, fI, fD, decode_map)
+    
   # 备份 decode_map 至 knn_result
   res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.knn_result+'/decode_map.json'),
     shell=True,close_fds=True,bufsize=-1,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-  print("faiss_knn backup decode_map by subprocess.Popen: ", res)
+  print("cross_knn backup decode_map by subprocess.Popen: ", res)
   res.wait()
-  # np.save(FLAGS.knn_result+'/decode_map.npy', DECODE_MAP)
 
-  # 解析并保存最终结果
-  write_knn(knn_result=FLAGS.knn_result, split_num=10, D=eD, I=eI)
-  print("faiss_knn knn_result have saved to FLAGS.knn_result", FLAGS.knn_result)
-  print("faiss_knn cost: %fs", time.time()-global_begin)
+  print("faiss_knn cost: %fs"%(time.time()-global_begin))
 
 if __name__ == '__main__':
   tf.app.run()
