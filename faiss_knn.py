@@ -328,9 +328,13 @@ def cross_knn(embeddings, doc_location, fI, fD, decode_map):
   vdI = vdI+doc_location
   print("cross_knn calc doc video knn ...")  
   dvD, dvI = calc_knn(video_vec, doc_vec, nearest_num=FLAGS.nearest_num, M=80,efConstruction=60,efSearch=30)
-  crossI = np.concatenate((dvI, vdI),axis=0)
-  crossD = np.concatenate((dvD, vdD),axis=0)
+  crossI = np.concatenate((vdI, dvI),axis=0)
+  crossD = np.concatenate((vdD, dvD),axis=0)
 
+  np.save(FLAGS.knn_result+'/crossD.npy',crossD)
+  np.save(FLAGS.knn_result+'/crossI.npy',crossI)
+
+  
   write_knn(FLAGS.knn_result, decode_map, split_num=10, D=crossD, I=crossI, prefix='crossknn')
   print("cross_knn crossknn have saved to FLAGS.knn_result", FLAGS.knn_result)
 
