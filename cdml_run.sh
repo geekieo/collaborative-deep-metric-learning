@@ -48,15 +48,14 @@ check_update_task(){
 }
 
 check_timeout(){
-    pid=`ps -aux|grep "$python_env predict.py --model_dir"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
-        printf "%s WARNING $pid predict timeout.Try to kill it.\n" $(getDate) >>$logfile
-        kill -9 $pid
+        ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
+        check_update_task "%s WARNING predict timeout. killed."
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
     fi
-    pid=`ps -aux|grep "$python_env faiss_knn.py --embedding_file"|grep "Rl"|awk '{print $2}'`
     if [ $pid ]; then
-        printf "%s WARNING $pid faiss_knn timeout. update canceled.\n" $(getDate) >>$logfile
+        ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
+        check_update_task "%s WARNING knn timeout. killed."
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"上次 knn 计算未结束，本次计算取消。","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
         exit 0
     fi
@@ -98,9 +97,10 @@ if [ $? -eq 0 ];then
     check_training_task "TRAIN: copy ckpt -> serving_dir"
 
 else
-    check_timeout
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
+        # check_timeout
+        # check_update_task "UPDATA: check_timeout passed"
         printf "%s INFO UPDATE:Start processing .\n" $(getDate) >$logfile
         ## updating
         hadoop fs -rm -r $update_signal_file
