@@ -75,7 +75,7 @@ def load_embedding(filename):
 #   return decode_map
 
 
-def calc_knn(embeddings, q_embeddings=None, nearest_num=51, l2_norm=True, M=80, efConstruction=60,efSearch=30):
+def calc_knn(embeddings, q_embeddings=None, nearest_num=51, l2_norm=True, M=90, efConstruction=64,efSearch=32):
   """use faiss to calculate knn for recall online
   Arg:
     embeddings
@@ -106,14 +106,14 @@ def calc_knn(embeddings, q_embeddings=None, nearest_num=51, l2_norm=True, M=80, 
   # HNSW 调参
   # M 每个点需要与图中其他的点建立的连接数
   # 越大，召回率增加，查询响应时间降低，索引时间略微增加
-  # 推荐范围5-100，初始值80
+  # 推荐范围5-100，初始值90
   index = faiss.IndexHNSWFlat(factors, M)  
   # efConstruction 动态候选元素集合大小
   # 越大，构建图的质量越高，搜索的精度越高，索引时间线性增长
-  # 推荐范围32-100，初始值60
+  # 推荐范围32-100，初始值64
   index.hnsw.efConstruction = efConstruction 
   # efSearch 动态候选元素集合大小。
-  # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值30。
+  # 越大，召回率增加，查询时间线性增加，推荐范围16-100，初始值32。
   index.hnsw.efSearch = efSearch
 
   index.add(embeddings)   # 待召回向量
