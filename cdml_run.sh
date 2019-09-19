@@ -54,9 +54,9 @@ check_timeout(){
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
     fi
     if [ $pid ]; then
-        ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
+        ps -ef | grep "$python_env faiss_knn.py --embedding_file" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
         check_update_task "%s WARNING knn timeout. killed."
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"上次 knn 计算未结束，本次计算取消。","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
+        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout knn task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
         exit 0
     fi
     
@@ -99,8 +99,6 @@ if [ $? -eq 0 ];then
 else
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
-        # check_timeout
-        # check_update_task "UPDATA: check_timeout passed"
         printf "%s INFO UPDATE:Start processing .\n" $(getDate) >$logfile
         ## updating
         hadoop fs -rm -r $update_signal_file
@@ -108,6 +106,9 @@ else
         # hadoop fs 
         hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/features
         check_update_task "UPDATE: get serving_dir/dataset/features"
+
+        # check_timeout
+        # check_timeout "UPDATA: check_timeout passed"
 
         # serving_dir predict
         cd $project_dir 
