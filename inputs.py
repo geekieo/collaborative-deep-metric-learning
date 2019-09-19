@@ -136,7 +136,7 @@ class MPTripletPipe(object):
           except Exception as e:
             pass
           try:
-            file = open(file_name, 'r')
+            file = open(cowatch_file, 'r')
             file.seek(position)
           except Exception as e:
             logging.warning('subprocess:'+str(position)+str(e))
