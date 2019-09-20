@@ -27,7 +27,7 @@ from utils import get_local_time
 
 
 data= time.strftime("%Y%m%d", time.localtime())
-logfile="./logs/training."+data+".log"
+logfile="./logs/training."+".log"+data
 logging.basicConfig(
   filename=logfile,
   filemode="w",

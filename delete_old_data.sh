@@ -11,6 +11,6 @@ rm -rf /data/service/ai-algorithm-cdml/serving_dir/knn_result/$date??
 # 删除旧模型和日志
 date=`date -d "30 days ago" +"%Y%m%d"`
 rm -rf /data/service/ai-algorithm-cdml/serving_dir/models/$date??
-rm -rf /data/service/ai-algorithm-cdml/logs/update.$date.log
-rm -rf /data/service/ai-algorithm-cdml/logs/training.$date.log
-rm -rf /data/service/ai-algorithm-cdml/logs/cdmlTrainOrUpdate.$date.log
+rm -rf /data/service/ai-algorithm-cdml/logs/update.log.$date
+rm -rf /data/service/ai-algorithm-cdml/logs/training.log.$date
+rm -rf /data/service/ai-algorithm-cdml/logs/cdml_run.log.$date

@@ -23,7 +23,7 @@ training_signal_file=/user/zhoukang/video_clicks/cdml_training_signal.txt
 
 ip=`/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`
 date=`date +"%Y%m%d"`
-logfile=$project_dir/logs/cdmlTrainOrUpdate.$date.log
+logfile=$project_dir/logs/cdml_run.log.$date
 
 getDate(){ echo `date +"%Y-%m-%d|%H:%M:%S"`; }
 
@@ -59,7 +59,6 @@ check_timeout(){
         /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout knn task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
         exit 0
     fi
-    
 }
 
 hadoop fs -test -e $training_signal_file
