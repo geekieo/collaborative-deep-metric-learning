@@ -18,7 +18,7 @@ from online_data import read_features_txt
 from utils import get_latest_folder
 
 data= time.strftime("%Y%m%d", time.localtime())
-logfile="./logs/update."+data+".log"
+logfile="./logs/update."+".log"+data
 logging.basicConfig(
   filename=logfile,
   filemode="w",
