@@ -367,9 +367,9 @@ def main(args):
                       config=config,
                       eval_cowatches=eval_cowatches,
                       test_cowatches=test_cowatches,
-                      check_stop_epoch=4,
+                      check_stop_epoch=3,
                       best_eval_dist=1.0,
-                      eval_per_epoch = 100,
+                      eval_per_epoch=100,
                       require_improve_num=40)
     # TODO model test and backup. new model vs last model
     
