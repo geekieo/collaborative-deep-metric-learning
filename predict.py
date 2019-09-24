@@ -119,16 +119,22 @@ def main(args):
     if not FLAGS.ckpt_dir:
       ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=1)
       ckpt = tf.train.latest_checkpoint(ckpt_dir)
-      if not os.path.exists(ckpt + ".meta"):
-        ckpt_dir_2 = get_latest_folder(FLAGS.model_dir,nst_latest=2)
-        ckpt_2 = tf.train.latest_checkpoint(ckpt_dir_2)
-        ckpt = ckpt_2
-        if not os.path.exists(ckpt + ".meta"):
-          raise IOError("Prediction main Cannot find %s.meta or %s.meta" % (ckpt, ckpt_2))
+      meta_file = ckpt + ".meta"
+      trans_end_signal = ckpt_dir+"/transend.signal"
+      if not os.path.exists(meta_file) or not os.path.exists(trans_end_signal):
+        logging.warn("Prediction main Cannot find %s or %s"%(meta_file,trans_end_signal))
+        ckpt_dir = get_latest_folder(FLAGS.model_dir,nst_latest=2)
+        ckpt = tf.train.latest_checkpoint(ckpt_dir)
+        meta_file_2 = ckpt + ".meta"
+        trans_end_signal_2 = ckpt_dir+"/transend.signal"
+        if not os.path.exists(meta_file_2) or not os.path.exists(trans_end_signal_2):
+          logging.warn("Prediction main Cannot find %s or %s"%(meta_file_2,trans_end_signal_2))
+          raise IOError("Prediction main Cannot find %s, %s, %s or %s."%(meta_file,trans_end_signal,meta_file_2,trans_end_signal_2))
     else:
       ckpt = tf.train.latest_checkpoint(ckpt_dir)
-      if not os.path.exists(ckpt + ".meta"):
-          raise IOError("Prediction main Cannot find %s.meta" % (ckpt))
+      meta_file = ckpt + ".meta"
+      if not os.path.exists(meta_file):
+          raise IOError("Prediction main Cannot find %s" % (meta_file))
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
