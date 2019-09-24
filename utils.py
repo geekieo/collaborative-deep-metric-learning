@@ -1,4 +1,9 @@
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
+'''
+@Description: 可以在多个模块复用的小函数
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 import time
 import os
 
@@ -13,6 +18,7 @@ def exe_time(func):
         print("@%.3fs taken for {%s}" % (time.time() - t0, func.__name__))
         return back
     return newFunc
+
 
 def find_class_by_name(name, modules):
   """Searches the provided modules for the named class and returns it."""
@@ -44,7 +50,7 @@ def get_latest_folder(checkpoints_dir, nst_latest=1):
     ckpt_dir = checkpoints_dir
     print('没有获得第 %d 新的文件夹路径，返回入参 %s'%(nst_latest,ckpt_dir))
   return ckpt_dir
-
+ 
 
 def clean_file_by_time(log_dir, keepdays=7):
   """目录内部，文件将按时间无差别删除
