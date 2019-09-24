@@ -38,17 +38,17 @@ class BaseModel(object):
     raise NotImplementedError()
 
 
-class VeNet(BaseModel):
-  """Visual Embedding Network
-  
-  The model is with visual input and embedded output."""
+class VNet(BaseModel):
+  """Visual Feature Network
+
+  The model is with visual vector input and vector output."""
 
   def create_model(self, model_input, output_size=256):
-    """Creates a embedding network with visual feature input.
+    """Creates a neural network with visual feature input.
     Return the inference of the model_input.
     Args:
       model_input: matrix of input features.float.dimension:[batch_size*channel_num, feature_size]
-      output_size: size of output embedding. 
+      output_size: size of output vector. 
     Returns:
       A dictionary with a tensor containing the output of the
       model in the 'output' key. The dimensions of the tensor are
@@ -62,16 +62,18 @@ class VeNet(BaseModel):
       return {"layer_1":layer_1, "layer_2":layer_2,"l2_norm": l2_norm}
 
 
-class VedeFusionNet():
-  """Visual Embedding and Doc Embedding Network
+class MultiplyNet():
+  """A Simple Feautre Fusion Network
+  Fusion by multiply
   近邻结果相关度一般
   """
+
   def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
           a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
+      output_size: size of output vector. """
     with tf.name_scope(self.__class__.__name__):
       # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
@@ -84,20 +86,22 @@ class VedeFusionNet():
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
       # fusion by multiply
-      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
-      l2_norm = tf.nn.l2_normalize(layer_funsion, axis=-1,name='model_output')
+      layer_fusion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_fusion")
+      l2_norm = tf.nn.l2_normalize(layer_fusion, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
-class VedeMlpNet():
-  """Visual Embedding and Doc Embedding Network
+class MlpNet():
+  """A Failed  Feautre Fusion Network
+  Fusion by multiply, and go through a DNN
   近邻结果相关度较差
   """
+
   def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
           a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
+      output_size: size of output vector. """
     with tf.name_scope(self.__class__.__name__):
       # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
@@ -110,25 +114,26 @@ class VedeMlpNet():
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
       # multiply fusion
-      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
+      layer_fusion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_fusion")
       # MLP
-      layer_funsion_1 = fully_connected(layer_funsion, 600, bias_init=0.1, name="layer_funsion_1")
-      layer_funsion_2 = fully_connected(layer_funsion_1, 256, bias_init=0.1, name="layer_funsion_2")
-      l2_norm = tf.nn.l2_normalize(layer_funsion_2, axis=-1,name='model_output')
+      layer_fusion_1 = fully_connected(layer_fusion, 600, bias_init=0.1, name="layer_fusion_1")
+      layer_fusion_2 = fully_connected(layer_fusion_1, 256, bias_init=0.1, name="layer_fusion_2")
+      l2_norm = tf.nn.l2_normalize(layer_fusion_2, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
 
-class VedeResNet():
-  """Visual Embedding and Doc Embedding Network
+class ResNet():
+  """A Well Work Feautre Fusion Network. 
   高层网络相同节点的各层之间使用残差连接
   近邻结果相关度很好
   """
+
   def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
           a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
+      output_size: size of output vector. """
     with tf.name_scope(self.__class__.__name__):
       # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
@@ -141,27 +146,28 @@ class VedeResNet():
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
       # multiply fusion
-      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
+      layer_fusion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_fusion")
       # residual MLP
-      layer_res_1 = layer_funsion + layer_visual_2 + layer_doc_2
-      layer_funsion_1 = fully_connected(layer_res_1, 256, bias_init=0.1, name="layer_funsion_1")
-      layer_res_2 = layer_res_1 + layer_funsion_1
-      layer_funsion_2 = fully_connected(layer_res_2, 256, bias_init=0.1, name="layer_funsion_2")
-      layer_res_3 = layer_res_2 + layer_funsion_2
+      layer_res_1 = layer_fusion + layer_visual_2 + layer_doc_2
+      layer_fusion_1 = fully_connected(layer_res_1, 256, bias_init=0.1, name="layer_fusion_1")
+      layer_res_2 = layer_res_1 + layer_fusion_1
+      layer_fusion_2 = fully_connected(layer_res_2, 256, bias_init=0.1, name="layer_fusion_2")
+      layer_res_3 = layer_res_2 + layer_fusion_2
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
 
-class VedeDenseNet():
-  """Visual Embedding and Doc Embedding Network
+class DenseNet():
+  """A Debugging Feautre Fusion Network.
   高层网络相同节点的各层之间使用稠密连接
   """
+
   def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension:[batch_size*channel_num, feature_size].
           a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
+      output_size: size of output vector. """
     with tf.name_scope(self.__class__.__name__):
       model_input = tf.expand_dims(model_input,1) #增加通道维度，用于融合时通道叠加
       # visual block
@@ -175,9 +181,9 @@ class VedeDenseNet():
       layer_doc_1 = fully_connected(doc_input, 400, bias_init=0.1, name="layer_doc_1")
       layer_doc_2 = fully_connected(layer_doc_1, 256, bias_init=0.1, name="layer_doc_2")
       # multiply fusion
-      layer_funsion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_funsion")
-      # after funsion
-      layer_dense_0_c = tf.concat([layer_visual_2, layer_doc_2, layer_funsion],1,name="layer_dense_concat")
+      layer_fusion = tf.multiply(layer_visual_2, layer_doc_2, name="multiply_fusion")
+      # after fusion
+      layer_dense_0_c = tf.concat([layer_visual_2, layer_doc_2, layer_fusion],1,name="layer_dense_concat")
       print(layer_dense_0_c)
       layer_dense_1 = fully_connected(layer_dense_0_c, 256, name="layer_dense_1") #shape should be: BCW
       layer_dense_1_c = tf.concat([layer_dense_0_c, layer_dense_1],1,name="layer_dense_concat")
@@ -196,17 +202,18 @@ class VedeDenseNet():
       l2_norm = tf.nn.l2_normalize(layer_trans, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
       
-class VedeResNetV2():
-  """Visual Embedding and Doc Embedding Network
+class ResNetV2():
+  """A Debugging Wider ResNet. 
   与V1对比，底层增加2路浅层网络，4路输出交叉融合，
   高层网络相同节点的各层之间使用残差连接
   """
+  
   def create_model(self, model_input, output_size=256):
     """
     Args:
       model_input: matrix of input features.dimension: [batch_size*channel_num, feature_size].
           a feature is concatenate visual feature with doc feature ,and it's float.
-      output_size: size of output embedding. """
+      output_size: size of output vector. """
     with tf.name_scope(self.__class__.__name__):
       # visual block
       visual_input = model_input[:,:1500]   # visual feature vector
@@ -220,18 +227,18 @@ class VedeResNetV2():
       layer_doc_1_1 = fully_connected(doc_input, 400,  bias_init=.1, name="layer_doc_1_1")
       layer_doc_1_2 = fully_connected(layer_doc_1_1, 256, bias_init=.1, name="layer_doc_1_2")
       layer_doc_2_1 = fully_connected(doc_input, 256, bias_init=.1, name="layer_doc_2_1")
-      # multiply funsion
-      layer_funsion_1 = tf.multiply(layer_visual_1_2, layer_doc_1_2,"multiply_funsion_1")
-      layer_funsion_2 = tf.multiply(layer_visual_1_2, layer_doc_2_1,"multiply_funsion_2")
-      layer_funsion_3 = tf.multiply(layer_visual_2_1, layer_doc_1_2,"multiply_funsion_3")
-      layer_funsion_4 = tf.multiply(layer_visual_2_1, layer_doc_2_1,"multiply_funsion_4")
+      # multiply fusion
+      layer_fusion_1 = tf.multiply(layer_visual_1_2, layer_doc_1_2,"multiply_fusion_1")
+      layer_fusion_2 = tf.multiply(layer_visual_1_2, layer_doc_2_1,"multiply_fusion_2")
+      layer_fusion_3 = tf.multiply(layer_visual_2_1, layer_doc_1_2,"multiply_fusion_3")
+      layer_fusion_4 = tf.multiply(layer_visual_2_1, layer_doc_2_1,"multiply_fusion_4")
       # residual block
-      layer_res_1 = layer_funsion_1 + layer_funsion_2 + layer_funsion_3 + layer_funsion_4 +\
+      layer_res_1 = layer_fusion_1 + layer_fusion_2 + layer_fusion_3 + layer_fusion_4 +\
                     layer_visual_1_2 + layer_visual_2_1 + layer_doc_1_2 + layer_doc_2_1
-      layer_funsion_1 = fully_connected(layer_res_1, 256, name="layer_funsion_1")
-      layer_res_2 = layer_res_1 + layer_funsion_1
-      layer_funsion_2 = fully_connected(layer_res_2, 256, name="layer_funsion_2")
-      layer_res_3 = layer_res_2 + layer_funsion_2
+      layer_fusion_1 = fully_connected(layer_res_1, 256, name="layer_fusion_1")
+      layer_res_2 = layer_res_1 + layer_fusion_1
+      layer_fusion_2 = fully_connected(layer_res_2, 256, name="layer_fusion_2")
+      layer_res_3 = layer_res_2 + layer_fusion_2
       l2_norm = tf.nn.l2_normalize(layer_res_3, axis=-1,name='model_output')
       return {"l2_norm": l2_norm}
 
