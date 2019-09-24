@@ -47,23 +47,20 @@ check_update_task(){
     fi
 }
 
-check_timeout(){
-    if [ $pid ]; then
-        ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
-        check_update_task "%s WARNING predict timeout. killed."
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout predict task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
-    fi
-    if [ $pid ]; then
-        ps -ef | grep "$python_env faiss_knn.py --embedding_file" | grep -v grep | awk '{print $2}' | xargs kill #杀掉所有predict进程
-        check_update_task "%s WARNING knn timeout. killed."
-        /usr/bin/curl -H "Content-Type: application/json" -X POST  --data '{"ars":"zhoukang@ifeng.com, wengjy1@ifeng.com","txt":"Timeout knn task killed","sub":"CDML model service"}' http://rtd.ifeng.com/rotdam/mail/v0.0.1/send    
-        exit 0
-    fi
+check_train_timeout(){
+    ps -ef | grep "$python_env online_data.py --base_save_dir" | grep -v grep | awk '{print $2}' | xargs kill
+    ps -ef | grep "$python_env train.py --train_dir" | grep -v grep | awk '{print $2}' | xargs kill
+}
+
+check_update_timeout(){
+    ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill
+    ps -ef | grep "$python_env faiss_knn.py --embedding_file" | grep -v grep | awk '{print $2}' | xargs kill
 }
 
 hadoop fs -test -e $training_signal_file
 if [ $? -eq 0 ];then
     printf "%s INFO TRAIN:Start processing .\n" $(getDate) >$logfile
+    check_train_timeout
     ## training
     hadoop fs -rm -r $training_signal_file
     check_training_task "TRAIN: delete training signal file"
@@ -72,6 +69,7 @@ if [ $? -eq 0 ];then
     check_training_task "TRAIN: get training_dir/dataset/click_records"
     hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/features
     check_training_task "TRAIN: get training_dir/dataset/features"
+
     # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
@@ -93,21 +91,22 @@ if [ $? -eq 0 ];then
     cd $serving_dir/models/$cur_date
     ckpt=`ls -lt | grep ckpt | head -1 |awk '{print $9}' |awk -F'.' '{print $2}'`
     printf "model_checkpoint_path: \"$serving_dir/models/$cur_date/model.$ckpt\"" > checkpoint
+    # 部署完成信号
+    trans_end_signal=$serving_dir/models/$cur_date/transend.signal
+    touch $trans_end_signal
     check_training_task "TRAIN: copy ckpt -> serving_dir"
 
 else
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
         printf "%s INFO UPDATE:Start processing .\n" $(getDate) >$logfile
+        check_update_timeout
         ## updating
         hadoop fs -rm -r $update_signal_file
         check_update_task "UPDATE: delete update signal file"
         # hadoop fs 
         hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $serving_dir/dataset/features
         check_update_task "UPDATE: get serving_dir/dataset/features"
-
-        # check_timeout
-        # check_timeout "UPDATA: check_timeout passed"
 
         # serving_dir predict
         cd $project_dir 
