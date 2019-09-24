@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+'''
+@Description: evaluate modual
+@Date: 2019-07-10 17:31:26
+@Author: Weng Jingyu
+'''
 # -*- coding:utf-8 -*-
 import numpy as np
 from parse_data import get_unique_watched_guids
@@ -48,27 +54,45 @@ class Evaluation():
       eval_cowatches.append(eval_cowatch)
     return eval_features, eval_cowatches
 
-  def mean_dist(self, embeddings, cowatches):
-    """ mean cosine distance of eval cowatch embeddings
+  def mean_dist(self, vectors, cowatches):
+    """ mean distance of eval cowatch vectors
     only work under the same set of hyperparameters
-    embeddings are l2 normalized.
-    cosine_dist = a·b/|a||b| = a·b = Σ(x_a*x_b)
+    vectors are l2 normalized.
+    dist = Σ(a-b)**2 = Σ(x_a-x_b)**2
     Arg:
-      embeddings: shape (num_embed, size_embed)
+      vectors: shape (num_vector, size_vector)
       cowatches: shape (num_cowatch, 2)
     """
     try:
-      co_embeddings = embeddings[cowatches]  # shape (num_cowatch, 2, size_embed)
+      co_vectors = vectors[cowatches]  # shape (num_cowatch, 2, size_vector)
     except Exception as e:
       logging.error("Evaluation.mean_dist "+str(e))
-    distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
+    # pos_dist = tf.reduce_sum(tf.square((anchors - positives)), axis=-1, name="pos_dist")
+    distances = (co_vectors[:,0,:] - co_vectors[:,1,:])**2
+    distances = np.sum(distances, axis=-1)
+    return np.mean(distances)
+
+  def mean_cos_dist(self, vectors, cowatches):
+    """ mean cosine distance of eval cowatch vectors
+    only work under the same set of hyperparameters
+    vectors are l2 normalized.
+    cosine_dist = a·b/|a||b| = a·b = Σ(x_a*x_b)
+    Arg:
+      vectors: shape (num_vector, size_vector)
+      cowatches: shape (num_cowatch, 2)
+    """
+    try:
+      co_vectors = vectors[cowatches]  # shape (num_cowatch, 2, size_vector)
+    except Exception as e:
+      logging.error("Evaluation.mean_dist "+str(e))
+    distances = co_vectors[:,0,:] * co_vectors[:,1,:]
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
 
   def knn():
     pass
 
-  def nDCG(self, embeddings, cowatches):
+  def nDCG(self, vectors, cowatches):
     pass
 
   def MAP(self):
