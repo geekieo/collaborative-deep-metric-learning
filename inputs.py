@@ -143,6 +143,7 @@ class MPTripletPipe(object):
 
   def get_batch(self):
     '''get batch training data with format [arc, pos, neg]
+    TODO 增加多进程队列异步生成 batch
     Retrun:
       3-D array of training triplets, dtype np.float32
     '''
