@@ -14,6 +14,7 @@ import subprocess
 import traceback
 import numpy as np
 import json
+import logging
 import tensorflow as tf
 from tensorflow import flags
 
@@ -26,7 +27,9 @@ serving_dir = "/data/service/ai-algorithm-cdml/serving_dir/"
 predict_result = serving_dir+"/predict_result/"
 embedding_file = predict_result+'/output.npy'
 decode_map_file = predict_result+'/decode_map.json'
-pred_feature_file = predict_result+'features.npy'
+pred_feature_file = predict_result+'/features.npy'
+pred_feature_info = serving_dir+'/dataset/feature.info'
+
 knn_result = serving_dir+'/knn_result/newresult'
 
 FLAGS = flags.FLAGS
@@ -36,13 +39,14 @@ flags.DEFINE_string("decode_map_file",decode_map_file,
     "向量文件索引到 guid 的映射文件")
 flags.DEFINE_string("pred_feature_file",pred_feature_file,
     "原始特征向量文件")
+flags.DEFINE_string("pred_feature_info",pred_feature_info,
+    "原始特征向量文件")
 flags.DEFINE_integer("nearest_num",81,
     "embedding 的近邻个数")
 flags.DEFINE_integer("desim_nearest_num",26,
     "原始特征向量近邻个数")
 flags.DEFINE_string("knn_result", knn_result, 
-    "Top-k 结果保存地址")
-
+    "knn 结果保存地址")
 
 
 def load_decode_map(filename):
@@ -178,7 +182,7 @@ def desim_progress(progress_i, mask_dict, eI_patch, fI_patch):
   mask_dict[progress_i] = mask_patch
 
 
-def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=None):
+def iter_desim_mp(eI, fI, fD, fD_threshold=1.4, fI_end=31, process_num=22):
   begin = time.time()
   fI = fliter_fI(fI, fD, fD_threshold)
   eI, fI = add_invalid_row(eI, fI)
@@ -304,18 +308,15 @@ def strict_knn(embeddings, fI, fD):
   直接对 e 求近邻
   """
   print("strict_knn calc_knn embeddings...")
-  eD, eI = calc_knn(embeddings, nearest_num=FLAGS.nearest_num)
-  np.save(FLAGS.knn_result+'/eD.npy',eD)
-  np.save(FLAGS.knn_result+'/eI.npy',eI)
+  strictD, strictI = calc_knn(embeddings, nearest_num=FLAGS.nearest_num)
+  np.save(FLAGS.knn_result+'/strictD.npy',strictD)
+  np.save(FLAGS.knn_result+'/strictI.npy',strictI)
   
   ## 去重
-  # eI = desim(eI, fI)
-  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
-  eI = iter_desim_mp(eI, fI, fD)
-  np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
-  
+  strictI_desim = iter_desim_mp(strictI, fI, fD)
+  np.save(FLAGS.knn_result+'/strictI_desim.npy',strictI_desim)
   # 解析并保存最终结果
-  write_knn(FLAGS.knn_result, split_num=10, D=eD, I=eI)
+  write_knn(FLAGS.knn_result, split_num=10, D=strictD, I=strictI_desim, prefix='strict_knn')
   print("strict_knn knn_result have saved to FLAGS.knn_result", FLAGS.knn_result)
 
 
@@ -335,62 +336,68 @@ def cross_knn(embeddings, doc_location, fI, fD):
   np.save(FLAGS.knn_result+'/crossI.npy',crossI)
 
 
-  write_knn(FLAGS.knn_result, split_num=10, D=crossD, I=crossI, prefix='crossknn')
+  # write_knn(FLAGS.knn_result, split_num=10, D=crossD, I=crossI, prefix='cross_knn_ori')
   print("cross_knn crossknn have saved to FLAGS.knn_result", FLAGS.knn_result)
 
   ## 去重
-  # eI = desim(eI, fI)
-  # np.save(FLAGS.knn_result+'/eI_desim.npy',eI)
   crossI_desim = iter_desim_mp(crossI, fI, fD)
   np.save(FLAGS.knn_result+'/crossI_desim.npy', crossI_desim)
 
 
   # 解析并保存最终结果 TODO 检查 crossD 是否正确
-  write_knn(FLAGS.knn_result, split_num=10, D=crossD, I=crossI, prefix='crossknndesim')
+  write_knn(FLAGS.knn_result, split_num=10, D=crossD, I=crossI, prefix='cross_knn')
   print("cross_knn crossknn have saved to FLAGS.knn_result", FLAGS.knn_result)
+
+
+def funcname(self, parameter_list):
+  pass
 
 
 # ============================ main ============================
 def main(args):
-  global_begin=time.time()
-  print("FLAGS.knn_result " + str(FLAGS.knn_result))
-  print("FLAGS.decode_map_file " + str(decode_map_file))
-  print("FLAGS.embedding_file " + str(embedding_file))
+  try:
+    global_begin=time.time()
+    print("FLAGS.knn_result " + str(FLAGS.knn_result))
+    print("FLAGS.decode_map_file " + str(decode_map_file))
+    print("FLAGS.embedding_file " + str(embedding_file))
+    print("FLAG.pred_feature_info" + str(pred_feature_info))
+    DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
+    print("cross_knn decode_map len", len(DECODE_MAP))
 
-  DECODE_MAP, _ = load_decode_map(FLAGS.decode_map_file)
-  print("cross_knn decode_map len", len(DECODE_MAP))
+    subprocess.call('mkdir -p {}'.format(FLAGS.knn_result), shell=True)
 
-  subprocess.call('mkdir -p {}'.format(FLAGS.knn_result), shell=True)
+    embeddings = load_embedding(FLAGS.embedding_file)
+    print("faiss_knn embedding_file shape", embeddings.shape)
+    features = load_embedding(FLAGS.pred_feature_file)
+    print("faiss_knn pred_feature_file shape", features.shape)
 
-  embeddings = load_embedding(FLAGS.embedding_file)
-  print("faiss_knn embedding_file shape", embeddings.shape)
-  features = load_embedding(FLAGS.pred_feature_file)
-  print("faiss_knn pred_feature_file shape", features.shape)
+    print('faiss_knn calc_knn features...')
+    desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
+    print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
+    fD, fI = calc_knn(features, nearest_num=desim_nearest_num, l2_norm=True, M=80, efConstruction=60, efSearch=30)
+    np.save(FLAGS.knn_result+'/fD.npy',fD)
+    np.save(FLAGS.knn_result+'/fI.npy',fI)
 
-  print('faiss_knn calc_knn features...')
-  desim_nearest_num = FLAGS.desim_nearest_num if FLAGS.nearest_num > FLAGS.desim_nearest_num else FLAGS.nearest_num
-  print('nearest_num:{}, desim_nearest_num:{}'.format(FLAGS.nearest_num, desim_nearest_num))
-  fD, fI = calc_knn(features, nearest_num=desim_nearest_num, l2_norm=True, M=80, efConstruction=60, efSearch=30)
-  np.save(FLAGS.knn_result+'/fD.npy',fD)
-  np.save(FLAGS.knn_result+'/fI.npy',fI)
-
-  fD = np.load(FLAGS.knn_result+'/fD.npy')
-  fI = np.load(FLAGS.knn_result+'/fI.npy')
-  print('load eD eI fD fI')
+    fD = np.load(FLAGS.knn_result+'/fD.npy')
+    fI = np.load(FLAGS.knn_result+'/fI.npy')
+    print('load fD fI')
 
 
-  # strict_knn(embeddings, fI, fD)
-  doc_location = 343455 #TODO 从文件读它
-  if doc_location > 0 and doc_location<embeddings.shape[0]:
-    cross_knn(embeddings, doc_location, fI, fD)
-    
-  # 备份 decode_map 至 knn_result
-  res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.knn_result+'/decode_map.json'),
-    shell=True,close_fds=True,bufsize=-1,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-  print("cross_knn backup decode_map by subprocess.Popen: ", res)
-  res.wait()
+    # strict_knn(embeddings, fI, fD)
+    doc_location = 343455 #TODO 从文件读它
+    if doc_location > 0 and doc_location<embeddings.shape[0]:
+      cross_knn(embeddings, doc_location, fI, fD)
+      
+    # 备份 decode_map 至 knn_result
+    res = subprocess.Popen('cp %s %s'%(FLAGS.decode_map_file, FLAGS.knn_result+'/decode_map.json'),
+      shell=True,close_fds=True,bufsize=-1,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    print("cross_knn backup decode_map by subprocess.Popen: ", res)
+    res.wait()
 
-  print("faiss_knn cost: %fs"%(time.time()-global_begin))
+    print("faiss_knn cost: %fs"%(time.time()-global_begin))
+  except:
+    print(traceback.format_exc())
+    raise
 
 if __name__ == '__main__':
   tf.app.run()

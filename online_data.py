@@ -29,10 +29,12 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("base_save_dir", '/data/service/ai-algorithm-cdml/training_dir/', 
     "训练文件保存的根目录")
-flags.DEFINE_string("watch_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/click_records",
+flags.DEFINE_string("training_click_records", "/data/service/ai-algorithm-cdml/training_dir/dataset/click.records",
     "用于训练的用户点击新闻id文件")
-flags.DEFINE_string("watch_feature_file", "/data/service/ai-algorithm-cdml/training_dir/dataset/features",
+flags.DEFINE_string("training_dense_feature", "/data/service/ai-algorithm-cdml/training_dir/dataset/dense.feature",
     "用于训练的特征向量文件")
+# flags.DEFINE_string("training_feature_info", "/data/service/ai-algorithm-cdml/training_dir/dataset/feature.info",
+#     "用于训练的特征信息文件")
 flags.DEFINE_integer("feature_size", 1628,
     "特征长度")
 flags.DEFINE_integer("threshold", 1,
@@ -328,8 +330,8 @@ def gen_training_data(watch_file, feature_file,threshold=3, base_save_dir='/.',s
 
 def main(args):
 
-  gen_training_data(watch_file=FLAGS.watch_file,
-                    feature_file=FLAGS.watch_feature_file,
+  gen_training_data(watch_file=FLAGS.training_click_records,
+                    feature_file=FLAGS.training_feature,
                     threshold=FLAGS.threshold,
                     base_save_dir=FLAGS.base_save_dir,
                     split_num=FLAGS.split_num,
