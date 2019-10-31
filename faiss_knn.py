@@ -90,7 +90,9 @@ def calc_knn(embeddings, q_embeddings=None, nearest_num=51, l2_norm=True, M=80, 
     l2_norm: NOTE embeddings should be L2 normalized, otherwise it will get wrong result in HNSW method! 
   Return:
     D: D for distance. 对于 q_embeddings 中每个向量，在 embeddings 中的近邻索引 
-       向量在L2归一化后 euclid_dist = 2(1-cosine_dist)
+      向量在L2归一化后 
+      内积：ab = |a||b|cos_dist = cos_dist
+      欧氏距离：euclid_dist = sqrt(a**2+b**2-2ab) =sqrt(2(1-cos_dist)) < sqrt(2)
     I：I for index. 与 D 对应的每个近邻的与 query 向量的距离
   """
   embeddings = embeddings.astype(np.float32)
