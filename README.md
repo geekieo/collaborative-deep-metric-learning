@@ -6,6 +6,12 @@
 
 # Collaborative Deep Metric Learning for Video Recommendation
 
+## 切到 v1.0 稳定版
+
+```shell
+git checkout v1.0
+```
+
 ## requirement
 
 |lib |command |
