@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow import logging
 from tensorflow import flags
 import json
+import time
 import traceback
 
 from online_data import read_features_txt
@@ -25,7 +26,7 @@ flags.DEFINE_string("feature_file", "/home/wengjy1/cdml/tests/visual_features.tx
     "待预测的原始向量文件")
 flags.DEFINE_string("output_dir", "/data/wengjy1/cdml_1_unique/checkpoints",
     "模型输出向量的保存路径")
-flags.DEFINE_integer("pred_batch_size",200000,
+flags.DEFINE_integer("pred_batch_size",100000,
     "每次预测的向量数")
 
 class Prediction():
@@ -116,8 +117,9 @@ def main(args):
     logging.info("ckpt is "+ckpt)
 
     logging.info("predict read_features_txt reading ...")
+    begin = time.time()
     features, _, decode_map = read_features_txt(FLAGS.feature_file)
-    logging.info("predict read_features_txt success!")
+    logging.info("predict read_features_txt success! Cost: %fs"%(time.time()-begin))
     # predict and write
     predictor = Prediction(ckpt=ckpt, config=config, loglevel=tf.logging.DEBUG)
     predictor.run_features(features=features, batch_size=FLAGS.pred_batch_size, output_dir=FLAGS.output_dir)
