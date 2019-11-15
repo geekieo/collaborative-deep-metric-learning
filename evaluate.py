@@ -13,7 +13,12 @@ def l2_normalize(a, axis=-1, order=2):
 
 class Evaluation():
   def __init__(self, features, cowatches):
-    # NOTE features is very large
+    """
+    features: numpy array of original feautres
+      NOTE features can be very large
+    cowatches: the elements are guid's indexes, the index can be translated
+      into guid through decode_map
+    """
     try:
       self.features, self.cowatches = self._rencode(features, cowatches)
     except Exception as e:
@@ -56,7 +61,7 @@ class Evaluation():
       co_embeddings = embeddings[cowatches]  # shape (num_cowatch, 2, size_embed)
     except Exception as e:
       logging.error("Evaluation.mean_dist "+str(e))
-    distances = co_embeddings[:,0,:] * co_embeddings[:,1,:]
+    distances =(co_embeddings[:,0,:] - co_embeddings[:,1,:])**2 
     distances = np.sum(distances, axis=-1)
     return np.mean(distances)
 
@@ -68,3 +73,11 @@ class Evaluation():
 
   def MAP(self):
     pass
+
+class KnnEvaluation():
+  def __init__(self, cowatches, I):
+    """
+    I: Indexes faiss knn 召回结果
+    """
+    self.cowatches = cowatches
+    self.I = I

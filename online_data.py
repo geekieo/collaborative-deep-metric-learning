@@ -3,6 +3,7 @@
 Features are dict. Guids are list.
 """
 import sys
+import subprocess
 import os
 import numpy as np
 import json
@@ -38,7 +39,7 @@ flags.DEFINE_string("base_save_dir", '/data/wengjy1/',
     "训练文件保存的根目录")
 flags.DEFINE_integer("split_num", 10,
     "训练文件中 cowatch 文件的切分个数")
-flags.DEFINE_boolean("unique", True,
+flags.DEFINE_boolean("unique", False,
     "是否对 cowatch 训练集做唯一化处理，即一种 cowatch 仅出现一次，这种唯一化不区分内部元素的顺序")
 
 
@@ -50,7 +51,11 @@ def read_features_txt(filename, drop_record=10):
   Arg:
     filename: string
   """
-  line_num = int(os.popen('wc -l '+filename).read().split()[0])
+  #line_num = int(os.popen('wc -l '+filename).read().split()[0])
+  res = subprocess.Popen('wc -l '+filename,shell=True,close_fds=True,bufsize=-1,
+    stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  line_num = int(res.stdout.readline().split()[0])
+  res.wait()
   logging.debug('read_features_txt line_num:'+str(line_num))
   features = np.zeros((line_num, 1500), np.float32)
   encode_map = {}
@@ -193,7 +198,7 @@ def get_cowatches(watch_file, feature_file):
 
 def select_cowatches(cowatches, graph,threshold=3, unique=False):
   cowatches = select_cowatch(graph, threshold, cowatches, unique=unique)
-  logging.info("cowatches num:"+str(len(cowatches)))
+  logging.info("select_cowatches threshold:%d unique:%s. Selected cowatches num:%d"%(threshold, unique, len(cowatches)))
   logging.debug("unique_guids in cowatches:"+str(len(exe_time(get_unique_watched_guids)(cowatches))))
   return cowatches
 

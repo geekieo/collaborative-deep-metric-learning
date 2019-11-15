@@ -6,7 +6,7 @@ source /data/bigdata/env.sh
 
 python_env=/data/anaconda2/envs/wengjy1/bin/python
 week=`date +"%w"`
-project_dir=/data/service/cdml
+project_dir=/data/service/ai-algorithm-cdml
 training_dir=$project_dir/training_dir
 serving_dir=$project_dir/serving_dir
 predict_dir=$serving_dir/predict_result
@@ -46,9 +46,20 @@ check_update_task()
     fi
 }
 
+check_train_timeout(){
+    ps -ef | grep "$python_env online_data.py --base_save_dir" | grep -v grep | awk '{print $2}' | xargs kill
+    ps -ef | grep "$python_env train.py --train_dir" | grep -v grep | awk '{print $2}' | xargs kill
+}
+check_update_timeout(){
+    ps -ef | grep "$python_env predict.py --model_dir" | grep -v grep | awk '{print $2}' | xargs kill
+    ps -ef | grep "$python_env faiss_knn.py --embedding_file" | grep -v grep | awk '{print $2}' | xargs kill
+}
+
+
 hadoop fs -test -e $training_signal_file
 if [ $? -eq 0 ];then
     printf "%s INFO TRAIN:Start processing .\n" $(getDate) >$logfile
+    check_train_timeout
     ## training
     hadoop fs -rm -r $training_signal_file
     check_training_task "TRAIN: delete training signal file"
@@ -57,6 +68,8 @@ if [ $? -eq 0 ];then
     check_training_task "TRAIN: get training_dir/dataset/watch_history"
     hadoop fs -getmerge /user/zhoukang/tables/cdml_video_vec $training_dir/dataset/features
     check_training_task "TRAIN: get training_dir/dataset/features"
+
+
     # train model
     cd $project_dir
     $python_env online_data.py --base_save_dir $training_dir/dataset/ \
@@ -66,7 +79,7 @@ if [ $? -eq 0 ];then
     # 删除旧模型
     rm -rf $training_dir/checkpoints/*
     # 训练新模型
-    $python_env train.py --train_dir $training_dir/dataset/cdml_1_unique \
+    $python_env train.py --train_dir $training_dir/dataset/cdml_1 \
                          --checkpoint_dir $training_dir/checkpoints
     check_training_task "TRAIN: train"
     # TODO 新旧模型测试 看测试结果给部署信号，旧模型数<2 直接给部署信号
@@ -84,6 +97,7 @@ else
     hadoop fs -test -e $update_signal_file
     if [ $? -eq 0 ];then
         printf "%s INFO UPDATE:Start processing .\n" $(getDate) >$logfile
+        check_update_timeout
         ## updating
         hadoop fs -rm -r $update_signal_file
         check_update_task "UPDATE: delete update signal file"

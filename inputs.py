@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 """Provides input pipe, which can get input data tensors for models."""
 import os
+import subprocess
 import time
 from multiprocessing import Pool
 from multiprocessing import Manager
@@ -75,7 +76,11 @@ class MPTripletPipe(object):
   def _get_cowatch_num(self):
     cowatch_num = 0
     for file in self.cowatch_files:
-      cowatch_num += int(os.popen('wc -l '+file).read().split()[0])
+#      cowatch_num += int(os.popen('wc -l '+file).read().split()[0])
+      res = subprocess.Popen('wc -l '+file,shell=True,close_fds=True,bufsize=-1,
+        stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+      cowatch_num += int(res.stdout.readline().split()[0])
+      res.wait()
     return cowatch_num
 
   def create_pipe(self, num_epochs, batch_size, queue_length=2 ** 14):
